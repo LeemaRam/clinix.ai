@@ -355,7 +355,7 @@ const Settings = () => {
                       disabled={languageLoading}
                     >
                       <option value="en">{t('settings.english')}</option>
-                      <option value="es">{t('settings.spanish')}</option>
+                      <option value="ur">{t('settings.urdu')}</option>
                     </select>
                   </div>
                 </form>

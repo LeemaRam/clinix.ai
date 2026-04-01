@@ -20,7 +20,7 @@ def seed_super_admin():
     password = 'admin'
     full_name = 'Super Admin'
     role = 'super_admin'
-    language = 'es'
+    language = 'en'
     phone = ''
     is_active = True
     now = datetime.utcnow()

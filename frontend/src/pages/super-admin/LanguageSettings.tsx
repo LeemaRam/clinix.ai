@@ -45,19 +45,7 @@ const LanguageSettings: React.FC = () => {
   // Available speech recognition languages
   const availableSpeechLanguages = [
     { code: 'en-US', name: 'English (US)' },
-    { code: 'es-ES', name: 'Spanish (Spain)' },
-    { code: 'es-MX', name: 'Spanish (Mexico)' },
-    { code: 'es-AR', name: 'Spanish (Argentina)' },
-    { code: 'es-CO', name: 'Spanish (Colombia)' },
-    { code: 'es-PE', name: 'Spanish (Peru)' },
-    { code: 'es-VE', name: 'Spanish (Venezuela)' },
-    { code: 'es-CL', name: 'Spanish (Chile)' },
-    { code: 'es-EC', name: 'Spanish (Ecuador)' },
-    { code: 'es-UY', name: 'Spanish (Uruguay)' },
-    { code: 'fr-FR', name: 'French (France)' },
-    { code: 'de-DE', name: 'German (Germany)' },
-    { code: 'it-IT', name: 'Italian (Italy)' },
-    { code: 'pt-BR', name: 'Portuguese (Brazil)' },
+    { code: 'ur-PK', name: 'Urdu (Pakistan)' },
   ];
 
   useEffect(() => {
@@ -77,13 +65,12 @@ const LanguageSettings: React.FC = () => {
       
       setUiLanguages(response.data.uiLanguages || [
         { code: 'en', name: 'English', enabled: true, isUILanguage: true, isSpeechLanguage: false },
-        { code: 'es', name: 'Spanish', enabled: true, isUILanguage: true, isSpeechLanguage: false }
+        { code: 'ur', name: 'Urdu', enabled: true, isUILanguage: true, isSpeechLanguage: false }
       ]);
       
       setSpeechLanguages(response.data.speechLanguages || [
         { code: 'en-US', name: 'English (US)', enabled: true },
-        { code: 'es-ES', name: 'Spanish (Spain)', enabled: true },
-        { code: 'es-MX', name: 'Spanish (Mexico)', enabled: true }
+        { code: 'ur-PK', name: 'Urdu (Pakistan)', enabled: true }
       ]);
       
       setDefaultLanguage(response.data.defaultLanguage || 'en');
@@ -92,12 +79,11 @@ const LanguageSettings: React.FC = () => {
       // Set default values if API fails
       setUiLanguages([
         { code: 'en', name: 'English', enabled: true, isUILanguage: true, isSpeechLanguage: false },
-        { code: 'es', name: 'Spanish', enabled: true, isUILanguage: true, isSpeechLanguage: false }
+        { code: 'ur', name: 'Urdu', enabled: true, isUILanguage: true, isSpeechLanguage: false }
       ]);
       setSpeechLanguages([
         { code: 'en-US', name: 'English (US)', enabled: true },
-        { code: 'es-ES', name: 'Spanish (Spain)', enabled: true },
-        { code: 'es-MX', name: 'Spanish (Mexico)', enabled: true }
+        { code: 'ur-PK', name: 'Urdu (Pakistan)', enabled: true }
       ]);
     } finally {
       setLoading(false);
