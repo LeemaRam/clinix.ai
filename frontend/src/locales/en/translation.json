@@ -1,0 +1,17 @@
+{
+  "patients": {
+    "notesAndObservations": "Notes & Observations",
+    "addNote": "Add Note",
+    "enterNote": "Enter your note here...",
+    "noNotes": "No notes available",
+    "noteAdded": "Note added successfully",
+    "errorAddingNote": "Error adding note",
+    "addedOn": "Added on",
+    "by": "by"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving..."
+  }
+} 
