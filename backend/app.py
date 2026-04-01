@@ -48,9 +48,9 @@ jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=500 * 1024 * 1024)
 
 # MongoDB connection
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/mediscribe')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/clinix_ai')
 client = MongoClient(MONGODB_URI)
-db = client.mediscribe
+db = client.clinix_ai
 
 # OpenAI configuration
 openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
@@ -4152,7 +4152,7 @@ def missing_token_callback(error):
 def health_check():
     return jsonify({
         'status': 'OK',
-        'message': 'MediScribe API is running',
+        'message': 'Clinix.ai API is running',
         'version': '2.0.0',
         'timestamp': datetime.utcnow().isoformat()
     })
