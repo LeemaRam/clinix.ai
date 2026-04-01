@@ -897,15 +897,7 @@ const NewConsultation = () => {
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
             >
               <option value="en-US">{t('speech.languages.en-US')}</option>
-              <option value="es-ES">{t('speech.languages.es-ES')}</option>
-              <option value="es-MX">{t('speech.languages.es-MX')}</option>
-              <option value="es-AR">{t('speech.languages.es-AR')}</option>
-              <option value="es-CO">{t('speech.languages.es-CO')}</option>
-              <option value="es-PE">{t('speech.languages.es-PE')}</option>
-              <option value="es-VE">{t('speech.languages.es-VE')}</option>
-              <option value="es-CL">{t('speech.languages.es-CL')}</option>
-              <option value="es-EC">{t('speech.languages.es-EC')}</option>
-              <option value="es-UY">{t('speech.languages.es-UY')}</option>
+              <option value="ur-PK">{t('speech.languages.ur-PK')}</option>
             </select>
           </div>
         </div>

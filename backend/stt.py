@@ -43,7 +43,7 @@ def get_file_info(file_path):
         'is_file': os.path.isfile(file_path)
     }
 
-def transcribe_audio(audio_file_path) -> Optional[Dict[str, Any]]:
+def transcribe_audio(audio_file_path, language: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Transcribe an audio file using OpenAI's Whisper model.
     
@@ -107,11 +107,15 @@ def transcribe_audio(audio_file_path) -> Optional[Dict[str, Any]]:
         with open(mp3_path, "rb") as audio_file:
             # Call OpenAI's transcription API
             print("Calling OpenAI API...")
-            response = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="verbose_json"
-            )
+            transcription_kwargs = {
+                "model": "whisper-1",
+                "file": audio_file,
+                "response_format": "verbose_json",
+            }
+            if language:
+                transcription_kwargs["language"] = language
+
+            response = client.audio.transcriptions.create(**transcription_kwargs)
         
         # Clean up temporary file
         if os.path.exists(mp3_path):

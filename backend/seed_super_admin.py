@@ -7,9 +7,9 @@ from werkzeug.security import generate_password_hash
 # Load environment variables
 load_dotenv()
 
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/mediscribe')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/clinix_ai')
 client = MongoClient(MONGODB_URI)
-db = client.mediscribe
+db = client.clinix_ai
 
 def seed_super_admin():
     """
@@ -20,7 +20,7 @@ def seed_super_admin():
     password = 'admin'
     full_name = 'Super Admin'
     role = 'super_admin'
-    language = 'es'
+    language = 'en'
     phone = ''
     is_active = True
     now = datetime.utcnow()

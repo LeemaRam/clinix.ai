@@ -48,9 +48,9 @@ jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=500 * 1024 * 1024)
 
 # MongoDB connection
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/mediscribe')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/clinix_ai')
 client = MongoClient(MONGODB_URI)
-db = client.mediscribe
+db = client.clinix_ai
 
 # OpenAI configuration
 openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
@@ -522,7 +522,7 @@ def merge_transcription_chunks(chunk_results, start_times, end_times, overlap=OV
             'full_text': merged_text,
             'segments': merged_segments,
             'duration': total_duration,
-            'language': chunk_results[0].get('language', 'es') if chunk_results else 'es',
+            'language': chunk_results[0].get('language', 'en') if chunk_results else 'en',
             'chunk_count': len(chunk_results),
             'avg_confidence': avg_confidence
         }
@@ -539,10 +539,22 @@ def merge_transcription_chunks(chunk_results, start_times, end_times, overlap=OV
             'full_text': ' '.join([r.get('full_text', '') for r in chunk_results if r]),
             'segments': [],
             'duration': 0,
-            'language': 'es'
+            'language': 'en'
         }
 
-def process_large_audio_transcription(audio_file_path, user_id):
+def normalize_speech_language(speech_language):
+    if not speech_language:
+        return None
+
+    normalized = speech_language.lower()
+    if normalized.startswith('ur'):
+        return 'ur'
+    if normalized.startswith('en'):
+        return 'en'
+    return None
+
+
+def process_large_audio_transcription(audio_file_path, user_id, speech_language=None):
     """
     Process large audio files by splitting them into chunks, transcribing each chunk,
     and then merging the results
@@ -555,7 +567,7 @@ def process_large_audio_transcription(audio_file_path, user_id):
         
         if len(chunks) == 1:
             print("File is small enough, processing normally")
-            return transcribe_audio(audio_file_path)
+            return transcribe_audio(audio_file_path, language=speech_language)
         
         print(f"Processing {len(chunks)} chunks...")
         
@@ -583,7 +595,7 @@ def process_large_audio_transcription(audio_file_path, user_id):
                     pass  # Ignore if user not connected
                 
                 # Transcribe chunk
-                chunk_result = transcribe_audio(chunk_path)
+                chunk_result = transcribe_audio(chunk_path, language=speech_language)
                 
                 if chunk_result and chunk_result.get('status') != 'error':
                     chunk_results.append(chunk_result)
@@ -2853,20 +2865,23 @@ def get_upload_limits():
         }
     })
 
-def start_transcription(consultation_id, audio_file_path, user_id):
+def start_transcription(consultation_id, audio_file_path, user_id, speech_language=None):
     """Start the transcription process"""
     try:
+        normalized_speech_language = normalize_speech_language(speech_language) or 'en'
+
         # Create transcription record
         transcription_data = {
             'consultation_id': consultation_id,
             'doctor_id': user_id,
             'audio_file_path': audio_file_path,
             'status': 'processing',
-            'language': 'es',
+            'language': normalized_speech_language,
             'model_used': 'whisper-1',
             'started_at': datetime.utcnow(),
             'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.utcnow(),
+            'speech_language': normalized_speech_language
         }
         
         result = db.transcriptions.insert_one(transcription_data)
@@ -2878,11 +2893,11 @@ def start_transcription(consultation_id, audio_file_path, user_id):
         if file_size > MAX_FILE_SIZE_BYTES:
             print(f"Large file detected ({file_size / (1024*1024):.2f}MB), using chunked processing")
             # Use chunked processing for large files
-            process_large_transcription(transcription_id, audio_file_path, user_id)
+            process_large_transcription(transcription_id, audio_file_path, user_id, normalized_speech_language)
         else:
             print(f"Standard file size ({file_size / (1024*1024):.2f}MB), using normal processing")
             # Use normal processing for standard files
-            process_transcription(transcription_id, audio_file_path)
+            process_transcription(transcription_id, audio_file_path, normalized_speech_language)
         
         return transcription_id
         
@@ -2920,7 +2935,7 @@ def analyze_conversation_with_gpt(segments):
            - Diagnosis discussions
            - Treatment plans
            - Follow-up instructions
-        4. Maintain the original Spanish text but provide structured output
+            4. Maintain the original consultation text but provide structured output
 
         Each segment will have:
         - text: The transcribed text
@@ -3163,7 +3178,7 @@ def analyze_conversation_with_gpt(segments):
             "summary": f"Error analyzing conversation: {str(e)}"
         }
 
-def process_large_transcription(transcription_id, audio_file_path, user_id):
+def process_large_transcription(transcription_id, audio_file_path, user_id, speech_language=None):
     """Process large audio files using chunked transcription approach"""
     try:
         print(f"\nProcessing large transcription for file: {audio_file_path}")
@@ -3176,7 +3191,7 @@ def process_large_transcription(transcription_id, audio_file_path, user_id):
 
         # Start chunked transcription process
         print("\nStarting chunked transcription process...")
-        transcription_result = process_large_audio_transcription(audio_file_path, user_id)
+        transcription_result = process_large_audio_transcription(audio_file_path, user_id, speech_language)
 
         if not transcription_result or transcription_result.get('status') == 'error':
             error_message = transcription_result.get('error', 'Unknown transcription error') if transcription_result else 'Transcription failed'
@@ -3280,7 +3295,7 @@ def process_large_transcription(transcription_id, audio_file_path, user_id):
                 'error': str(e)
             }, room=f'user-{user_id}')
 
-def process_transcription(transcription_id, audio_file_path):
+def process_transcription(transcription_id, audio_file_path, speech_language=None):
     """Process the audio transcription using OpenAI Whisper and analyze with GPT"""
     try:
         # Get file information for logging
@@ -3292,7 +3307,7 @@ def process_transcription(transcription_id, audio_file_path):
 
         # Start transcription
         print("\nStarting transcription process...")
-        transcription_result = transcribe_audio(audio_file_path)
+        transcription_result = transcribe_audio(audio_file_path, language=speech_language)
 
         if not transcription_result or transcription_result.get('status') == 'error':
             error_message = transcription_result.get('error', 'Unknown transcription error') if transcription_result else 'Transcription failed'
@@ -3584,7 +3599,7 @@ def generate_ai_report(transcription, consultation, patient, options, doctor):
         # Prepare patient info
         patient_name = f"{patient['first_name']} {patient['last_name']}"
         patient_age = calculate_age(patient['date_of_birth'])
-        gender = patient.get('gender', 'No especificado')
+        gender = patient.get('gender', 'Not specified')
         doctor_name = f"{doctor['full_name']}"
         
         # Get transcription text and analysis
@@ -3616,7 +3631,7 @@ def generate_ai_report(transcription, consultation, patient, options, doctor):
         - <b>Seguimiento:</b> (Follow-up instructions)
         
         Format the report maintaining proper medical documentation standards.
-        Use Spanish language for the report.
+        Use English language for the report.
         Do not use markdown formatting (no ** or --- or _).
         Use only these HTML tags for formatting:
         - <b> for section headers exactly as shown above
@@ -4152,7 +4167,7 @@ def missing_token_callback(error):
 def health_check():
     return jsonify({
         'status': 'OK',
-        'message': 'MediScribe API is running',
+        'message': 'Clinix.ai API is running',
         'version': '2.0.0',
         'timestamp': datetime.utcnow().isoformat()
     })
