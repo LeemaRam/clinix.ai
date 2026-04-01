@@ -1,6 +1,6 @@
-# MediScribe Flask Backend
+# Clinix.ai Flask Backend
 
-A complete Flask backend for the MediScribe medical transcription application with MongoDB integration.
+A complete Flask backend for the Clinix.ai medical transcription application with MongoDB integration.
 
 ## Features
 
@@ -48,7 +48,7 @@ SECRET_KEY=your-super-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
 
 # MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/mediscribe
+MONGODB_URI=mongodb://localhost:27017/clinix_ai
 
 # OpenAI Configuration (for transcription)
 OPENAI_API_KEY=your-openai-api-key-here

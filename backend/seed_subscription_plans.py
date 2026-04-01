@@ -12,9 +12,9 @@ if not STRIPE_API_KEY:
     raise Exception('La clave STRIPE_API_KEY no está configurada.')
 stripe.api_key = STRIPE_API_KEY
 
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/mediscribe')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/clinix_ai')
 client = MongoClient(MONGODB_URI)
-db = client.mediscribe
+db = client.clinix_ai
 
 plans = [
     {
