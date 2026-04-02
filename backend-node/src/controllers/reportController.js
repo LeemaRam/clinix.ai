@@ -31,7 +31,8 @@ export const listReports = asyncHandler(async (req, res) => {
     return item;
   });
 
-  res.json({ reports: out, total, page, pages: Math.ceil(total / limit) });
+  const data = { reports: out, total, page, pages: Math.ceil(total / limit) };
+  res.json({ success: true, data, ...data });
 });
 
 export const downloadReport = asyncHandler(async (req, res) => {
@@ -50,7 +51,7 @@ export const deleteReport = asyncHandler(async (req, res) => {
   const report = await Report.findOneAndDelete({ _id: req.params.id, doctorId: req.user.id });
   if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
   if (report.filePath && fs.existsSync(report.filePath)) fs.unlinkSync(report.filePath);
-  res.json({ success: true });
+  res.json({ success: true, data: { deleted: true }, deleted: true });
 });
 
 export const getReport = asyncHandler(async (req, res) => {
@@ -64,5 +65,6 @@ export const getReport = asyncHandler(async (req, res) => {
   serialized.patient = patient ? serializePatient(patient) : null;
   serialized.download_url = report.filePath ? `/api/reports/${report._id}/download` : '';
 
-  res.json({ report: serialized });
+  const data = { report: serialized };
+  res.json({ success: true, data, ...data });
 });

@@ -1,26 +1,27 @@
-# Clinix AI
+# Clinix.ai
 
-Clinix AI is a full-stack medical consultation documentation platform that helps clinicians manage patients, record or upload consultation audio, transcribe conversations, and generate structured medical reports.
+Clinix.ai is a hybrid medical transcription and reporting platform designed to turn consultation audio into structured clinical documentation. The current architecture separates the user interface, orchestration API, and AI processing into dedicated services so each layer can evolve independently.
 
-## Description
+## Overview
 
-Clinix AI exists to reduce documentation overhead for healthcare professionals by turning consultation audio into actionable clinical records. It combines transcription, AI-assisted report generation, and patient/consultation management in one application.
+Clinix.ai is organized as a three-service application:
 
-### What It Does
+- `frontend/` is the React application built with Vite and TypeScript. It provides the clinician-facing UI for patients, consultations, reports, subscriptions, and settings.
+- `backend-node/` is the main Node.js + Express API layer. It handles authentication, patient and consultation data, subscriptions, uploads, PDFs, dashboards, and Socket.IO events.
+- `ai-service/` is the FastAPI service that performs AI-heavy processing such as transcription and report generation.
+- `backend-legacy/` contains the deprecated Flask backend and is kept only as reference material.
 
-- Authenticates users with role-based access (doctor, admin, super admin)
-- Manages patients and consultations
-- Uploads and validates large audio files (up to 1 GB per upload)
-- Transcribes consultation audio (including chunked processing for large files)
-- Generates AI-assisted medical reports and downloadable PDF outputs
-- Supports editable report previews before final PDF generation
-- Provides subscription plan management with Stripe checkout and webhooks
-- Offers super-admin tooling for user and subscription administration
-- Includes multilingual UI support
+## Why a Hybrid Architecture
 
-### Why It Exists
+The migration away from a monolithic Flask backend was done to improve separation of concerns and make the platform easier to maintain.
 
-Clinical documentation is time-consuming and repetitive. Clinix AI streamlines this workflow by combining recording/transcription and report generation into a single system, helping clinicians focus more on care and less on paperwork.
+Benefits of the current design:
+
+- Frontend and backend can be developed and deployed independently.
+- The Node.js API focuses on orchestration, validation, persistence, and real-time communication.
+- The Python AI service can use the best Python ecosystem for audio and LLM workflows without pulling that complexity into the main API.
+- The system scales more cleanly because AI workloads are isolated from standard CRUD traffic.
+- The legacy Flask code can be retired gradually without blocking the active product path.
 
 ## Tech Stack
 
@@ -36,320 +37,261 @@ Clinical documentation is time-consuming and repetitive. Clinix AI streamlines t
 - React Toastify
 - i18next and react-i18next
 - Zustand
+- Socket.IO client support where needed
 
-### Backend
+### Backend API Layer
+
+- Node.js
+- Express
+- MongoDB with Mongoose
+- Socket.IO
+- JWT authentication
+- Multer for uploads
+- PDF generation with PDFKit
+- Stripe integration
+- CORS, Helmet, Morgan, and dotenv
+
+### AI Service
 
 - Python 3
-- Flask
-- Flask CORS
-- Flask JWT Extended
-- Flask SocketIO
-- MongoDB with PyMongo
-- OpenAI API (Whisper + chat completions)
-- ReportLab (PDF generation)
-- Stripe API
-- Audio processing: pydub, librosa, soundfile, ffmpeg-python
-
-## Installation
-
-## Prerequisites
-
-- Node.js 18+ and npm
-- Python 3.10+
-- MongoDB running locally or remotely
-- FFmpeg installed and available in PATH
-- OpenAI API key
-- Stripe account and API keys
-
-## 1) Clone Repository
-
-~~~bash
-git clone https://github.com/LeemaRam/clinix.ai.git
-cd clinix.ai
-~~~
-
-## 2) Backend Setup
-
-~~~bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-~~~
-
-Create a backend environment file at backend/.env:
-
-~~~env
-SECRET_KEY=change-me
-JWT_SECRET_KEY=change-me-too
-MONGODB_URI=mongodb://localhost:27017/clinix_ai
-OPENAI_API_KEY=your-openai-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
-STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
-~~~
-
-Optional seed scripts:
-
-~~~bash
-python seed_super_admin.py
-python seed_subscription_plans.py
-~~~
-
-## 3) Frontend Setup
-
-Open another terminal:
-
-~~~bash
-cd frontend
-npm install
-~~~
-
-Create frontend/.env:
-
-~~~env
-VITE_API_URL=http://localhost:5000
-~~~
-
-## Usage
-
-## Run Backend
-
-~~~bash
-cd backend
-source .venv/bin/activate
-python app.py
-~~~
-
-Backend runs on: http://localhost:5000
-
-## Run Frontend
-
-~~~bash
-cd frontend
-npm run dev
-~~~
-
-Frontend runs on: http://localhost:3000
-
-## Typical Flow
-
-1. Register or log in.
-2. Create or select a patient.
-3. Create a consultation.
-4. Record audio in browser or upload an audio file.
-5. Wait for transcription completion.
-6. Generate report preview, edit if needed, then create final PDF.
-7. Review reports and dashboard metrics.
-
-## Default Seeded Admin (if seed_super_admin.py is used)
-
-- Email: admin@email.com
-- Password: admin
-- Role: super_admin
+- FastAPI
+- OpenAI API
+- Pydub for audio handling
+- FFmpeg-backed audio processing
+- Pydantic and python-multipart
+- Uvicorn for serving the API
 
 ## Project Structure
 
-~~~text
+```text
 clinix.ai/
-  backend/
-    app.py                       # Main Flask API and SocketIO server
-    stt.py                       # OpenAI transcription helper
-    seed_super_admin.py          # Creates default super admin user
-    seed_subscription_plans.py   # Seeds Stripe-backed subscription plans
-    requirements.txt             # Python dependencies
-  frontend/
+  backend-node/            # Main Express API layer
     src/
-      App.tsx                    # Route map and application shell
-      context/AuthContext.tsx    # Auth state and token validation
-      pages/                     # Screens for dashboard, patients, reports, etc.
-      components/                # Reusable UI and feature components
-      services/subscriptionService.ts  # Subscription API integration
-      i18n/                      # Internationalization setup and locales
-    package.json                 # Frontend scripts and dependencies
-~~~
+      app.js
+      server.js
+      config/
+      controllers/
+      middleware/
+      models/
+      routes/
+      services/
+      utils/
+    .env.example
+    package.json
+  ai-service/              # FastAPI AI processing service
+    app/
+      main.py
+      schemas.py
+      services/
+    .env.example
+    requirements.txt
+  frontend/                # React + Vite frontend
+    src/
+      components/
+      context/
+      i18n/
+      pages/
+      services/
+      types/
+      utils/
+    vite.config.ts
+    package.json
+  backend-legacy/          # Deprecated Flask backend retained for reference
+```
 
-## API Documentation
+## Prerequisites
 
-Base URL: http://localhost:5000
+Install the following before running the project:
 
-Authentication uses Bearer JWT for protected routes.
+- Node.js 18+ and npm
+- Python 3.10+ with pip
+- MongoDB
+- FFmpeg
+- OpenAI API key for transcription and report generation
+- Stripe credentials if you want billing features enabled
 
-## Health
+## Installation
 
-- GET /health
+### 1. Clone the repository
 
-Response example:
+```bash
+git clone https://github.com/LeemaRam/clinix.ai.git
+cd clinix.ai
+```
 
-~~~json
-{
-  "status": "OK",
-  "message": "Clinix.ai API is running",
-  "version": "2.0.0"
-}
-~~~
+### 2. backend-node setup
 
-## Auth
+```bash
+cd backend-node
+npm install
+```
 
-- POST /api/auth/register
-- POST /api/auth/login
-- GET /api/auth/me
-- GET /api/auth/validate-token
+Create `backend-node/.env` from `backend-node/.env.example` and configure these values:
 
-Login request example:
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/clinix_ai
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:3000
+PYTHON_AI_SERVICE_URL=http://localhost:8001
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_SUCCESS_URL=http://localhost:3000/subscription/success
+STRIPE_CANCEL_URL=http://localhost:3000/subscription/cancel
+MAX_UPLOAD_SIZE_MB=1024
+```
 
-~~~json
-{
-  "email": "doctor@example.com",
-  "password": "strong-password"
-}
-~~~
+### 3. ai-service setup
 
-## User Settings
+```bash
+cd ai-service
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-- GET /api/user/profile
-- PUT /api/user/profile
-- POST /api/user/change-password
-- GET /api/user/language
-- PUT /api/user/language
+Create `ai-service/.env` from `ai-service/.env.example` and configure these values:
 
-## Patients
+```env
+AI_SERVICE_PORT=8001
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_TRANSCRIBE_MODEL=whisper-1
+OPENAI_CHAT_MODEL=gpt-4o-mini
+MAX_FILE_MB=1024
+```
 
-- GET /api/patients
-- POST /api/patients
-- GET /api/patients/:patient_id
-- PUT /api/patients/:patient_id
+### 4. frontend setup
 
-Create patient request example:
+```bash
+cd frontend
+npm install
+```
 
-~~~json
-{
-  "first_name": "Jane",
-  "last_name": "Doe",
-  "date_of_birth": "1988-04-20T00:00:00Z",
-  "gender": "female"
-}
-~~~
+Create `frontend/.env`:
 
-## Consultations and Audio
+```env
+VITE_API_URL=http://localhost:5000
+```
 
-- GET /api/consultations
-- POST /api/consultations
-- PUT /api/consultations/:consultation_id
-- DELETE /api/consultations/:consultation_id
-- POST /api/consultations/:consultation_id/start
-- POST /api/consultations/:consultation_id/end
-- POST /api/consultations/:consultation_id/validate-upload
-- POST /api/consultations/:consultation_id/upload-audio
-- GET /api/upload/limits
+## Running the Application
 
-## Transcriptions
+Run each service in its own terminal.
 
-- GET /api/consultations/transcriptions/:consultation_id
-- GET /api/consultations/transcriptions/:consultation_id/status
-- PATCH /api/consultations/transcriptions/:consultation_id/segments/:segment_id
+### Terminal 1: backend-node
 
-## Reports
+```bash
+cd backend-node
+npm run dev
+```
 
-- POST /api/consultations/:consultation_id/report
-- POST /api/consultations/:consultation_id/report/preview
-- PUT /api/consultations/:consultation_id/report/preview/:preview_id
-- POST /api/consultations/:consultation_id/report/preview/:preview_id/generate
-- GET /api/reports
-- GET /api/reports/:report_id
-- GET /api/reports/:report_id/download
+The Node API runs on `http://localhost:5000`.
 
-## Subscription and Billing
+### Terminal 2: ai-service
 
-- GET /api/subscription/plans
-- GET /api/subscription/plans/:plan_id
-- POST /api/subscription/plans/compare
-- GET /api/subscription/current
-- POST /api/subscription/create-checkout-session
-- POST /api/subscription/cancel
-- POST /api/webhook/stripe
+```bash
+cd ai-service
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+```
 
-## Super Admin
+The FastAPI service runs on `http://localhost:8001` by default. If you want to use port `8000` instead, update `AI_SERVICE_PORT` and the Node service URL accordingly.
 
-- GET /api/super-admin/stats
-- CRUD /api/super-admin/users
-- CRUD /api/super-admin/languages
-- CRUD /api/super-admin/subscription-plans
-- PATCH /api/super-admin/subscription-plans/:plan_id/toggle-status
-- POST /api/super-admin/subscription-plans/:plan_id/duplicate
-- GET /api/super-admin/subscription-plans/analytics
-- GET /api/super-admin/subscription-plans/export
-- POST /api/super-admin/subscription-plans/bulk-actions
+### Terminal 3: frontend
 
-## WebSocket Events
+```bash
+cd frontend
+npm run dev
+```
 
-SocketIO events observed in backend:
+The Vite dev server runs on `http://localhost:3000`.
 
-- connect
-- disconnect
-- join_room
-- get_transcription_progress
+## End-to-End API Flow
 
-Server also emits transcription/consultation status events during processing.
+The typical request path is:
+
+Frontend → Node API → FastAPI AI Service → OpenAI → Node API → Frontend
+
+A typical consultation flow looks like this:
+
+1. The clinician logs in through the React frontend.
+2. The frontend sends requests to the Node API for patients, consultations, reports, and subscriptions.
+3. When audio is uploaded, Node stores the file and forwards it to the FastAPI AI service.
+4. The FastAPI service calls OpenAI for transcription or report generation.
+5. The AI response is returned to Node for persistence and response shaping.
+6. Node returns the final result to the frontend for display, preview, or PDF generation.
 
 ## Environment Variables
 
-## Backend (backend/.env)
+### frontend/.env
 
-- SECRET_KEY: Flask session secret key
-- JWT_SECRET_KEY: JWT signing key
-- MONGODB_URI: MongoDB connection URI
-- OPENAI_API_KEY: OpenAI API key for transcription and report generation
-- STRIPE_SECRET_KEY: Stripe secret key for checkout/subscriptions
-- STRIPE_WEBHOOK_SECRET: Stripe webhook signing secret
+- `VITE_API_URL` - Base URL for the Node API. In local development this is typically `http://localhost:5000`.
 
-## Frontend (frontend/.env)
+### backend-node/.env
 
-- VITE_API_URL: Backend API base URL used by Axios calls
+- `PORT` - Express server port. Default `5000`.
+- `MONGODB_URI` - MongoDB connection string.
+- `JWT_SECRET` - JWT signing secret.
+- `JWT_EXPIRES_IN` - JWT lifetime.
+- `CORS_ORIGIN` - Allowed frontend origin(s).
+- `PYTHON_AI_SERVICE_URL` - FastAPI service URL used by Node when sending audio for transcription.
+- `STRIPE_SECRET_KEY` - Stripe secret key.
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret.
+- `STRIPE_SUCCESS_URL` - Redirect URL after successful checkout.
+- `STRIPE_CANCEL_URL` - Redirect URL after canceled checkout.
+- `MAX_UPLOAD_SIZE_MB` - Maximum upload size in megabytes.
+
+### ai-service/.env
+
+- `AI_SERVICE_PORT` - FastAPI port. Default `8001`.
+- `OPENAI_API_KEY` - OpenAI API key.
+- `OPENAI_TRANSCRIBE_MODEL` - Model used for transcription.
+- `OPENAI_CHAT_MODEL` - Model used for report generation.
+- `MAX_FILE_MB` - Maximum audio file size in megabytes.
 
 ## Features
 
-- Role-based authentication and authorization
-- Patient records and consultation lifecycle management
-- Browser recording or manual audio upload
-- Audio validation and large-file chunking support
-- AI-powered transcription and medical report generation
-- Editable report preview workflow
-- PDF report export and report history
-- Dashboard statistics for clinicians
-- Subscription plans with Stripe checkout integration
-- Super-admin panel for users, languages, and plans
-- Internationalization support
+- Role-based authentication for clinicians and administrators
+- Patient management and consultation lifecycle tracking
+- Browser recording and audio upload workflows
+- AI transcription and structured report generation
+- Editable report previews and PDF export
+- Subscription plans and Stripe checkout support
+- Dashboard metrics and operational views
+- Internationalized UI support
+- Socket.IO-based real-time updates
 
-## Future Improvements
+## API Surface
 
-- Add automated tests (backend and frontend)
-- Split backend monolith app.py into modular blueprints/services
-- Add Docker and docker-compose for one-command local setup
-- Improve API versioning and OpenAPI documentation
-- Harden security defaults (rate limits, stricter CORS, secret management)
-- Add async task queue for transcription/report jobs (for example, Celery + Redis)
-- Add observability (structured logs, tracing, metrics)
-- Resolve frontend/backend endpoint mismatches in subscription and language modules
+The Node API exposes the application routes consumed by the frontend, including:
 
-## Assumptions and Notes
+- Authentication and user profile routes
+- Patient CRUD routes
+- Consultation and transcription routes
+- Report generation and export routes
+- Subscription and plan routes
+- Dashboard and super-admin routes
+- Socket.IO events for live consultation updates
 
-- Repository currently has no root .env.example files; environment variables above are inferred from code usage.
-- Some frontend service calls reference endpoints that are not present in backend/app.py (for example, verify-subscription and some language/subscription variants). The documented API list reflects currently implemented backend routes.
-- Backend branding strings include Clinix.ai in API responses, while repository name is Clinix AI.
+The AI service exposes:
 
-## Contributing
+- `GET /health`
+- `POST /transcribe`
+- `POST /generate-report`
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Make focused, well-tested changes.
-4. Open a pull request with a clear description and screenshots or logs where relevant.
+## Deprecated Legacy Backend
 
-Recommended contribution standards:
+The old Flask backend is preserved in `backend-legacy/` for reference only.
 
-- Follow existing code style in both frontend and backend.
-- Keep commits atomic and descriptive.
-- Add or update tests for behavior changes.
-- Update documentation when APIs or workflows change.
+- It is not the active runtime path.
+- New development should target `frontend/`, `backend-node/`, and `ai-service/`.
+- Do not rely on legacy Flask instructions when setting up or running the project.
+
+## Notes
+
+- The current browser-facing development setup uses Vite on port `3000` and proxies API requests to the Node server on `5000`.
+- The Node service delegates AI work to the FastAPI service instead of calling OpenAI directly.
+- The repository has been migrated away from the monolithic Flask backend, so any old Flask-only setup steps should be treated as historical only.
 
 ## License
 

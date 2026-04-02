@@ -9,8 +9,6 @@ interface User {
   subscription_plan_id?: string;
 }
 
-type UserRole = 'doctor' | 'admin' | 'super_admin';
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -40,6 +38,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const apiRoot = '/api';
 
   // Setup axios interceptor for token validation
   useEffect(() => {
@@ -101,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const token = localStorage.getItem('access_token');
       if (!token) return false;
 
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/validate-token`, {
+      const response = await axios.get(`${apiRoot}/auth/validate-token`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -117,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { email: string; password: string; full_name: string }) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, userData);
+      const response = await axios.post(`${apiRoot}/auth/register`, userData);
 
       const { access_token, user } = response.data;
 
@@ -127,7 +126,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(user);
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.error || 'Registration failed');
+        const status = error.response.status;
+        const apiError = error.response.data?.error || error.response.data?.message;
+
+        // If user already exists, treat registration as idempotent and try login with provided credentials.
+        if (status === 409) {
+          try {
+            const loginResponse = await axios.post(`${apiRoot}/auth/login`, {
+              email: userData.email,
+              password: userData.password
+            });
+
+            const { access_token, user } = loginResponse.data;
+            localStorage.setItem('access_token', access_token);
+            localStorage.setItem('user', JSON.stringify(user));
+            setUser(user);
+            return;
+          } catch {
+            throw new Error('Email already registered. Please log in.');
+          }
+        }
+
+        throw new Error(apiError || 'Registration failed');
+      }
+      if (axios.isAxiosError(error) && !error.response) {
+        throw new Error('Unable to reach server. Please ensure backend is running on port 5000.');
       }
       throw new Error('Registration failed');
     } finally {
@@ -138,9 +161,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
+      const response = await axios.post(`${apiRoot}/auth/login`, { email, password });
 
-      const { access_token, user, redirect_to } = response.data;
+      const { access_token, user } = response.data;
 
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('user', JSON.stringify(user));
@@ -152,6 +175,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.error || 'Invalid credentials');
+      }
+      if (axios.isAxiosError(error) && !error.response) {
+        throw new Error('Unable to reach server. Please ensure backend is running on port 5000.');
       }
       throw new Error('Login failed');
     } finally {

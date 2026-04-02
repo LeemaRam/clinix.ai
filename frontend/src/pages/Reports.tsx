@@ -14,6 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { getSocket } from '../services/socket';
+import RealtimeStatusBadge from '../components/common/RealtimeStatusBadge';
 
 interface Report {
   id: string;
@@ -42,7 +44,14 @@ interface PaginationData {
   pages: number;
 }
 
+interface ReportGenerationEvent {
+  consultationId: string;
+  reportId?: string;
+  previewId?: string | null;
+}
+
 const Reports = () => {
+  const apiRoot = '/api';
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +72,34 @@ const Reports = () => {
     fetchReports();
   }, [pagination.page, selectedFormat]);
 
+  useEffect(() => {
+    const socket = getSocket();
+
+    const onReportGenerationStarted = (event: ReportGenerationEvent) => {
+      setReports((prev) => prev.map((report) => (
+        report.consultation_id === event.consultationId
+          ? { ...report, status: 'processing' }
+          : report
+      )));
+    };
+
+    const onReportGenerationCompleted = (event: ReportGenerationEvent) => {
+      setReports((prev) => prev.map((report) => (
+        report.consultation_id === event.consultationId
+          ? { ...report, status: 'completed' }
+          : report
+      )));
+    };
+
+    socket.on('report_generation_started', onReportGenerationStarted);
+    socket.on('report_generation_completed', onReportGenerationCompleted);
+
+    return () => {
+      socket.off('report_generation_started', onReportGenerationStarted);
+      socket.off('report_generation_completed', onReportGenerationCompleted);
+    };
+  }, []);
+
   const getAuthHeaders = () => ({
     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
     'Content-Type': 'application/json'
@@ -78,15 +115,16 @@ const Reports = () => {
       if (selectedFormat !== 'all') params.append('format', selectedFormat);
 
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/reports?${params.toString()}`,
+        `${apiRoot}/reports?${params.toString()}`,
         { headers: getAuthHeaders() }
       );
 
-      setReports(response.data.reports);
+      const payload = response.data?.data || response.data;
+      setReports(payload.reports || []);
       setPagination({
-        total: response.data.total,
-        page: response.data.page,
-        pages: response.data.pages
+        total: payload.total || 0,
+        page: payload.page || 1,
+        pages: payload.pages || 1
       });
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || t('errors.somethingWentWrong');
@@ -108,7 +146,7 @@ const Reports = () => {
     setDownloadLoading(reportId);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/reports/${reportId}/download`,
+        `${apiRoot}/reports/${reportId}/download`,
         { 
           headers: getAuthHeaders(),
           responseType: 'blob'
@@ -139,7 +177,7 @@ const Reports = () => {
     setDeleteLoading(reportId);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/reports/${reportId}`,
+        `${apiRoot}/reports/${reportId}`,
         { headers: getAuthHeaders() }
       );
 
@@ -278,13 +316,16 @@ const Reports = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            report.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            report.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {getStatusLabel(report.status)}
-                          </span>
+                          <RealtimeStatusBadge
+                            label={getStatusLabel(report.status)}
+                            tone={
+                              report.status === 'completed'
+                                ? 'success'
+                                : report.status === 'processing'
+                                  ? 'warning'
+                                  : 'neutral'
+                            }
+                          />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(report.created_at)}
@@ -367,13 +408,16 @@ const Reports = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            report.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            report.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {getStatusLabel(report.status)}
-                          </span>
+                          <RealtimeStatusBadge
+                            label={getStatusLabel(report.status)}
+                            tone={
+                              report.status === 'completed'
+                                ? 'success'
+                                : report.status === 'processing'
+                                  ? 'warning'
+                                  : 'neutral'
+                            }
+                          />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                           <div className="flex flex-col space-y-1">
@@ -432,14 +476,16 @@ const Reports = () => {
                         }`}>
                           📄 {report.format}
                         </span>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          report.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          report.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {report.status === 'completed' ? '✅' : 
-                           report.status === 'processing' ? '⏳' : '❌'} {getStatusLabel(report.status)}
-                        </span>
+                        <RealtimeStatusBadge
+                          label={getStatusLabel(report.status)}
+                          tone={
+                            report.status === 'completed'
+                              ? 'success'
+                              : report.status === 'processing'
+                                ? 'warning'
+                                : 'neutral'
+                          }
+                        />
                       </div>
                       <div className="text-sm text-gray-600">
                         📅 {formatDate(report.created_at)}

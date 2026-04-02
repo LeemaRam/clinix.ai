@@ -3,6 +3,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { createApp } from './app.js';
 import { connectToDatabase } from './config/db.js';
 import { env } from './config/env.js';
+import { setSocketServer } from './socket.js';
 
 const bootstrap = async () => {
   await connectToDatabase();
@@ -12,6 +13,7 @@ const bootstrap = async () => {
   const io = new SocketIOServer(server, {
     cors: { origin: env.CORS_ORIGIN.split(',').map((x) => x.trim()), credentials: true }
   });
+  setSocketServer(io);
 
   io.on('connection', (socket) => {
     socket.emit('connected', { message: 'Connected to Clinix.ai socket server' });

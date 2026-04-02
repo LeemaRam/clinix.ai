@@ -8,6 +8,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 const Settings = () => {
+  const apiRoot = '/api';
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('profile');
 
@@ -48,15 +49,16 @@ const Settings = () => {
     setProfileLoading(true);
     setProfileError('');
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/user/profile`, {
+      const res = await axios.get(`${apiRoot}/user/profile`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
       });
+      const payload = res.data?.data || res.data;
       setProfile({
-        fullName: res.data.fullName || '',
-        email: res.data.email || '',
-        phone: res.data.phone || ''
+        fullName: payload.fullName || '',
+        email: payload.email || '',
+        phone: payload.phone || ''
       });
     } catch (err) {
       setProfileError(t('settings.failedToLoadProfile'));
@@ -68,12 +70,13 @@ const Settings = () => {
     setLanguageLoading(true);
     setLanguageError('');
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/user/language`, {
+      const res = await axios.get(`${apiRoot}/user/language`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
       });
-      setLanguage(res.data.language || 'en');
+      const payload = res.data?.data || res.data;
+      setLanguage(payload.language || 'en');
     } catch (err) {
       setLanguageError(t('settings.failedToLoadLanguage'));
     }
@@ -131,7 +134,7 @@ const Settings = () => {
     setProfileError('');
     setProfileSuccess('');
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/user/profile`, profile, {
+      await axios.put(`${apiRoot}/user/profile`, profile, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -155,7 +158,7 @@ const Settings = () => {
       return;
     }
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/user/change-password`, {
+      await axios.post(`${apiRoot}/user/change-password`, {
         currentPassword: passwords.current,
         newPassword: passwords.new
       },
@@ -181,7 +184,7 @@ const Settings = () => {
     setLanguageError('');
     setLanguageSuccess('');
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/user/language`, { language: newLang }, {
+      await axios.put(`${apiRoot}/user/language`, { language: newLang }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }

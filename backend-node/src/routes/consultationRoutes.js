@@ -5,6 +5,7 @@ import {
   createConsultation,
   deleteConsultation,
   generateConsultationReportPdf,
+  generateConsultationReportPreviewPdf,
   generateReportPreview,
   getTranscriptionByConsultation,
   listConsultations,
@@ -25,5 +26,6 @@ router.patch('/transcriptions/:consultationId/segments/:segmentId', patchTranscr
 router.post('/:consultationId/report', generateConsultationReportPdf);
 router.post('/:consultationId/report/preview', generateReportPreview);
 router.put('/:consultationId/report/preview/:previewId', updateReportPreview);
+router.post('/:consultationId/report/preview/:previewId/generate', generateConsultationReportPreviewPdf);
 
 export default router;

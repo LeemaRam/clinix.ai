@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { 
   X, 
   Save, 
@@ -15,6 +14,7 @@ import {
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import EditableSection from './EditableSection';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
 
 interface PatientInfo {
   name: string;
@@ -89,32 +89,33 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
   const [editedContent, setEditedContent] = useState<Partial<ReportSections>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Get auth headers
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('access_token');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
-
   // Generate preview
   const generatePreview = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report/preview`,
-        {
+      const response = await apiFetch<{ preview_id?: string; structured_content?: StructuredContent }>({
+        path: `/consultations/${consultationId}/report/preview`,
+        method: 'POST',
+        data: {
           options: pdfOptions,
           generatedBy: localStorage.getItem('user_name') || 'System'
         },
-        { headers: getAuthHeaders() }
-      );
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        }
+      });
 
-      setStructuredContent(response.data.structured_content);
-      setPreviewId(response.data.preview_id);
-      setEditedContent(response.data.structured_content.sections);
+      const payload = unwrapApiData<{ preview_id?: string; structured_content?: StructuredContent }>(response.data as any);
+
+      if (!payload.structured_content || !payload.preview_id) {
+        throw new Error(t('reports.previewGenerationFailed'));
+      }
+
+      setStructuredContent(payload.structured_content);
+      setPreviewId(payload.preview_id);
+      setEditedContent(payload.structured_content.sections);
     } catch (err: any) {
       setError(err.response?.data?.error || t('reports.previewGenerationFailed'));
     } finally {
@@ -133,11 +134,15 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
         sections: { ...structuredContent.sections, ...editedContent }
       };
 
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report/preview/${previewId}`,
-        { structured_content: updatedStructuredContent },
-        { headers: getAuthHeaders() }
-      );
+      await apiFetch({
+        path: `/consultations/${consultationId}/report/preview/${previewId}`,
+        method: 'PUT',
+        data: { structured_content: updatedStructuredContent },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        }
+      });
 
       setStructuredContent(updatedStructuredContent);
       setHasUnsavedChanges(false);
@@ -160,8 +165,8 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
 
     setGenerating(true);
     try {
-      const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report/preview/${previewId}/generate`,
+      const response = await apiFetch<Blob>({
+        path: `/consultations/${consultationId}/report/preview/${previewId}/generate`,
         method: 'POST',
         headers: getAuthHeaders(),
         responseType: 'blob'

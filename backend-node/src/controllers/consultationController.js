@@ -9,6 +9,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { serializeConsultation, serializeTranscription } from '../utils/serializers.js';
 import { transcribeAudio, generateReport as generateAiReport } from '../services/pythonService.js';
 import { env } from '../config/env.js';
+import { getSocketServer } from '../socket.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -28,6 +29,65 @@ const makePdf = async ({ title, body, outputPath }) =>
     stream.on('error', reject);
   });
 
+const buildStructuredPreview = ({ consultation, transcription }) => ({
+  preview_id: consultation._id.toString(),
+  structured_content: {
+    sections: {
+      summary: transcription.analysis?.summary || '',
+      transcript: transcription.rawText || '',
+      recommendations: Array.isArray(transcription.analysis?.medical_info?.recommendations)
+        ? transcription.analysis.medical_info.recommendations.join('\n')
+        : ''
+    }
+  }
+});
+
+const createAndStreamReportPdf = async ({ consultation, transcription, doctorId, generatedBy, res, previewId }) => {
+  const patientName = consultation.patientId ? `${consultation.patientId.firstName} ${consultation.patientId.lastName}` : 'Unknown Patient';
+  const body = [
+    `Patient: ${patientName}`,
+    `Consultation Type: ${consultation.consultationType}`,
+    `Status: ${consultation.status}`,
+    '',
+    'Summary:',
+    transcription.analysis?.summary || '',
+    '',
+    'Transcript:',
+    transcription.rawText || ''
+  ].join('\n');
+
+  const reportsDir = path.resolve(env.UPLOAD_REPORTS_DIR);
+  const filename = `consultation-report-${consultation._id}-${Date.now()}.pdf`;
+  const outputPath = path.join(reportsDir, filename);
+  await makePdf({ title: 'Consultation Report', body, outputPath });
+
+  const report = await Report.create({
+    consultationId: consultation._id,
+    patientId: consultation.patientId?._id,
+    doctorId,
+    content: body,
+    format: 'PDF',
+    status: 'generated',
+    filePath: outputPath,
+    generatedBy: generatedBy || 'System'
+  });
+
+  const io = getSocketServer();
+  if (io) {
+    const payload = {
+      consultationId: consultation._id.toString(),
+      reportId: report._id.toString(),
+      previewId: previewId || null
+    };
+    io.to(`consultation:${consultation._id.toString()}`).emit('report_generation_completed', payload);
+    io.emit('report_generation_completed', payload);
+  }
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  fs.createReadStream(report.filePath).pipe(res);
+};
+
 export const createConsultation = asyncHandler(async (req, res) => {
   const { patient_id, consultation_type, recording_type, consent_obtained } = req.body;
 
@@ -45,7 +105,8 @@ export const createConsultation = asyncHandler(async (req, res) => {
     scheduledAt: new Date()
   });
 
-  res.status(201).json({ consultation: serializeConsultation(consultation) });
+  const data = { consultation: serializeConsultation(consultation) };
+  res.status(201).json({ success: true, data, ...data });
 });
 
 export const uploadAudio = asyncHandler(async (req, res) => {
@@ -74,12 +135,27 @@ export const uploadAudio = asyncHandler(async (req, res) => {
     });
   }
 
+  const io = getSocketServer();
+  const consultationRoomId = consultation._id.toString();
+
+  if (io) {
+    const payload = { consultationId: consultationRoomId, progress: 10, status: 'processing' };
+    io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+    io.emit('transcription_progress', payload);
+  }
+
   try {
     const aiResult = await transcribeAudio({
       audioFilePath: consultation.audioFilePath,
       speechLanguage,
       consultationId: consultation._id.toString()
     });
+
+    if (io) {
+      const payload = { consultationId: consultationRoomId, progress: 80, status: 'finalizing' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
 
     transcription.status = 'completed';
     transcription.rawText = aiResult.raw_text || '';
@@ -98,7 +174,14 @@ export const uploadAudio = asyncHandler(async (req, res) => {
     consultation.medicalInfo = transcription.analysis?.medical_info || {};
     await consultation.save();
 
-    return res.json({ success: true, consultation: serializeConsultation(consultation), transcription: serializeTranscription(transcription) });
+    if (io) {
+      const payload = { consultationId: consultationRoomId, progress: 100, status: 'completed' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
+
+    const data = { consultation: serializeConsultation(consultation), transcription: serializeTranscription(transcription) };
+    return res.json({ success: true, data, ...data });
   } catch (e) {
     transcription.status = 'failed';
     transcription.errorMessage = e.message;
@@ -106,6 +189,12 @@ export const uploadAudio = asyncHandler(async (req, res) => {
 
     consultation.status = 'failed';
     await consultation.save();
+
+    if (io) {
+      const payload = { consultationId: consultationRoomId, progress: 100, status: 'failed' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
 
     return res.status(502).json({ success: false, error: 'Transcription failed', details: e.message });
   }
@@ -125,10 +214,12 @@ export const listConsultations = asyncHandler(async (req, res) => {
     Consultation.countDocuments({ doctorId: req.user.id })
   ]);
 
-  res.json({
+  const data = {
     consultations: consultations.map(serializeConsultation),
     pagination: { page, limit, total, pages: Math.ceil(total / limit) }
-  });
+  };
+
+  res.json({ success: true, data, ...data });
 });
 
 export const deleteConsultation = asyncHandler(async (req, res) => {
@@ -145,7 +236,8 @@ export const getTranscriptionByConsultation = asyncHandler(async (req, res) => {
 
   const t = await Transcription.findOne({ consultationId: consultation._id });
   if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
-  res.json({ transcription: serializeTranscription(t) });
+  const data = { transcription: serializeTranscription(t) };
+  res.json({ success: true, data, ...data });
 });
 
 export const patchTranscriptionSegment = asyncHandler(async (req, res) => {
@@ -163,7 +255,8 @@ export const patchTranscriptionSegment = asyncHandler(async (req, res) => {
   target.updatedBy = req.user.id;
   await t.save();
 
-  res.json({ transcription: serializeTranscription(t) });
+  const data = { transcription: serializeTranscription(t) };
+  res.json({ success: true, data, ...data });
 });
 
 export const generateReportPreview = asyncHandler(async (req, res) => {
@@ -183,11 +276,13 @@ export const generateReportPreview = asyncHandler(async (req, res) => {
     }
   };
 
-  res.json({ preview_id: consultation._id.toString(), structured_content });
+  const data = { preview_id: consultation._id.toString(), structured_content };
+  res.json({ success: true, data, ...data });
 });
 
 export const updateReportPreview = asyncHandler(async (req, res) => {
-  res.json({ success: true, structured_content: req.body.structured_content });
+  const data = { structured_content: req.body.structured_content };
+  res.json({ success: true, data, ...data });
 });
 
 export const generateConsultationReportPdf = asyncHandler(async (req, res) => {
@@ -197,36 +292,49 @@ export const generateConsultationReportPdf = asyncHandler(async (req, res) => {
   const t = await Transcription.findOne({ consultationId: consultation._id });
   if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
 
-  const patientName = consultation.patientId ? `${consultation.patientId.firstName} ${consultation.patientId.lastName}` : 'Unknown Patient';
-  const body = [
-    `Patient: ${patientName}`,
-    `Consultation Type: ${consultation.consultationType}`,
-    `Status: ${consultation.status}`,
-    '',
-    'Summary:',
-    t.analysis?.summary || '',
-    '',
-    'Transcript:',
-    t.rawText || ''
-  ].join('\n');
+  const io = getSocketServer();
+  if (io) {
+    const payload = { consultationId: consultation._id.toString(), previewId: null };
+    io.to(`consultation:${consultation._id.toString()}`).emit('report_generation_started', payload);
+    io.emit('report_generation_started', payload);
+  }
 
-  const reportsDir = path.resolve(env.UPLOAD_REPORTS_DIR);
-  const filename = `consultation-report-${consultation._id}-${Date.now()}.pdf`;
-  const outputPath = path.join(reportsDir, filename);
-  await makePdf({ title: 'Consultation Report', body, outputPath });
-
-  const report = await Report.create({
-    consultationId: consultation._id,
-    patientId: consultation.patientId?._id,
+  await createAndStreamReportPdf({
+    consultation,
+    transcription: t,
     doctorId: req.user.id,
-    content: body,
-    format: 'PDF',
-    status: 'generated',
-    filePath: outputPath,
-    generatedBy: req.body.generatedBy || 'System'
+    generatedBy: req.body.generatedBy,
+    res,
+    previewId: null
   });
+});
 
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  fs.createReadStream(report.filePath).pipe(res);
+export const generateConsultationReportPreviewPdf = asyncHandler(async (req, res) => {
+  const consultation = await Consultation.findOne({ _id: req.params.consultationId, doctorId: req.user.id }).populate('patientId');
+  if (!consultation) return res.status(404).json({ success: false, error: 'Consultation not found' });
+
+  const t = await Transcription.findOne({ consultationId: consultation._id });
+  if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
+
+  // Current preview implementation uses consultation id as preview id.
+  const previewData = buildStructuredPreview({ consultation, transcription: t });
+  if (req.params.previewId !== previewData.preview_id) {
+    return res.status(404).json({ success: false, error: 'Report preview not found' });
+  }
+
+  const io = getSocketServer();
+  if (io) {
+    const payload = { consultationId: consultation._id.toString(), previewId: req.params.previewId };
+    io.to(`consultation:${consultation._id.toString()}`).emit('report_generation_started', payload);
+    io.emit('report_generation_started', payload);
+  }
+
+  await createAndStreamReportPdf({
+    consultation,
+    transcription: t,
+    doctorId: req.user.id,
+    generatedBy: req.body.generatedBy,
+    res,
+    previewId: req.params.previewId
+  });
 });

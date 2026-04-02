@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import { 
   Users, 
   Activity, 
@@ -9,6 +8,7 @@ import {
   CheckCircle,
   Loader2 
 } from 'lucide-react';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../../services/apiFetch';
 
 interface SystemStats {
   totalUsers: number;
@@ -33,15 +33,13 @@ const SuperAdminDashboard: React.FC = () => {
 
   const fetchSystemStats = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/stats`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        }
-      );
-      setStats(response.data);
+      const response = await apiFetch<SystemStats>({
+        path: '/super-admin/stats',
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      const payload = unwrapApiData<SystemStats>(response.data as any);
+      setStats(payload);
     } catch (error) {
       setError('Failed to fetch system statistics');
       console.error('Error fetching system stats:', error);

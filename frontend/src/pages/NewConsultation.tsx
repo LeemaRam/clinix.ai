@@ -69,6 +69,19 @@ interface AudioUploadResponse {
   transcription_job_id?: string;
 }
 
+const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
+const shouldUseProxy = (() => {
+  if (!API_URL) return true;
+  try {
+    const { hostname } = new URL(API_URL);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return true;
+  }
+})();
+
+const apiRoot = shouldUseProxy ? '/api' : `${API_URL}/api`;
+
 // Add API service functions
 const api = {
   getAuthHeaders: () => {
@@ -207,12 +220,13 @@ const NewConsultation = () => {
     setPatientsError(null);
     try {
       const response = await axios.get<PatientsResponse>(
-        `${import.meta.env.VITE_API_URL}/api/patients`,
+        `${apiRoot}/patients`,
         { headers: api.getAuthHeaders() }
       );
+      const payload = (response.data as any)?.data || response.data;
 
       setPatients(
-        response.data.patients.map(p => ({
+        (payload.patients || []).map((p: any) => ({
           id: p.id,
           name: `${p.first_name} ${p.last_name}`,
           dob: p.date_of_birth,
@@ -258,12 +272,13 @@ const NewConsultation = () => {
 
     try {
       const response = await axios.post<PatientResponse>(
-        `${import.meta.env.VITE_API_URL}/api/patients`,
+        `${apiRoot}/patients`,
         addPatientData,
         { headers: api.getAuthHeaders() }
       );
 
-      const { patient } = response.data;
+      const payload = (response.data as any)?.data || response.data;
+      const { patient } = payload;
 
       // Reset form and update state
       setShowAddPatient(false);
@@ -500,7 +515,7 @@ const NewConsultation = () => {
 
       // Create consultation
       const consultationResponse = await axios.post<ConsultationResponse>(
-        `${import.meta.env.VITE_API_URL}/api/consultations`,
+        `${apiRoot}/consultations`,
         {
           patient_id: selectedPatient.id,
           consultation_type: 'general',
@@ -510,7 +525,8 @@ const NewConsultation = () => {
         { headers: api.getAuthHeaders() }
       );
 
-      const { consultation } = consultationResponse.data;
+      const consultationPayload = (consultationResponse.data as any)?.data || consultationResponse.data;
+      const { consultation } = consultationPayload;
 
       // Simulate progress for audio preparation
       setLoadingProgress(40);
@@ -543,7 +559,7 @@ const NewConsultation = () => {
       await new Promise(resolve => setTimeout(resolve, 400));
 
       const audioResponse = await axios.post<AudioUploadResponse>(
-        `${import.meta.env.VITE_API_URL}/api/consultations/${consultation.id}/upload-audio`,
+        `${apiRoot}/consultations/${consultation.id}/upload-audio`,
         formData,
         { headers }
       );

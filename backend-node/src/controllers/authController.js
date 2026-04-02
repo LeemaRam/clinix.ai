@@ -31,7 +31,8 @@ export const register = asyncHandler(async (req, res) => {
   });
 
   const access_token = signToken(user);
-  return res.status(201).json({ access_token, user: serializeUser(user) });
+  const data = { access_token, user: serializeUser(user) };
+  return res.status(201).json({ success: true, data, ...data });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -51,11 +52,12 @@ export const login = asyncHandler(async (req, res) => {
   await user.save();
 
   const access_token = signToken(user);
-  return res.json({ access_token, user: serializeUser(user) });
+  const data = { access_token, user: serializeUser(user) };
+  return res.json({ success: true, data, ...data });
 });
 
 export const validateToken = asyncHandler(async (_req, res) => {
-  res.json({ success: true });
+  res.json({ success: true, data: { valid: true }, valid: true });
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
@@ -65,5 +67,6 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, error: 'User not found' });
   }
 
-  return res.json({ user: serializeUser(user) });
+  const data = { user: serializeUser(user) };
+  return res.json({ success: true, data, ...data });
 });
