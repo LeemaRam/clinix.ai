@@ -14,9 +14,8 @@ const Register = () => {
         confirmPassword: ''
     });
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { register } = useAuth();
+    const { register, loading } = useAuth();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -40,9 +39,9 @@ const Register = () => {
 
         try {
             await register({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
-                full_name: formData.full_name
+                full_name: formData.full_name.trim()
             });
             navigate('/patients');
         } catch (err) {

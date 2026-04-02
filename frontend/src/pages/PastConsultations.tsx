@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { formatDuration, formatTime } from '../utils/formatters';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
+import { getSocket, joinConsultationRoom } from '../services/socket';
+import RealtimeStatusBadge from '../components/common/RealtimeStatusBadge';
 
 interface ConsultationBasic {
   id: string;
@@ -128,7 +130,20 @@ interface PdfOptions {
   includePatientDetails: boolean;
 }
 
+interface TranscriptionProgressEvent {
+  consultationId: string;
+  progress: number;
+  status: 'processing' | 'finalizing' | 'completed' | 'failed';
+}
+
+interface ReportGenerationEvent {
+  consultationId: string;
+  previewId?: string | null;
+  reportId?: string;
+}
+
 const PastConsultations: React.FC = () => {
+  const apiRoot = '/api';
   const { t } = useTranslation();
   const [consultations, setConsultations] = useState<TransformedConsultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<TransformedConsultation[]>([]);
@@ -160,6 +175,8 @@ const PastConsultations: React.FC = () => {
   const [showTranscriptionModal, setShowTranscriptionModal] = useState(false);
   const [showReportPreviewModal, setShowReportPreviewModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [transcriptionProgressByConsultation, setTranscriptionProgressByConsultation] = useState<Record<string, number>>({});
+  const [reportGenerationInProgress, setReportGenerationInProgress] = useState<Record<string, boolean>>({});
 
   // Get auth token from localStorage
   const getAuthHeaders = () => {
@@ -178,12 +195,15 @@ const PastConsultations: React.FC = () => {
         // Handle unauthorized - could redirect to login
         return { message: t('subscription.pleaseLoginToContinue') };
       }
+      if (!axiosError.response) {
+        return { message: t('errors.networkError') };
+      }
       return { 
         message: axiosError.response?.data?.error || 
-                t('subscription.errorOccurredWhileFetchingData')
+                t('errors.somethingWentWrong')
       };
     }
-    return { message: t('subscription.unexpectedErrorOccurred') };
+    return { message: t('errors.somethingWentWrong') };
   };
 
   // Fetch consultation list
@@ -192,15 +212,16 @@ const PastConsultations: React.FC = () => {
     setError(null);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/consultations`,
+        `${apiRoot}/consultations`,
         {
           params: { page, limit: 10 },
           headers: getAuthHeaders()
         }
       );
+      const payload = response.data?.data || response.data;
 
       // Transform the API response to match our component's needs
-      const transformedConsultations = response.data.consultations.map((consultation: ConsultationBasic) => {
+      const transformedConsultations = (payload.consultations || []).map((consultation: ConsultationBasic) => {
         let transformedStatus: 'completed' | 'pending';
         // Improved status mapping logic
         if (consultation.status === 'recorded' || consultation.status === 'in_progress') {
@@ -226,7 +247,12 @@ const PastConsultations: React.FC = () => {
 
       setConsultations(transformedConsultations);
       setFilteredConsultations(transformedConsultations);
-      setPagination(response.data.pagination);
+      setPagination({
+        total: payload.pagination?.total || 0,
+        page: payload.pagination?.page || 1,
+        totalPages: payload.pagination?.pages || 1,
+        hasMore: (payload.pagination?.page || 1) < (payload.pagination?.pages || 1)
+      });
     } catch (error) {
       const err = handleError(error);
       setError(err.message);
@@ -244,7 +270,7 @@ const PastConsultations: React.FC = () => {
     setDeleteLoading(consultationId);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}`,
+        `${apiRoot}/consultations/${consultationId}`,
         { headers: getAuthHeaders() }
       );
 
@@ -270,13 +296,13 @@ const PastConsultations: React.FC = () => {
     setDetailError(null);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/consultations/transcriptions/${consultationId}`,
+        `${apiRoot}/consultations/transcriptions/${consultationId}`,
         {
           headers: getAuthHeaders()
         }
       );
-
-      setTranscription(response.data.transcription);
+      const payload = response.data?.data || response.data;
+      setTranscription(payload.transcription);
     } catch (error) {
       const err = handleError(error);
       setDetailError(err.message);
@@ -297,6 +323,7 @@ const PastConsultations: React.FC = () => {
 
   // Handle view consultation details
   const handleViewConsultation = async (consultation: TransformedConsultation) => {
+    joinConsultationRoom(consultation.id);
     setSelectedConsultation(consultation as ConsultationDetail);
     setShowDetailModal(true);
     await fetchConsultationDetail(consultation.id);
@@ -304,6 +331,7 @@ const PastConsultations: React.FC = () => {
 
   // Handle view transcription
   const handleViewTranscription = async (consultation: TransformedConsultation) => {
+    joinConsultationRoom(consultation.id);
     setSelectedConsultation(consultation as ConsultationDetail);
     setShowTranscriptionModal(true);
     await fetchConsultationDetail(consultation.id);
@@ -311,6 +339,7 @@ const PastConsultations: React.FC = () => {
 
   // Handle report preview
   const handleReportPreview = (consultation: TransformedConsultation) => {
+    joinConsultationRoom(consultation.id);
     setSelectedConsultation(consultation as ConsultationDetail);
     setShowReportPreviewModal(true);
   };
@@ -334,7 +363,7 @@ const PastConsultations: React.FC = () => {
       };
 
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report`,
+        url: `${apiRoot}/consultations/${consultationId}/report`,
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -721,7 +750,7 @@ const PastConsultations: React.FC = () => {
     setSavingSegment(true);
     try {
       const response = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/consultations/transcriptions/${transcription.consultation_id}/segments/${segment.id}`,
+        `${apiRoot}/consultations/transcriptions/${transcription.consultation_id}/segments/${segment.id}`,
         {
           text: editedText,
         },
@@ -752,6 +781,49 @@ const PastConsultations: React.FC = () => {
 
   useEffect(() => {
     fetchConsultationList();
+  }, []);
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const onTranscriptionProgress = (event: TranscriptionProgressEvent) => {
+      setTranscriptionProgressByConsultation((prev) => ({
+        ...prev,
+        [event.consultationId]: event.progress
+      }));
+
+      if (event.status === 'completed') {
+        setConsultations((prev) => prev.map((item) => (
+          item.id === event.consultationId ? { ...item, status: 'completed' } : item
+        )));
+        setFilteredConsultations((prev) => prev.map((item) => (
+          item.id === event.consultationId ? { ...item, status: 'completed' } : item
+        )));
+      }
+
+      setTranscription((prev) => {
+        if (!prev || prev.consultation_id !== event.consultationId) return prev;
+        return { ...prev, status: event.status === 'completed' ? 'completed' : 'processing' };
+      });
+    };
+
+    const onReportGenerationStarted = (event: ReportGenerationEvent) => {
+      setReportGenerationInProgress((prev) => ({ ...prev, [event.consultationId]: true }));
+    };
+
+    const onReportGenerationCompleted = (event: ReportGenerationEvent) => {
+      setReportGenerationInProgress((prev) => ({ ...prev, [event.consultationId]: false }));
+    };
+
+    socket.on('transcription_progress', onTranscriptionProgress);
+    socket.on('report_generation_started', onReportGenerationStarted);
+    socket.on('report_generation_completed', onReportGenerationCompleted);
+
+    return () => {
+      socket.off('transcription_progress', onTranscriptionProgress);
+      socket.off('report_generation_started', onReportGenerationStarted);
+      socket.off('report_generation_completed', onReportGenerationCompleted);
+    };
   }, []);
 
   // Filter consultations based on search query
@@ -821,6 +893,15 @@ const PastConsultations: React.FC = () => {
           />
         </div>
       </div>
+
+      {selectedConsultation && transcriptionProgressByConsultation[selectedConsultation.id] !== undefined && (
+        <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800">
+          <RealtimeStatusBadge
+            label={`${t('transcription.processing')}: ${transcriptionProgressByConsultation[selectedConsultation.id]}%`}
+            tone="info"
+          />
+        </div>
+      )}
       
       {loading ? (
         <div className="flex items-center justify-center p-8">
@@ -903,6 +984,19 @@ const PastConsultations: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {(transcriptionProgressByConsultation[consultation.id] ?? 0) > 0 && (transcriptionProgressByConsultation[consultation.id] ?? 0) < 100 && (
+                            <div className="mb-1">
+                              <RealtimeStatusBadge
+                                label={`${t('transcription.processing')}: ${transcriptionProgressByConsultation[consultation.id]}%`}
+                                tone="info"
+                              />
+                            </div>
+                          )}
+                          {reportGenerationInProgress[consultation.id] && (
+                            <div className="mb-1">
+                              <RealtimeStatusBadge label={t('reports.generating')} tone="warning" />
+                            </div>
+                          )}
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleViewConsultation(consultation)}

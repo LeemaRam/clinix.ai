@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import {
   Plus,
   Edit,
@@ -20,6 +19,7 @@ import {
 import { toast } from 'react-toastify';
 import { SubscriptionPlan } from '../../types/subscription';
 import { adminSubscriptionApi } from '../../services/subscriptionService';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../../services/apiFetch';
 
 interface User {
   id: string;
@@ -78,15 +78,13 @@ const UserManagement: React.FC = () => {
   const [trialPlan_Id, setTrialPlanId] = useState('')
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        }
-      );
-      setUsers(response.data.users || []);
+      const response = await apiFetch<{ users?: User[] }>({
+        path: '/super-admin/users',
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      const payload = unwrapApiData<{ users?: User[] }>(response.data as any);
+      setUsers(payload.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error(t('superAdmin.errorFetchingUsers'));
@@ -154,17 +152,20 @@ const UserManagement: React.FC = () => {
         ...(createUserData.role === 'doctor' && { subscription_plan_id: createUserData.subscription_plan_id })
       };
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/users`,
-        createData,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      const response = await apiFetch<{ user?: User }>({
+        path: '/super-admin/users',
+        method: 'POST',
+        data: createData,
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
-      setUsers([...users, response.data.user]);
+      const payload = unwrapApiData<{ user?: User }>(response.data as any);
+      if (payload.user) {
+        setUsers([...users, payload.user]);
+      }
       setShowCreateModal(false);
       resetCreateForm();
       toast.success(t('superAdmin.userCreated'));
@@ -196,18 +197,19 @@ const UserManagement: React.FC = () => {
         ...(editUserData.role === 'doctor' && { subscription_plan_id: editUserData.subscription_plan_id })
       };
 
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/users/${editUserData.id}`,
-        updateData,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      const response = await apiFetch<{ user?: User }>({
+        path: `/super-admin/users/${editUserData.id}`,
+        method: 'PUT',
+        data: updateData,
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
+      const payload = unwrapApiData<{ user?: User }>(response.data as any);
       setUsers(users.map(user =>
-        user.id === editUserData.id ? response.data.user : user
+        user.id === editUserData.id && payload.user ? payload.user : user
       ));
       setShowEditModal(false);
       toast.success(t('superAdmin.userUpdated'));
@@ -225,14 +227,11 @@ const UserManagement: React.FC = () => {
     setDeleteLoading(true);
 
     try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/users/${userToDelete.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        }
-      );
+      await apiFetch({
+        path: `/super-admin/users/${userToDelete.id}`,
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
 
       setUsers(users.filter(user => user.id !== userToDelete.id));
       setShowDeleteModal(false);
@@ -248,15 +247,15 @@ const UserManagement: React.FC = () => {
 
   const toggleUserStatus = async (user: User) => {
     try {
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/users/${user.id}/toggle-status`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: `/super-admin/users/${user.id}/toggle-status`,
+        method: 'PATCH',
+        data: {},
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
       setUsers(users.map(u =>
         u.id === user.id ? { ...u, is_active: !u.is_active } : u

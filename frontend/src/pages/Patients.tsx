@@ -38,6 +38,7 @@ interface NewPatientData {
 }
 
 const Patients = () => {
+  const apiRoot = '/api';
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -81,7 +82,7 @@ const Patients = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get<PaginatedResponse>(`${import.meta.env.VITE_API_URL}/api/patients`, {
+      const response = await axios.get<{ success?: boolean; data?: PaginatedResponse } & PaginatedResponse>(`${apiRoot}/patients`, {
         params: {
           search: searchTerm,
           page: currentPage,
@@ -91,9 +92,10 @@ const Patients = () => {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
       });
-      setPatients(response.data.patients);
-      setTotalPages(response.data.pages);
-      setTotalPatients(response.data.total);
+      const payload = response.data?.data || response.data;
+      setPatients(payload.patients || []);
+      setTotalPages(payload.pages || 1);
+      setTotalPatients(payload.total || 0);
     } catch (err) {
       setError(t('errors.somethingWentWrong'));
       console.error('Error fetching patients:', err);
@@ -159,7 +161,7 @@ const Patients = () => {
 
       console.log('processed data', processedPatient);
 
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, processedPatient, {
+      await axios.post(`${apiRoot}/patients`, processedPatient, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }

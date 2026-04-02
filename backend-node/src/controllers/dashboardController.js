@@ -12,10 +12,16 @@ export const stats = asyncHandler(async (req, res) => {
     Report.countDocuments({ doctorId })
   ]);
 
-  res.json({
+  const data = {
+    total_patients: patients,
+    total_consultations: consultations,
+    total_reports: reports,
+    recent_patients: [],
     totalPatients: patients,
     totalConsultations: consultations,
     totalReports: reports,
     recentActivity: []
-  });
+  };
+
+  res.json({ success: true, data, ...data });
 });

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import { 
   Globe, 
   Plus, 
@@ -12,6 +11,7 @@ import {
   Save
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../../services/apiFetch';
 
 interface Language {
   code: string;
@@ -54,26 +54,33 @@ const LanguageSettings: React.FC = () => {
 
   const fetchLanguageSettings = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        }
-      );
+      const response = await apiFetch<{
+        uiLanguages?: Language[];
+        speechLanguages?: SpeechLanguage[];
+        defaultLanguage?: string;
+      }>({
+        path: '/super-admin/languages',
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+
+      const payload = unwrapApiData<{
+        uiLanguages?: Language[];
+        speechLanguages?: SpeechLanguage[];
+        defaultLanguage?: string;
+      }>(response.data as any);
       
-      setUiLanguages(response.data.uiLanguages || [
+      setUiLanguages(payload.uiLanguages || [
         { code: 'en', name: 'English', enabled: true, isUILanguage: true, isSpeechLanguage: false },
         { code: 'ur', name: 'Urdu', enabled: true, isUILanguage: true, isSpeechLanguage: false }
       ]);
       
-      setSpeechLanguages(response.data.speechLanguages || [
+      setSpeechLanguages(payload.speechLanguages || [
         { code: 'en-US', name: 'English (US)', enabled: true },
         { code: 'ur-PK', name: 'Urdu (Pakistan)', enabled: true }
       ]);
       
-      setDefaultLanguage(response.data.defaultLanguage || 'en');
+      setDefaultLanguage(payload.defaultLanguage || 'en');
     } catch (error) {
       console.error('Error fetching language settings:', error);
       // Set default values if API fails
@@ -100,15 +107,15 @@ const LanguageSettings: React.FC = () => {
           : lang
       );
       
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages/ui`,
-        { languages: updatedLanguages },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: '/super-admin/languages/ui',
+        method: 'PUT',
+        data: { languages: updatedLanguages },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       setUiLanguages(updatedLanguages);
       toast.success('UI language settings updated');
@@ -129,15 +136,15 @@ const LanguageSettings: React.FC = () => {
           : lang
       );
       
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages/speech`,
-        { languages: updatedLanguages },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: '/super-admin/languages/speech',
+        method: 'PUT',
+        data: { languages: updatedLanguages },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       setSpeechLanguages(updatedLanguages);
       toast.success('Speech language settings updated');
@@ -168,15 +175,15 @@ const LanguageSettings: React.FC = () => {
       
       const updatedLanguages = [...speechLanguages, newSpeechLanguage];
       
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages/speech`,
-        { languages: updatedLanguages },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: '/super-admin/languages/speech',
+        method: 'PUT',
+        data: { languages: updatedLanguages },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       setSpeechLanguages(updatedLanguages);
       toast.success('Speech language added');
@@ -197,15 +204,15 @@ const LanguageSettings: React.FC = () => {
     try {
       const updatedLanguages = speechLanguages.filter(lang => lang.code !== languageCode);
       
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages/speech`,
-        { languages: updatedLanguages },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: '/super-admin/languages/speech',
+        method: 'PUT',
+        data: { languages: updatedLanguages },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       setSpeechLanguages(updatedLanguages);
       toast.success('Speech language removed');
@@ -220,15 +227,15 @@ const LanguageSettings: React.FC = () => {
     setSavingLanguage('default');
     
     try {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/super-admin/languages/default`,
-        { defaultLanguage: languageCode },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: '/super-admin/languages/default',
+        method: 'PUT',
+        data: { defaultLanguage: languageCode },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
       
       setDefaultLanguage(languageCode);
       toast.success('Default language updated');

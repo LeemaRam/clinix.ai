@@ -16,7 +16,14 @@ import { notFound } from './middleware/notFound.js';
 export const createApp = () => {
   const app = express();
 
-  app.use(cors({ origin: env.CORS_ORIGIN.split(',').map((x) => x.trim()), credentials: true }));
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((x) => x.trim()).filter(Boolean);
+  const isWildcard = allowedOrigins.includes('*');
+  app.use(
+    cors({
+      origin: isWildcard ? true : allowedOrigins,
+      credentials: !isWildcard
+    })
+  );
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan('dev'));

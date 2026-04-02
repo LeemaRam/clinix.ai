@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, X } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
 
 interface Patient {
   id: string;
@@ -51,13 +51,17 @@ const EditPatient = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+      const response = await apiFetch<{ patient?: Patient }>({
+        path: `/patients/${id}`,
+        method: 'GET',
+        headers: getAuthHeaders()
       });
-      setPatient(response.data);
-      setFormData(response.data);
+
+      const payload = unwrapApiData<{ patient?: Patient }>(response.data as any);
+      if (payload.patient) {
+        setPatient(payload.patient);
+        setFormData(payload.patient);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.somethingWentWrong'));
       console.error('Error fetching patient:', err);
@@ -108,9 +112,13 @@ const EditPatient = () => {
         current_medications: tempArrayInputs.current_medications.split(',').map(s => s.trim()).filter(s => s)
       };
 
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/patients/${id}`, processedData, {
+      await apiFetch({
+        path: `/patients/${id}`,
+        method: 'PUT',
+        data: processedData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
       });
 

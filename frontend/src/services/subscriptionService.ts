@@ -8,7 +8,23 @@ import {
   CheckoutSession
 } from '../types/subscription';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
+
+// In browser-hosted dev environments (e.g., Codespaces), localhost points to the user machine,
+// so prefer Vite proxy for local API targets.
+const shouldUseProxy = (() => {
+  if (!API_URL) return true;
+  try {
+    const { hostname } = new URL(API_URL);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return true;
+  }
+})();
+
+const API_ROOT = shouldUseProxy ? '/api' : `${API_URL}/api`;
+
+const unwrapData = <T>(payload: { data?: T } & T): T => (payload?.data || payload) as T;
 
 // Helper to get auth headers
 const getAuthHeaders = () => {
@@ -37,11 +53,12 @@ export const subscriptionPlansApi = {
   getAvailablePlans: async (): Promise<SubscriptionPlan[]> => {
     try {
       const response: AxiosResponse<{ plans: any[] }> = await axios.get(
-        `${API_URL}/api/subscription/plans`
+        `${API_ROOT}/subscription/plans`
       );
+      const body = unwrapData<{ plans: any[] }>(response.data as any);
       
       // Transform backend data to frontend format
-      return response.data.plans.map(plan => ({
+      return body.plans.map(plan => ({
         id: plan.id,
         name: plan.name,
         description: plan.description,
@@ -68,10 +85,11 @@ export const subscriptionPlansApi = {
   getPlanDetails: async (planId: string): Promise<SubscriptionPlan> => {
     try {
       const response: AxiosResponse<{ plan: any }> = await axios.get(
-        `${API_URL}/api/subscription/plans/${planId}`
+        `${API_ROOT}/subscription/plans/${planId}`
       );
+      const body = unwrapData<{ plan: any }>(response.data as any);
       
-      const plan = response.data.plan;
+      const plan = body.plan;
       return {
         id: plan.id,
         name: plan.name,
@@ -99,11 +117,12 @@ export const subscriptionPlansApi = {
   comparePlans: async (planIds: string[]): Promise<SubscriptionPlan[]> => {
     try {
       const response: AxiosResponse<{ plans: any[] }> = await axios.post(
-        `${API_URL}/api/subscription/plans/compare`,
+        `${API_ROOT}/subscription/plans/compare`,
         { plan_ids: planIds }
       );
+      const body = unwrapData<{ plans: any[] }>(response.data as any);
       
-      return response.data.plans.map(plan => ({
+      return body.plans.map(plan => ({
         id: plan.id,
         name: plan.name,
         description: plan.description,
@@ -137,11 +156,11 @@ export const userSubscriptionApi = {
   }> => {
     try {
       const response: AxiosResponse<any> = await axios.get(
-        `${API_URL}/api/user/subscription`,
+        `${API_ROOT}/user/subscription`,
         { headers: getAuthHeaders() }
       );
       
-      const data = response.data;
+      const data = unwrapData<any>(response.data as any);
       
       return {
         subscription: data.subscription ? {
@@ -192,7 +211,7 @@ export const userSubscriptionApi = {
   createCheckoutSession: async (request: CheckoutSessionRequest): Promise<CheckoutSession> => {
     try {
       const response: AxiosResponse<{ sessionId: string }> = await axios.post(
-        `${API_URL}/api/subscription/create-checkout-session`,
+        `${API_ROOT}/subscription/create-checkout-session`,
         {
           planId: request.planId,
           successUrl: request.successUrl,
@@ -200,10 +219,11 @@ export const userSubscriptionApi = {
         },
         { headers: getAuthHeaders() }
       );
+      const body = unwrapData<{ sessionId: string }>(response.data as any);
       
       return {
-        id: response.data.sessionId,
-        url: `https://checkout.stripe.com/c/pay/${response.data.sessionId}`
+        id: body.sessionId,
+        url: `https://checkout.stripe.com/c/pay/${body.sessionId}`
       };
     } catch (error) {
       throw handleApiError(error);
@@ -214,11 +234,11 @@ export const userSubscriptionApi = {
   verifySubscription: async (sessionId: string): Promise<any> => {
     try {
       const response: AxiosResponse<any> = await axios.get(
-        `${API_URL}/api/verify-subscription?session_id=${sessionId}`,
+        `${API_ROOT}/verify-subscription?session_id=${sessionId}`,
         { headers: getAuthHeaders() }
       );
       
-      return response.data;
+      return unwrapData<any>(response.data as any);
     } catch (error) {
       throw handleApiError(error);
     }
@@ -228,7 +248,7 @@ export const userSubscriptionApi = {
   cancelSubscription: async (): Promise<void> => {
     try {
       await axios.post(
-        `${API_URL}/api/cancel-subscription`,
+        `${API_ROOT}/cancel-subscription`,
         {},
         { headers: getAuthHeaders() }
       );
@@ -241,7 +261,7 @@ export const userSubscriptionApi = {
   reactivateSubscription: async (): Promise<void> => {
     try {
       await axios.post(
-        `${API_URL}/api/reactivate-subscription`,
+        `${API_ROOT}/reactivate-subscription`,
         {},
         { headers: getAuthHeaders() }
       );
@@ -274,11 +294,11 @@ export const adminSubscriptionApi = {
       if (params.status) queryParams.append('status', params.status);
 
       const response: AxiosResponse<any> = await axios.get(
-        `${API_URL}/api/super-admin/subscription-plans?${queryParams.toString()}`,
+        `${API_ROOT}/super-admin/subscription-plans?${queryParams.toString()}`,
         { headers: getAuthHeaders() }
       );
       
-      const data = response.data;
+      const data = unwrapData<any>(response.data as any);
       return {
         plans: data.plans.map((plan: any) => ({
           id: plan.id,
@@ -320,7 +340,7 @@ export const adminSubscriptionApi = {
   }> => {
     try {
       const response: AxiosResponse<any> = await axios.get(
-        `${API_URL}/api/super-admin/subscription-plans/${planId}`,
+        `${API_ROOT}/super-admin/subscription-plans/${planId}`,
         { headers: getAuthHeaders() }
       );
       
@@ -355,7 +375,7 @@ export const adminSubscriptionApi = {
   createPlan: async (planData: CreatePlanRequest): Promise<SubscriptionPlan> => {
     try {
       const response: AxiosResponse<{ plan: any }> = await axios.post(
-        `${API_URL}/api/super-admin/subscription-plans`,
+        `${API_ROOT}/super-admin/subscription-plans`,
         planData,
         { headers: getAuthHeaders() }
       );
@@ -388,7 +408,7 @@ export const adminSubscriptionApi = {
   updatePlan: async (planId: string, planData: Partial<CreatePlanRequest>): Promise<SubscriptionPlan> => {
     try {
       const response: AxiosResponse<{ plan: any }> = await axios.put(
-        `${API_URL}/api/super-admin/subscription-plans/${planId}`,
+        `${API_ROOT}/super-admin/subscription-plans/${planId}`,
         planData,
         { headers: getAuthHeaders() }
       );
@@ -424,7 +444,7 @@ export const adminSubscriptionApi = {
   }> => {
     try {
       const response: AxiosResponse<any> = await axios.patch(
-        `${API_URL}/api/super-admin/subscription-plans/${planId}/toggle-status`,
+        `${API_ROOT}/super-admin/subscription-plans/${planId}/toggle-status`,
         {},
         { headers: getAuthHeaders() }
       );
@@ -460,7 +480,7 @@ export const adminSubscriptionApi = {
   deletePlan: async (planId: string): Promise<void> => {
     try {
       await axios.delete(
-        `${API_URL}/api/super-admin/subscription-plans/${planId}`,
+        `${API_ROOT}/super-admin/subscription-plans/${planId}`,
         { headers: getAuthHeaders() }
       );
     } catch (error) {
@@ -475,7 +495,7 @@ export const adminSubscriptionApi = {
   }): Promise<SubscriptionPlan> => {
     try {
       const response: AxiosResponse<{ plan: any }> = await axios.post(
-        `${API_URL}/api/super-admin/subscription-plans/${planId}/duplicate`,
+        `${API_ROOT}/super-admin/subscription-plans/${planId}/duplicate`,
         options,
         { headers: getAuthHeaders() }
       );

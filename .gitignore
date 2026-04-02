@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# Upload artifacts
+uploads/
+backend-node/uploads/
+
+# OS files
+.DS_Store

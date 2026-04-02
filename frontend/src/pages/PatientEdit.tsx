@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, X, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
 
 interface Patient {
   _id: string;
@@ -75,14 +75,17 @@ const PatientEdit = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await axios.get<{ patient: Patient }>(`${import.meta.env.VITE_API_URL}/api/patients/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+        const response = await apiFetch<{ patient?: Patient }>({
+          path: `/patients/${id}`,
+          method: 'GET',
+          headers: getAuthHeaders()
         });
 
-        
-        const patient = response.data.patient;
+        const payload = unwrapApiData<{ patient?: Patient }>(response.data as any);
+        const patient = payload.patient;
+        if (!patient) {
+          throw new Error('Patient not found');
+        }
         // converting date_of_birth to YYYY-MM-DD format for input[type="date"]
         const formattedDateOfBirth = new Date(patient.date_of_birth).toISOString().split('T')[0];
         setPatientData({
@@ -147,15 +150,15 @@ const PatientEdit = () => {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/patients/${id}`,
-        patientData,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
+      await apiFetch({
+        path: `/patients/${id}`,
+        method: 'PUT',
+        data: patientData,
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
       // Navigate back to patient detail page
       navigate(`/patients/${id}`);

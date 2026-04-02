@@ -25,12 +25,14 @@ export const listPatients = asyncHandler(async (req, res) => {
     Patient.countDocuments(query)
   ]);
 
-  res.json({
+  const data = {
     patients: patients.map(serializePatient),
     total,
     page,
     pages: Math.ceil(total / limit)
-  });
+  };
+
+  res.json({ success: true, data, ...data });
 });
 
 export const createPatient = asyncHandler(async (req, res) => {
@@ -52,7 +54,8 @@ export const createPatient = asyncHandler(async (req, res) => {
     doctorId: req.user.id
   });
 
-  res.status(201).json({ patient: serializePatient(patient) });
+  const data = { patient: serializePatient(patient) };
+  res.status(201).json({ success: true, data, ...data });
 });
 
 export const getPatient = asyncHandler(async (req, res) => {
@@ -63,7 +66,8 @@ export const getPatient = asyncHandler(async (req, res) => {
   const data = serializePatient(patient);
   data.consultations = consultations.map(serializeConsultation);
 
-  res.json({ patient: data });
+  const payload = { patient: data };
+  res.json({ success: true, data: payload, ...payload });
 });
 
 export const updatePatient = asyncHandler(async (req, res) => {
@@ -96,5 +100,6 @@ export const updatePatient = asyncHandler(async (req, res) => {
   });
 
   await patient.save();
-  res.json({ patient: serializePatient(patient) });
+  const data = { patient: serializePatient(patient) };
+  res.json({ success: true, data, ...data });
 });

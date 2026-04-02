@@ -23,6 +23,20 @@ import { formatDuration } from '../utils/formatters';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 
+const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
+const shouldUseProxy = (() => {
+  if (!API_URL) return true;
+  try {
+    const { hostname } = new URL(API_URL);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return true;
+  }
+})();
+const API_ROOT = shouldUseProxy ? '/api' : `${API_URL}/api`;
+
+const unwrapData = <T,>(payload: { data?: T } & T): T => (payload?.data || payload) as T;
+
 interface Patient {
   _id: string;
   first_name: string;
@@ -163,13 +177,14 @@ const PatientDetail = () => {
     setDetailError(null);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/consultations/transcriptions/${consultationId}`,
+        `${API_ROOT}/consultations/transcriptions/${consultationId}`,
         {
           headers: getAuthHeaders()
         }
       );
 
-      setTranscription(response.data.transcription);
+      const body = unwrapData<{ transcription?: TranscriptionDetail }>(response.data as any);
+      setTranscription(body.transcription || null);
     } catch (error) {
       const err = handleError(error);
       setDetailError(err.message);
@@ -211,7 +226,7 @@ const PatientDetail = () => {
       };
 
       const response = await axios({
-        url: `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report`,
+        url: `${API_ROOT}/consultations/${consultationId}/report`,
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -441,23 +456,24 @@ const PatientDetail = () => {
 
         console.log('Fetching patient with ID:', id); // Debug log
         
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients/${id}`, {
+        const response = await axios.get(`${API_ROOT}/patients/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
           }
         });
         
         console.log('Patient data received:', response.data); // Debug log
-        
-        if (response.data.patient) {
+
+        const body = unwrapData<{ patient?: Patient }>(response.data as any);
+        if (body.patient) {
           // Ensure all array fields exist to prevent undefined errors
           const patientData = {
-            ...response.data.patient,
-            notes: response.data.patient.notes || [],
-            allergies: response.data.patient.allergies || [],
-            medical_conditions: response.data.patient.medical_conditions || [],
-            current_medications: response.data.patient.current_medications || [],
-            consultations: response.data.patient.consultations || []
+            ...body.patient,
+            notes: body.patient.notes || [],
+            allergies: body.patient.allergies || [],
+            medical_conditions: body.patient.medical_conditions || [],
+            current_medications: body.patient.current_medications || [],
+            consultations: body.patient.consultations || []
           };
           setPatient(patientData);
         }
@@ -504,17 +520,18 @@ const PatientDetail = () => {
     
     try {
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/patients/${id}`,
+        `${API_ROOT}/patients/${id}`,
         { note: newNote },
         { headers: getAuthHeaders() }
       );
       
       // Ensure the response has the proper structure
-      if (response.data.patient) {
+      const body = unwrapData<{ patient?: Patient }>(response.data as any);
+      if (body.patient) {
         // Make sure notes array exists
         const updatedPatient = {
-          ...response.data.patient,
-          notes: response.data.patient.notes || []
+          ...body.patient,
+          notes: body.patient.notes || []
         };
         setPatient(updatedPatient);
       }

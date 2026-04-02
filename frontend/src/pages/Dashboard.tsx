@@ -72,6 +72,7 @@ interface PdfOptions {
 }
 
 const Dashboard = () => {
+  const apiRoot = '/api';
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -125,13 +126,14 @@ const Dashboard = () => {
       setDetailError(null);
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/consultations/transcriptions/${consultationId}`,
+          `${apiRoot}/consultations/transcriptions/${consultationId}`,
           {
             headers: getAuthHeaders()
           }
         );
 
-        setTranscription(response.data.transcription);
+        const payload = response.data?.data || response.data;
+        setTranscription(payload.transcription);
       } catch (error) {
         const err = handleError(error);
         setDetailError(err.message);
@@ -167,7 +169,7 @@ const Dashboard = () => {
         };
 
         const response = await axios({
-          url: `${import.meta.env.VITE_API_URL}/api/consultations/${consultationId}/report`,
+          url: `${apiRoot}/consultations/${consultationId}/report`,
           method: 'POST',
           headers: {
             ...getAuthHeaders(),
@@ -388,12 +390,18 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchDashboardStats = async () => {
             try {
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`, {
+                const response = await axios.get(`${apiRoot}/dashboard/stats`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                     }
                 });
-                setStats(response.data);
+                const payload = response.data?.data || response.data;
+                setStats({
+                  total_patients: payload.total_patients ?? payload.totalPatients ?? 0,
+                  total_consultations: payload.total_consultations ?? payload.totalConsultations ?? 0,
+                  total_reports: payload.total_reports ?? payload.totalReports ?? 0,
+                  recent_patients: payload.recent_patients ?? []
+                });
                 setLoading(false);
             } catch (err) {
                 setError(t('common.failedToFetchDashboardStatistics'));
