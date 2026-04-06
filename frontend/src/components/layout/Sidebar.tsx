@@ -12,17 +12,20 @@ import {
   Globe,
   CreditCard,
   DollarSign,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../common/Logo';
 
 interface SidebarProps {
+  isMobile?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, isCollapsed = false, onClose }) => {
   const { t } = useTranslation();
   const { isSuperAdmin } = useAuth();
 
@@ -47,46 +50,68 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const navigation = isSuperAdmin() ? superAdminNavigation : regularNavigation;
 
   const handleNavClick = () => {
-    if (onClose) {
+    if (isMobile && onClose) {
       onClose();
     }
   };
 
   return (
-    <div className="flex flex-col w-64 bg-white border-r h-full">
-      <div className="flex items-center justify-between h-16 border-b px-4">
-        <Logo />
-        {onClose && (
+    <div className="flex h-screen min-h-0 flex-col bg-slate-950 text-white">
+      <div className={`flex items-center ${isCollapsed ? 'justify-center px-3 py-4' : 'justify-between px-5 py-4'} border-b border-white/10`}>
+        <Logo theme="dark" compact={isCollapsed} />
+        {!isCollapsed && onClose && (
           <button
             onClick={onClose}
-            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="btn-ghost rounded-xl p-2 text-slate-300 hover:bg-white/5 hover:text-white"
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>
         )}
       </div>
-      <nav className="flex-1 overflow-y-auto">
-        <ul className="p-4 space-y-2">
+      <nav className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${isCollapsed ? 'px-2 py-4' : 'px-3 py-4'}`}>
+        {!isCollapsed && (
+          <div className="mb-4 px-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            {isSuperAdmin() ? t('superAdmin.superAdmin') : t('navigation.dashboard')}
+          </div>
+        )}
+        <ul className="space-y-1">
           {navigation.map((item) => (
             <li key={item.name}>
               <NavLink
                 to={item.href}
                 onClick={handleNavClick}
                 className={({ isActive }) =>
-                  `flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  `group flex items-center ${isCollapsed ? 'justify-center px-0 py-3' : 'justify-between px-4 py-3'} rounded-2xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'text-blue-700 bg-blue-50'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-white/10 text-white shadow-soft'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`
                 }
+                title={item.name}
               >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.name}
+                <span className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  {!isCollapsed && <span>{item.name}</span>}
+                </span>
+                {!isCollapsed && (
+                  <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+                )}
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
+      {!isCollapsed && (
+        <div className="border-t border-white/10 p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+            <p className="font-semibold text-white">Clinix AI Workspace</p>
+            <p className="mt-1 leading-relaxed text-slate-400">
+              {t('common.audioToMedicalReports')}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

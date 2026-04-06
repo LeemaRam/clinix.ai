@@ -25,15 +25,15 @@ const LanguageSelector: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+        className="btn-secondary px-3 py-2 text-sm"
       >
-        <Globe size={16} className="text-gray-500" />
-        <span className="text-gray-700 font-medium">
+        <Globe size={16} className="text-slate-500" />
+        <span className="font-medium text-slate-700">
           {currentLanguage.flag} {currentLanguage.name}
         </span>
         <ChevronDown 
           size={16} 
-          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
         />
       </button>
 
@@ -46,20 +46,20 @@ const LanguageSelector: React.FC = () => {
           />
           
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+          <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="py-2">
               {languages.map((language) => (
                 <button
                   key={language.code}
                   onClick={() => handleLanguageChange(language.code)}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between"
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{language.flag}</span>
                     <span>{language.name}</span>
                   </div>
                   {currentLanguage.code === language.code && (
-                    <Check size={16} className="text-cyan-600" />
+                    <Check size={16} className="text-primary-600" />
                   )}
                 </button>
               ))}

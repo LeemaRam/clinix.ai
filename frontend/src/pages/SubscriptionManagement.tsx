@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import { userSubscriptionApi } from '../services/subscriptionService';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const SubscriptionManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -21,6 +22,7 @@ const SubscriptionManagement: React.FC = () => {
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -46,12 +48,6 @@ const SubscriptionManagement: React.FC = () => {
   const handleCancelSubscription = async () => {
     if (!subscription) return;
 
-    const confirmed = window.confirm(
-      t('subscription.confirmCancelSubscription')
-    );
-
-    if (!confirmed) return;
-
     setUpdating(true);
     try {
       await userSubscriptionApi.cancelSubscription();
@@ -63,6 +59,7 @@ const SubscriptionManagement: React.FC = () => {
       });
       
       toast.success(t('subscription.subscriptionCanceledAccessUntilEnd'));
+      setShowCancelDialog(false);
     } catch (error) {
       console.error('Failed to cancel subscription:', error);
       toast.error(t('subscription.failedToCancelSubscription'));
@@ -126,20 +123,20 @@ const SubscriptionManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600"></div>
       </div>
     );
   }
 
   if (!subscription || !plan || !usage) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('subscription.noActiveSubscription')}</h2>
-        <p className="text-gray-600 mb-8">{t('subscription.noActiveSubscriptionDescription')}</p>
+      <div className="page-card py-12 text-center">
+        <h2 className="mb-4 text-2xl font-bold text-slate-900">{t('subscription.noActiveSubscription')}</h2>
+        <p className="mb-8 text-slate-600">{t('subscription.noActiveSubscriptionDescription')}</p>
         <Link
           to="/pricing"
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="btn-primary"
         >
           {t('subscription.viewPricingPlans')}
         </Link>
@@ -148,23 +145,34 @@ const SubscriptionManagement: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="space-y-8">
+      <ConfirmDialog
+        open={showCancelDialog}
+        title={t('subscription.confirmCancelSubscription')}
+        description={t('subscription.subscriptionWillEndOn')}
+        confirmLabel={t('subscription.cancelSubscription')}
+        cancelLabel={t('common.cancel')}
+        loading={updating}
+        onConfirm={handleCancelSubscription}
+        onCancel={() => setShowCancelDialog(false)}
+      />
+
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">{t('subscription.subscriptionManagement')}</h1>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(subscription.status)}`}>
+      <div className="page-card p-6 sm:p-8">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-slate-900">{t('subscription.subscriptionManagement')}</h1>
+          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(subscription.status)}`}>
             {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
           </span>
         </div>
         
         {subscription.cancelAtPeriodEnd && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="mb-4 rounded-2xl border border-warning-200 bg-warning-50 p-4">
             <div className="flex items-center">
-              <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mr-3" />
+              <FaExclamationTriangle className="mr-3 h-5 w-5 text-warning-500" />
               <div>
-                <p className="text-yellow-800 font-medium">{t('subscription.subscriptionCanceled')}</p>
-                <p className="text-yellow-700 text-sm">
+                <p className="font-medium text-warning-800">{t('subscription.subscriptionCanceled')}</p>
+                <p className="text-sm text-warning-700">
                   {t('subscription.subscriptionWillEndOn')} {subscription.currentPeriodEnd.toLocaleDateString()}.
                   {t('subscription.canReactivateAnytime')}
                 </p>
@@ -175,40 +183,40 @@ const SubscriptionManagement: React.FC = () => {
       </div>
 
       {/* Current Plan */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('subscription.currentPlan')}</h2>
+      <div className="page-card p-6 sm:p-8">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('subscription.currentPlan')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-            <p className="text-gray-600 mb-4">{plan.description}</p>
+            <h3 className="mb-2 text-xl font-bold text-slate-900">{plan.name}</h3>
+            <p className="mb-4 text-slate-600">{plan.description}</p>
             <div className="flex items-baseline">
-              <span className="text-2xl font-bold text-gray-900">${plan.price}</span>
-              <span className="text-gray-600 ml-1">/{plan.interval}</span>
+              <span className="text-2xl font-bold text-slate-900">${plan.price}</span>
+              <span className="ml-1 text-slate-600">/{plan.interval}</span>
             </div>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-slate-600">
               <FaCalendarAlt className="h-4 w-4 mr-2" />
               {t('subscription.nextBilling')}: {subscription.currentPeriodEnd.toLocaleDateString()}
             </div>
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-slate-600">
               <FaCreditCard className="h-4 w-4 mr-2" />
               {t('subscription.paymentMethod')}: •••• 4242
             </div>
           </div>
         </div>
         
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 border-t border-slate-200 pt-6">
           <div className="flex flex-wrap gap-3">
             <Link
               to="/pricing"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="btn-primary"
             >
               {t('subscription.changePlan')}
             </Link>
             <button
               onClick={handleUpdatePaymentMethod}
-              className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="btn-secondary"
             >
               {t('subscription.updatePaymentMethod')}
             </button>
@@ -216,7 +224,7 @@ const SubscriptionManagement: React.FC = () => {
               <button
                 onClick={handleReactivateSubscription}
                 disabled={updating}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="btn-primary bg-success-600 hover:bg-success-700"
               >
                 {updating ? (
                   <div className="flex items-center">
@@ -229,9 +237,9 @@ const SubscriptionManagement: React.FC = () => {
               </button>
             ) : (
               <button
-                onClick={handleCancelSubscription}
+                onClick={() => setShowCancelDialog(true)}
                 disabled={updating}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="btn-danger"
               >
                 {updating ? (
                   <div className="flex items-center">
@@ -248,18 +256,18 @@ const SubscriptionManagement: React.FC = () => {
       </div>
 
       {/* Usage Statistics */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('subscription.usageThisMonth')}</h2>
+      <div className="page-card p-6 sm:p-8">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('subscription.usageThisMonth')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Transcriptions Usage */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">{t('subscription.transcriptions')}</span>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm font-medium text-slate-900">{t('subscription.transcriptions')}</span>
+              <span className="text-sm text-slate-600">
                 {usage.transcriptionsUsed} / {usage.transcriptionsLimit}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="h-2 w-full rounded-full bg-slate-200">
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${getUsageColor(
                   getUsagePercentage(usage.transcriptionsUsed, usage.transcriptionsLimit)
@@ -280,12 +288,12 @@ const SubscriptionManagement: React.FC = () => {
           {/* Storage Usage */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">{t('subscription.storage')}</span>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm font-medium text-slate-900">{t('subscription.storage')}</span>
+              <span className="text-sm text-slate-600">
                 {usage.diskSpaceUsedGB}GB / {usage.diskSpaceLimitGB}GB
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="h-2 w-full rounded-full bg-slate-200">
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${getUsageColor(
                   getUsagePercentage(usage.diskSpaceUsedGB, usage.diskSpaceLimitGB)
@@ -336,6 +344,17 @@ const SubscriptionManagement: React.FC = () => {
               key={invoice.id}
               className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg"
             >
+
+      <ConfirmDialog
+        open={showCancelDialog}
+        title={t('subscription.confirmCancelSubscription')}
+        description={`${t('subscription.subscriptionWillEndOn')} ${subscription.currentPeriodEnd.toLocaleDateString()}. ${t('subscription.canReactivateAnytime')}`}
+        confirmLabel={t('subscription.cancelSubscription')}
+        cancelLabel={t('common.cancel')}
+        loading={updating}
+        onConfirm={handleCancelSubscription}
+        onCancel={() => setShowCancelDialog(false)}
+      />
               <div className="flex items-center space-x-4">
                               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
                 <FaCheckCircle className="h-4 w-4 text-green-600" />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
 import { FaCheckCircle } from 'react-icons/fa';
 import { SubscriptionPlan, CheckoutSessionRequest } from '../types/subscription';
 import { useAuth } from '../context/AuthContext';
@@ -70,123 +71,121 @@ const Pricing: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+    <div className="space-y-8 py-2 sm:py-4">
+      <div className="page-card border border-white/70 px-6 py-8 text-center sm:px-10 sm:py-9">
+        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 sm:text-sm">
+          <Sparkles size={16} />
+          {t('superAdmin.chooseYourPlan')}
+        </div>
+        <h1 className="mx-auto max-w-3xl text-3xl font-bold text-slate-900 sm:text-5xl">
           {t('superAdmin.chooseYourPlan')}
         </h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+        <p className="mx-auto mt-3 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
           {t('superAdmin.selectPerfectPlan')}
         </p>
 
-        {/* Billing Toggle */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-gray-100 p-1 rounded-lg">
+        <div className="mt-8 flex justify-center">
+          <div className="inline-flex rounded-2xl bg-slate-100 p-1.5 shadow-inner">
             <button
               onClick={() => setSelectedInterval('month')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                 selectedInterval === 'month'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               {t('superAdmin.monthly')}
             </button>
             <button
               onClick={() => setSelectedInterval('year')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                 selectedInterval === 'year'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               {t('superAdmin.yearly')}
-                              <span className="ml-1 text-xs text-green-600 font-semibold">{t('superAdmin.save17Percent')}</span>
+              <span className="ml-1 text-xs font-semibold text-success-600">{t('superAdmin.save17Percent')}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 ">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {filteredPlans.map((plan) => (
           <div
             key={plan.id}
-            className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 hover:shadow-xl ${
+            className={`relative overflow-visible rounded-[2rem] border bg-white shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-soft ${
               plan.popular
-                ? 'border-blue-500 ring-2 ring-blue-500 ring-opacity-20'
-                : 'border-gray-200'
+                ? 'border-primary-500 ring-2 ring-primary-500/20'
+                : 'border-slate-200'
             }`}
           >
             {plan.popular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+              <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2">
+              <span className="rounded-full bg-primary-600 px-4 py-1 text-sm font-semibold text-white shadow-soft">
                   {t('superAdmin.mostPopular')}
                 </span>
               </div>
             )}
 
-            <div className="p-8 flex flex-col justify-between h-full">
-              {/* Plan Header */}
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            <div className="flex h-full flex-col justify-between p-8 pt-10">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-slate-900">
                   {plan.name}
                 </h3>
-                <p className="text-gray-600 mb-4">{plan.description}</p>
+                <p className="mt-2 text-slate-600">{plan.description}</p>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold text-gray-900">
+                  <span className="text-4xl font-bold text-slate-900">
                     ${plan.price}
                   </span>
-                  <span className="text-gray-600 ml-1">
+                  <span className="ml-1 text-slate-600">
                     /{plan.interval === 'month' ? t('superAdmin.month') : t('superAdmin.year')}
                   </span>
                 </div>
                 {plan.interval === 'year' && (
-                  <p className="text-sm text-green-600 mt-1">
-                    ${Math.round((plan.price / 12) * 100) / 100}{t('superAdmin.monthBilledAnnually')}
+                  <p className="mt-1 text-sm text-success-600">
+                    ${Math.round((plan.price / 12) * 100) / 100} {t('superAdmin.monthBilledAnnually')}
                   </p>
                 )}
               </div>
 
-              {/* Plan Features */}
-              <div className="mb-8">
-                <div className="space-y-4">
+              <div className="mt-8 space-y-4">
+                <div className="space-y-4 rounded-2xl bg-slate-50 p-5">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-900 font-medium">{t('superAdmin.transcriptions')}</span>
-                    <span className="text-gray-600">
+                    <span className="font-medium text-slate-900">{t('superAdmin.transcriptions')}</span>
+                    <span className="text-slate-600">
                       {plan.transcriptionsPerMonth.toLocaleString()}/{t('superAdmin.month')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-900 font-medium">{t('superAdmin.storage')}</span>
-                    <span className="text-gray-600">{plan.diskSpaceGB}{t('superAdmin.gb')}</span>
+                    <span className="font-medium text-slate-900">{t('superAdmin.storage')}</span>
+                    <span className="text-slate-600">{plan.diskSpaceGB} GB</span>
                   </div>
                 </div>
 
-                <ul className="mt-6 space-y-3">
+                <ul className="space-y-3">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
-                      <FaCheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-gray-600">{feature}</span>
+                      <FaCheckCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-success-500" />
+                      <span className="text-slate-600">{feature}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Subscribe Button */}
               <button
                 onClick={() => handleSubscribe(plan)}
                 disabled={processingPlanId === plan.id}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                className={`btn-primary mt-8 w-full py-3 ${
                   plan.popular
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-400'
-                } disabled:cursor-not-allowed`}
+                    ? ''
+                    : 'bg-emerald-700 hover:bg-emerald-800'
+                }`}
               >
                 {processingPlanId === plan.id ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white"></div>
                     {t('superAdmin.processing')}
                   </div>
                 ) : (
@@ -196,43 +195,86 @@ const Pricing: React.FC = () => {
             </div>
           </div>
         ))}
+
+        <div className="relative overflow-visible rounded-[2rem] border border-slate-200 bg-white shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-soft">
+          <div className="flex h-full flex-col justify-between p-8 pt-10">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-slate-900">Enterprise</h3>
+              <p className="mt-2 text-slate-600">For larger teams that need custom workflows and support.</p>
+              <div className="flex items-baseline justify-center">
+                <span className="text-4xl font-bold text-slate-900">Custom</span>
+              </div>
+            </div>
+
+            <div className="mt-8 space-y-4">
+              <div className="space-y-4 rounded-2xl bg-slate-50 p-5">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-900">Transcriptions</span>
+                  <span className="text-slate-600">Unlimited</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-900">Storage</span>
+                  <span className="text-slate-600">Custom</span>
+                </div>
+              </div>
+
+              <ul className="space-y-3">
+                <li className="flex items-start">
+                  <FaCheckCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-success-500" />
+                  <span className="text-slate-600">Dedicated onboarding</span>
+                </li>
+                <li className="flex items-start">
+                  <FaCheckCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-success-500" />
+                  <span className="text-slate-600">Priority support</span>
+                </li>
+                <li className="flex items-start">
+                  <FaCheckCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-success-500" />
+                  <span className="text-slate-600">Custom integrations</span>
+                </li>
+              </ul>
+            </div>
+
+            <button className="btn-primary mt-8 w-full bg-emerald-700 py-3 hover:bg-emerald-800">
+              Contact sales
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* FAQ Section */}
-      <div className="mt-16 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">
+      <div className="page-card px-6 py-10 sm:px-10">
+        <h2 className="text-center text-2xl font-bold text-slate-900">
           {t('superAdmin.frequentlyAskedQuestions')}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-900 mb-2">
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="font-semibold text-slate-900">
               {t('superAdmin.canChangePlanAnytime')}
             </h3>
-            <p className="text-gray-600">
+            <p className="mt-2 text-slate-600">
               {t('superAdmin.canChangePlanAnytimeAnswer')}
             </p>
           </div>
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-900 mb-2">
+          <div>
+            <h3 className="font-semibold text-slate-900">
               {t('superAdmin.whatHappensIfExceedLimits')}
             </h3>
-            <p className="text-gray-600">
+            <p className="mt-2 text-slate-600">
               {t('superAdmin.whatHappensIfExceedLimitsAnswer')}
             </p>
           </div>
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-900 mb-2">
+          <div>
+            <h3 className="font-semibold text-slate-900">
               {t('superAdmin.isThereFreeTrial')}
             </h3>
-            <p className="text-gray-600">
+            <p className="mt-2 text-slate-600">
               {t('superAdmin.isThereFreeTrialAnswer')}
             </p>
           </div>
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-900 mb-2">
+          <div>
+            <h3 className="font-semibold text-slate-900">
               {t('superAdmin.howSecureIsData')}
             </h3>
-            <p className="text-gray-600">
+            <p className="mt-2 text-slate-600">
               {t('superAdmin.howSecureIsDataAnswer')}
             </p>
           </div>

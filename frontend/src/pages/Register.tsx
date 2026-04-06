@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, User, Mail, Lock } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import Logo from '../components/common/Logo';
 import { useTranslation } from 'react-i18next';
 
@@ -50,115 +50,128 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-                <div className="text-center mb-8">
-                    <div className="flex justify-center mb-4">
-                        <Logo />
+        <div className="min-h-screen bg-transparent px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+                <div className="overflow-hidden rounded-[2rem] border border-emerald-300/25 bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 p-10 text-white shadow-soft">
+                    <div className="flex h-full flex-col justify-between gap-10">
+                        <div>
+                            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-200/25 bg-emerald-400/10 px-4 py-2 text-sm text-white">
+                                <Sparkles size={16} />
+                                {t('auth.startMedicalTranscriptionJourney')}
+                            </div>
+                            <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-tight text-white">{t('auth.createAccount')}</h1>
+                            <p className="mt-4 max-w-lg text-lg leading-8 text-white/90">
+                                Join a structured clinical workspace built for transcription review, reporting, and subscription management.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
+                                <p className="text-sm text-white/80">Centralized workflow</p>
+                                <p className="mt-2 text-2xl font-bold">One platform</p>
+                            </div>
+                            <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
+                                <p className="text-sm text-white/80">Built for clinicians</p>
+                                <p className="mt-2 text-2xl font-bold">Role aware</p>
+                            </div>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">{t('auth.createAccount')}</h1>
-                    <p className="text-gray-600">{t('auth.startMedicalTranscriptionJourney')}</p>
                 </div>
 
-                {error && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-center">
-                        <AlertCircle size={18} className="mr-2" />
-                        <span>{error}</span>
-                    </div>
-                )}
+                <div className="mx-auto w-full max-w-md">
+                    <div className="page-card overflow-hidden p-8 sm:p-10">
+                        <div className="text-center">
+                            <div className="mb-6 flex justify-center">
+                                <Logo />
+                            </div>
+                            <h2 className="text-3xl font-bold text-slate-900">{t('auth.createAccount')}</h2>
+                            <p className="mt-2 text-slate-600">{t('auth.startMedicalTranscriptionJourney')}</p>
+                        </div>
 
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                    <div>
-                        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('auth.fullName')}
-                        </label>
-                        <div className="relative">
-                            <input
-                                id="full_name"
-                                name="full_name"
-                                type="text"
-                                required
-                                value={formData.full_name}
-                                onChange={handleChange}
-                                className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                            <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                        {error && (
+                            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-error-200 bg-error-50 p-4 text-error-700">
+                                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                                <span className="text-sm leading-6">{error}</span>
+                            </div>
+                        )}
+
+                        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+                            <div>
+                                <label htmlFor="full_name" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    {t('auth.fullName')}
+                                </label>
+                                <input
+                                    id="full_name"
+                                    name="full_name"
+                                    type="text"
+                                    required
+                                    value={formData.full_name}
+                                    onChange={handleChange}
+                                    className="px-4"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="email" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    {t('auth.email')}
+                                </label>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="px-4"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="password" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    {t('auth.password')}
+                                </label>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="px-4"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="confirmPassword" className="mb-2 block text-sm font-semibold text-slate-700">
+                                    {t('auth.confirmPassword')}
+                                </label>
+                                <input
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    className="px-4"
+                                />
+                            </div>
+
+                            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+                                {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center text-sm text-slate-600">
+                            <p>
+                                {t('auth.alreadyHaveAccount')}{' '}
+                                <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
+                                    {t('auth.login')}
+                                </Link>
+                            </p>
                         </div>
                     </div>
-
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('auth.email')}
-                        </label>
-                        <div className="relative">
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                            <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('auth.password')}
-                        </label>
-                        <div className="relative">
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                            <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('auth.confirmPassword')}
-                        </label>
-                        <div className="relative">
-                            <input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                            />
-                            <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full py-2 px-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    >
-                        {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
-                    </button>
-                </form>
-
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
-                        {t('auth.alreadyHaveAccount')}{' '}
-                        <Link to="/login" className="text-cyan-600 hover:text-cyan-700 font-medium">
-                            {t('auth.login')}
-                        </Link>
-                    </p>
                 </div>
             </div>
         </div>
