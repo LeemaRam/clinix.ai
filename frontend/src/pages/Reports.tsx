@@ -16,6 +16,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { getSocket } from '../services/socket';
 import RealtimeStatusBadge from '../components/common/RealtimeStatusBadge';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 interface Report {
   id: string;
@@ -60,6 +61,7 @@ const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState<string | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
@@ -172,8 +174,6 @@ const Reports = () => {
   };
 
   const handleDeleteReport = async (reportId: string) => {
-    if (!window.confirm(t('reports.confirmDeleteReport'))) return;
-
     setDeleteLoading(reportId);
     try {
       await axios.delete(
@@ -188,6 +188,7 @@ const Reports = () => {
       toast.error(message);
     } finally {
       setDeleteLoading(null);
+      setReportToDelete(null);
     }
   };
 
@@ -209,12 +210,26 @@ const Reports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="space-y-6">
+      <ConfirmDialog
+        open={reportToDelete !== null}
+        title={t('common.delete')}
+        description={t('reports.confirmDeleteReport')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        loading={deleteLoading !== null}
+        onConfirm={() => reportToDelete && handleDeleteReport(reportToDelete)}
+        onCancel={() => setReportToDelete(null)}
+      />
+
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+      <div className="page-card px-5 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4">
+        <h1 className="text-2xl font-bold text-slate-900">
           {t('reports.reports')}
         </h1>
+        <p className="mt-1 text-sm text-slate-500">Review generated reports, download PDFs, and manage status updates.</p>
+        </div>
         
         {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -224,9 +239,9 @@ const Reports = () => {
               placeholder={t('reports.searchReports')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-3 pl-10 pr-4 text-sm text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:bg-white"
+              className="pl-11"
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           </div>
           <select
             value={selectedFormat}
@@ -234,7 +249,7 @@ const Reports = () => {
               setSelectedFormat(e.target.value);
               setPagination(prev => ({ ...prev, page: 1 }));
             }}
-            className="w-full sm:w-auto py-3 px-3 text-sm text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:bg-white"
+            className="w-full sm:w-auto"
           >
             <option value="all">{t('reports.allFormats')}</option>
             <option value="SOAP">{t('reports.soapFormat')}</option>
@@ -243,7 +258,7 @@ const Reports = () => {
           </select>
           <button
             onClick={() => fetchReports()}
-            className="w-full sm:w-auto flex items-center justify-center px-4 py-3 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+            className="btn-primary w-full sm:w-auto"
           >
             <FileText size={16} className="mr-2" />
             {t('reports.refreshReports')}
@@ -252,26 +267,26 @@ const Reports = () => {
       </div>
 
       {/* Reports Content */}
-      <div className="px-4 py-4 sm:px-6 sm:py-6">
+      <div className="space-y-6">
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            <Loader2 className="animate-spin mx-auto mb-4" size={32} />
+          <div className="page-card p-8 text-center text-slate-500">
+            <Loader2 className="mx-auto mb-4 animate-spin" size={32} />
             {t('common.loading')}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-red-500">
+          <div className="page-card p-8 text-center text-error-700">
             <AlertCircle className="mx-auto mb-4" size={32} />
             {error}
           </div>
         ) : reports.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            <FileText className="mx-auto mb-4 text-gray-400" size={32} />
+          <div className="page-card p-8 text-center text-slate-500">
+            <FileText className="mx-auto mb-4 text-slate-400" size={32} />
             {t('reports.noReportsFound')}
           </div>
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+            <div className="section-card hidden overflow-hidden lg:block">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -345,7 +360,7 @@ const Reports = () => {
                               )}
                             </button>
                             <button
-                              onClick={() => handleDeleteReport(report.id)}
+                              onClick={() => setReportToDelete(report.id)}
                               disabled={deleteLoading === report.id}
                               className="text-red-600 hover:text-red-900 disabled:opacity-50 transition-colors"
                               title={t('common.delete')}
@@ -366,7 +381,7 @@ const Reports = () => {
             </div>
 
             {/* Tablet Table View */}
-            <div className="hidden md:block lg:hidden bg-white rounded-lg shadow overflow-hidden">
+            <div className="section-card hidden overflow-hidden md:block lg:hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -434,7 +449,7 @@ const Reports = () => {
                               )}
                             </button>
                             <button
-                              onClick={() => handleDeleteReport(report.id)}
+                              onClick={() => setReportToDelete(report.id)}
                               disabled={deleteLoading === report.id}
                               className="text-red-600 hover:text-red-900 disabled:opacity-50 transition-colors"
                               title={t('common.delete')}
@@ -457,7 +472,7 @@ const Reports = () => {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
               {filteredReports.map((report) => (
-                <div key={report.id} className="bg-white rounded-lg shadow p-4 border border-gray-100">
+                <div key={report.id} className="page-card border border-slate-200 p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="font-semibold text-gray-900 text-lg mb-1">
@@ -512,7 +527,7 @@ const Reports = () => {
                       )}
                     </button>
                     <button
-                      onClick={() => handleDeleteReport(report.id)}
+                      onClick={() => setReportToDelete(report.id)}
                       disabled={deleteLoading === report.id}
                       className="flex-1 px-4 py-2 text-sm text-red-600 hover:text-red-900 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-center font-medium disabled:opacity-50"
                       title={t('common.delete')}
@@ -536,8 +551,8 @@ const Reports = () => {
 
             {/* Pagination */}
             {!loading && !error && pagination.pages > 1 && (
-              <div className="bg-white rounded-lg shadow border border-gray-200 mt-6">
-                <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="section-card mt-6">
+                <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 sm:px-6">
                   {/* Mobile Pagination */}
                   <div className="flex-1 flex justify-between sm:hidden">
                     <button

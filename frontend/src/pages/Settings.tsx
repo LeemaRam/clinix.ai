@@ -197,23 +197,23 @@ const Settings = () => {
   };
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">{t('settings.settings')}</h1>
-        <p className="text-gray-600">{t('settings.manageAccountSettings')}</p>
+    <div className="space-y-6">
+      <div className="page-card px-6 py-6">
+        <h1 className="text-2xl font-bold text-slate-900">{t('settings.settings')}</h1>
+        <p className="mt-1 text-slate-500">{t('settings.manageAccountSettings')}</p>
       </div>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="section-card overflow-hidden">
         <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-64 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
+          <div className="w-full border-b border-gray-200 bg-slate-50 md:w-64 md:border-b-0 md:border-r">
             <nav className="p-4">
               <ul className="space-y-1">
                 {tabs.map((tab) => (
                   <li key={tab.id}>
                     <button
                       onClick={() => handleTabChange(tab.id)}
-                      className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id
-                        ? 'bg-cyan-50 text-cyan-700'
-                        : 'text-gray-600 hover:bg-gray-100'
+                      className={`flex w-full items-center rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${activeTab === tab.id
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-slate-600 hover:bg-slate-100'
                         }`}
                     >
                       <span className="mr-3">{tab.icon}</span>
@@ -227,10 +227,10 @@ const Settings = () => {
           <div className="flex-1 p-6">
             {activeTab === 'profile' && (
               <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('settings.profileSettings')}</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('settings.profileSettings')}</h2>
                 <form onSubmit={handleProfileSubmit}>
-                  {profileError && <div className="text-red-500 mb-2">{profileError}</div>}
-                  {profileSuccess && <div className="text-green-600 mb-2">{profileSuccess}</div>}
+                  {profileError && <div className="mb-2 rounded-2xl border border-error-200 bg-error-50 p-3 text-error-700">{profileError}</div>}
+                  {profileSuccess && <div className="mb-2 rounded-2xl border border-success-200 bg-success-50 p-3 text-success-700">{profileSuccess}</div>}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                       <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -241,7 +241,7 @@ const Settings = () => {
                         id="fullName"
                         value={profile.fullName}
                         onChange={handleProfileChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                        className="input-shell"
                         disabled={profileLoading}
                       />
                     </div>
@@ -254,7 +254,7 @@ const Settings = () => {
                         id="email"
                         value={profile.email}
                         onChange={handleProfileChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                        className="input-shell"
                         disabled={profileLoading}
                       />
                     </div>
@@ -267,14 +267,14 @@ const Settings = () => {
                         id="phone"
                         value={profile.phone}
                         onChange={handleProfileChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                        className="input-shell"
                         disabled={profileLoading}
                       />
                     </div>
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+                    className="btn-primary"
                     disabled={profileLoading}
                   >
                     {profileLoading ? t('settings.saving') : t('settings.saveChanges')}
@@ -284,10 +284,10 @@ const Settings = () => {
             )}
             {activeTab === 'security' && (
               <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('settings.changePassword')}</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('settings.changePassword')}</h2>
                 <form onSubmit={handlePasswordSubmit} className="max-w-md space-y-6">
-                  {passwordError && <div className="text-red-500 mb-2">{passwordError}</div>}
-                  {passwordSuccess && <div className="text-green-600 mb-2">{passwordSuccess}</div>}
+                  {passwordError && <div className="mb-2 rounded-2xl border border-error-200 bg-error-50 p-3 text-error-700">{passwordError}</div>}
+                  {passwordSuccess && <div className="mb-2 rounded-2xl border border-success-200 bg-success-50 p-3 text-success-700">{passwordSuccess}</div>}
                   <div>
                     <label htmlFor="current" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('settings.currentPassword')}
@@ -297,7 +297,7 @@ const Settings = () => {
                       id="current"
                       value={passwords.current}
                       onChange={handlePasswordsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                      className="input-shell"
                       required
                       disabled={passwordLoading}
                     />
@@ -311,7 +311,7 @@ const Settings = () => {
                       id="new"
                       value={passwords.new}
                       onChange={handlePasswordsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                      className="input-shell"
                       required
                       disabled={passwordLoading}
                     />
@@ -325,14 +325,14 @@ const Settings = () => {
                       id="confirm"
                       value={passwords.confirm}
                       onChange={handlePasswordsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                      className="input-shell"
                       required
                       disabled={passwordLoading}
                     />
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+                    className="btn-primary"
                     disabled={passwordLoading}
                   >
                     {passwordLoading ? t('settings.changing') : t('settings.changePassword')}
@@ -342,17 +342,17 @@ const Settings = () => {
             )}
             {activeTab === 'language' && (
               <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('settings.languageSettings')}</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('settings.languageSettings')}</h2>
                 <form className="max-w-sm space-y-6">
-                  {languageError && <div className="text-red-500 mb-2">{languageError}</div>}
-                  {languageSuccess && <div className="text-green-600 mb-2">{languageSuccess}</div>}
+                  {languageError && <div className="mb-2 rounded-2xl border border-error-200 bg-error-50 p-3 text-error-700">{languageError}</div>}
+                  {languageSuccess && <div className="mb-2 rounded-2xl border border-success-200 bg-success-50 p-3 text-success-700">{languageSuccess}</div>}
                   <div>
                     <label htmlFor="languageSelect" className="block text-sm font-medium text-gray-700 mb-1">
                       {t('settings.selectLanguage')}
                     </label>
                     <select
                       id="languageSelect"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                      className="input-shell"
                       value={language}
                       onChange={handleLanguageChange}
                       disabled={languageLoading}

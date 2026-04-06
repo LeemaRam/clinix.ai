@@ -232,14 +232,17 @@ const Patients = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="space-y-6">
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-6">
+      <div className="page-card px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t('patients.patients')}</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">{t('patients.patients')}</h1>
+            <p className="mt-1 text-sm text-slate-500">Create, search, and manage patient records.</p>
+          </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors w-full sm:w-auto"
+            className="btn-primary w-full sm:w-auto"
           >
             <Plus size={18} className="mr-2" />
             {t('patients.addPatient')}
@@ -248,21 +251,21 @@ const Patients = () => {
       </div>
 
       {/* Search and Filter Section */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-6">
+      <div className="page-card px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
               placeholder={t('patients.searchPatients')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-base"
+              className="pl-11"
             />
           </div>
           <button
             onClick={fetchPatients}
-            className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-base font-medium"
+            className="btn-secondary w-full sm:w-auto"
           >
             {t('common.search')}
           </button>
@@ -270,26 +273,24 @@ const Patients = () => {
       </div>
 
       {/* Patients Content */}
-      <div className="px-4 py-4 sm:px-6 sm:py-6">
+      <div className="space-y-6">
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
+          <div className="page-card p-8 text-center text-slate-500">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600"></div>
             {t('common.loading')}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-red-500">
-            <div className="text-red-600 mb-2">⚠️</div>
+          <div className="page-card p-8 text-center text-error-700">
             {error}
           </div>
         ) : patients.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            <div className="text-gray-400 mb-2">👥</div>
+          <div className="page-card p-8 text-center text-slate-500">
             {t('patients.noPatientsFound')}
           </div>
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+            <div className="section-card hidden overflow-hidden lg:block">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -358,7 +359,7 @@ const Patients = () => {
             </div>
 
             {/* Tablet Table View */}
-            <div className="hidden md:block lg:hidden bg-white rounded-lg shadow overflow-hidden">
+            <div className="section-card hidden overflow-hidden md:block lg:hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -429,7 +430,7 @@ const Patients = () => {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
               {patients.map((patient) => (
-                <div key={patient.id} className="bg-white rounded-lg shadow p-4 border border-gray-100">
+                <div key={patient.id} className="page-card border border-slate-200 p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="font-semibold text-gray-900 text-lg mb-1">
@@ -551,12 +552,12 @@ const Patients = () => {
       {/* Add Patient Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{t('patients.addPatient')}</h3>
+          <div className="section-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur sm:px-6">
+              <h3 className="text-lg font-semibold text-slate-900">{t('patients.addPatient')}</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="btn-ghost rounded-xl p-1"
               >
                 <X size={24} />
               </button>
@@ -744,7 +745,7 @@ const Patients = () => {
                 </div>
 
                 {modalError && (
-                  <div className="p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
+                  <div className="rounded-2xl border border-error-200 bg-error-50 p-3 text-error-700">
                     {modalError}
                   </div>
                 )}
@@ -753,7 +754,7 @@ const Patients = () => {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="btn-secondary w-full sm:w-auto"
                   >
                     {t('common.cancel')}
                   </button>
