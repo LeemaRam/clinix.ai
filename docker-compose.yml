@@ -1,0 +1,35 @@
+version: '3.9'
+services:
+  ai-service:
+    build:
+      context: ./ai-service
+    env_file:
+      - ./ai-service/.env
+    ports:
+      - '8001:8001'
+
+  backend:
+    build:
+      context: ./backend-node
+    env_file:
+      - ./backend-node/.env
+    ports:
+      - '5000:5000'
+    depends_on:
+      - ai-service
+    environment:
+      - PYTHON_AI_SERVICE_URL=http://ai-service:8001
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://backend:5000
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
