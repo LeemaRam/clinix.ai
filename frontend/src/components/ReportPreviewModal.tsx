@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import EditableSection from './EditableSection';
 import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
+import { formatFollowUpDays, formatSoapList, formatSoapText } from '../utils/soapFormatter';
 
 interface PatientInfo {
   name: string;
@@ -58,6 +59,7 @@ interface StructuredContent {
   summary: string;
   transcription_confidence: number;
   transcription_duration: number;
+  follow_up_days: number;
 }
 
 const createDefaultStructuredContent = (): StructuredContent => ({
@@ -95,7 +97,8 @@ const createDefaultStructuredContent = (): StructuredContent => ({
   },
   summary: '',
   transcription_confidence: 0,
-  transcription_duration: 0
+  transcription_duration: 0,
+  follow_up_days: 7
 });
 
 const normalizeStructuredContent = (raw: unknown): StructuredContent => {
@@ -148,9 +151,10 @@ const normalizeStructuredContent = (raw: unknown): StructuredContent => {
       treatment_plan: Array.isArray(rawMedicalAnalysis.treatment_plan) ? rawMedicalAnalysis.treatment_plan.map(String) : [],
       follow_up: Array.isArray(rawMedicalAnalysis.follow_up) ? rawMedicalAnalysis.follow_up.map(String) : [],
     },
-    summary: String(source.summary ?? rawSections.summary ?? ''),
+    summary: formatSoapText(source.summary ?? rawSections.summary ?? ''),
     transcription_confidence: Number(source.transcription_confidence ?? 0),
     transcription_duration: Number(source.transcription_duration ?? 0),
+    follow_up_days: Number(source.follow_up_days ?? 7)
   };
 };
 
@@ -347,16 +351,16 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
   if (!isOpen) return null;
 
   const sectionLabels = {
-    subjective: t('reports.subjective'),
-    objective: t('reports.objective'),
-    assessment: t('reports.assessment'),
-    plan: t('reports.plan'),
-    vital_signs: t('reports.vitalSigns'),
-    neurological_exam: t('reports.neurologicalExam'),
-    pharmacological_treatment: t('reports.pharmacologicalTreatment'),
-    self_care_measures: t('reports.selfCareMeasures'),
-    dietary_recommendations: t('reports.dietaryRecommendations'),
-    follow_up: t('reports.followUp')
+    subjective: t('reports.subjective', { defaultValue: 'Subjective' }),
+    objective: t('reports.objective', { defaultValue: 'Objective' }),
+    assessment: t('reports.assessment', { defaultValue: 'Assessment' }),
+    plan: t('reports.plan', { defaultValue: 'Plan' }),
+    vital_signs: t('reports.vitalSigns', { defaultValue: 'Vital Signs' }),
+    neurological_exam: t('reports.neurologicalExam', { defaultValue: 'Neurological Examination' }),
+    pharmacological_treatment: t('reports.pharmacologicalTreatment', { defaultValue: 'Pharmacological Treatment' }),
+    self_care_measures: t('reports.selfCareMeasures', { defaultValue: 'Self-Care Measures' }),
+    dietary_recommendations: t('reports.dietaryRecommendations', { defaultValue: 'Dietary Recommendations' }),
+    follow_up: t('reports.followUp', { defaultValue: 'Follow-up' })
   };
 
   return (
@@ -409,7 +413,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="font-medium text-blue-700">{t('reports.patient')}:</span>
+                    <span className="font-medium text-blue-700">{t('reports.patient', { defaultValue: 'Patient' })}:</span>
                     <p className="text-blue-900">{structuredContent.patient_info?.name || '-'}</p>
                   </div>
                   <div>
@@ -455,6 +459,34 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 })}
               </div>
 
+              {/* Medication + Follow-up Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3 uppercase tracking-wide">
+                    {t('transcription.current_medications', { defaultValue: 'Medications' })}
+                  </h3>
+                  {formatSoapList(structuredContent.medical_analysis.current_medications).length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {formatSoapList(structuredContent.medical_analysis.current_medications).map((item) => (
+                        <li key={item} className="flex items-start">
+                          <span className="mr-2 text-slate-400">-</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-500">No data available</p>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-3 uppercase tracking-wide">
+                    {t('reports.followUp', { defaultValue: 'Follow-up' })}
+                  </h3>
+                  <p className="text-sm text-slate-700">{formatFollowUpDays(structuredContent.follow_up_days)}</p>
+                </div>
+              </div>
+
               {/* Medical Analysis Summary */}
               {structuredContent.medical_analysis && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-6">
@@ -467,7 +499,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                       Array.isArray(items) && items.length > 0 && (
                         <div key={key}>
                           <h4 className="font-medium text-green-700 mb-2">
-                            {t(`transcription.${key}`)}
+                            {t(`transcription.${key}`, { defaultValue: key.replace(/_/g, ' ') })}
                           </h4>
                           <ul className="text-sm text-green-900 space-y-1">
                             {(items as string[]).map((item: string, index: number) => (
@@ -489,7 +521,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
                   <div className="flex items-center mb-4">
                     <Calendar className="text-purple-600 mr-2" size={20} />
-                    <h3 className="text-lg font-semibold text-purple-800">{t('reports.consultationSummary')}</h3>
+                    <h3 className="text-lg font-semibold text-purple-800">{t('reports.consultationSummary', { defaultValue: 'Consultation Summary' })}</h3>
                   </div>
                   <p className="text-purple-900">{structuredContent.summary}</p>
                   <div className="mt-4 flex items-center space-x-4 text-sm text-purple-700">

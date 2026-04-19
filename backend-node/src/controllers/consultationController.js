@@ -7,8 +7,9 @@ import { Transcription } from '../models/Transcription.js';
 import { Report } from '../models/Report.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { serializeConsultation, serializeTranscription } from '../utils/serializers.js';
-import { transcribeAudio, generateReport as generateAiReport } from '../services/pythonService.js';
+import { transcribeAudio } from '../services/pythonService.js';
 import { extractMedicalAnalysis } from '../services/medicalAnalysisService.js';
+import { formatSOAP, formatSoapText } from '../services/soapFormatter.js';
 import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 
@@ -46,25 +47,22 @@ const buildStructuredContent = ({ consultation, transcription, aiReport = null }
   const analysis = transcription.analysis || {};
   const patient = consultation.patientId || {};
   const doctor = consultation.doctorId || {};
+  const soap = formatSOAP({
+    subjective: aiReport?.subjective ?? analysis.subjective,
+    objective: aiReport?.objective ?? analysis.objective,
+    assessment: aiReport?.assessment ?? analysis.assessment,
+    plan: aiReport?.plan ?? analysis.plan,
+    medications_mentioned: aiReport?.medications_mentioned ?? analysis.medications_mentioned ?? [],
+    follow_up_days: aiReport?.follow_up_days ?? analysis.follow_up_days ?? 7
+  });
 
   const summaryText = String(
     aiReport?.summary
     || analysis.summary
-    || [analysis.subjective, analysis.objective, analysis.assessment].filter(Boolean).join(' ')
+    || [soap.subjective, soap.objective, soap.assessment].filter(Boolean).join(' ')
     || transcription.rawText
-    || ''
+    || 'No data available'
   );
-
-  const recommendationsText = Array.isArray(aiReport?.recommendations)
-    ? aiReport.recommendations.join('\n')
-    : (Array.isArray(analysis?.medical_info?.recommendations)
-      ? analysis.medical_info.recommendations.join('\n')
-      : String(analysis.plan || ''));
-
-  const subjectiveText = String(analysis.subjective || summaryText || 'No subjective findings documented.');
-  const objectiveText = String(analysis.objective || 'No objective findings documented.');
-  const assessmentText = String(analysis.assessment || 'No assessment documented.');
-  const planText = String(analysis.plan || recommendationsText || 'No plan documented.');
 
   const consultationTimestamp = consultation.startedAt || consultation.scheduledAt || consultation.createdAt;
 
@@ -81,41 +79,98 @@ const buildStructuredContent = ({ consultation, transcription, aiReport = null }
     },
     sections: {
       title: 'Consultation SOAP Report',
-      subjective: subjectiveText,
-      objective: objectiveText,
-      assessment: assessmentText,
-      plan: planText,
-      vital_signs: String(analysis.vital_signs || ''),
-      neurological_exam: String(analysis.neurological_exam || ''),
-      pharmacological_treatment: String(analysis.pharmacological_treatment || ''),
-      self_care_measures: String(analysis.self_care_measures || ''),
-      dietary_recommendations: String(analysis.dietary_recommendations || ''),
-      follow_up: String(analysis.follow_up || ''),
+      subjective: soap.subjective,
+      objective: soap.objective,
+      assessment: soap.assessment,
+      plan: soap.plan,
+      vital_signs: formatSoapText(analysis.vital_signs, ''),
+      neurological_exam: formatSoapText(analysis.neurological_exam, ''),
+      pharmacological_treatment: formatSoapText(analysis.pharmacological_treatment, ''),
+      self_care_measures: formatSoapText(analysis.self_care_measures, ''),
+      dietary_recommendations: formatSoapText(analysis.dietary_recommendations, ''),
+      follow_up: formatSoapText(analysis.follow_up, ''),
       signature: String(doctor.fullName || '')
     },
     medical_analysis: {
       symptoms: normalizeAnalysisArray(analysis?.medical_info?.symptoms),
       medical_history: normalizeAnalysisArray(analysis?.medical_info?.medical_history),
-      current_medications: normalizeAnalysisArray(analysis?.medical_info?.current_medications || analysis.medications_mentioned),
+      current_medications: normalizeAnalysisArray(analysis?.medical_info?.current_medications || soap.medications_mentioned),
       diagnosis: normalizeAnalysisArray(analysis?.medical_info?.diagnosis),
       treatment_plan: normalizeAnalysisArray(analysis?.medical_info?.treatment_plan),
       follow_up: normalizeAnalysisArray(analysis?.medical_info?.follow_up)
     },
     summary: summaryText,
     transcription_confidence: Number(transcription.confidenceScore || 0),
-    transcription_duration: Number(transcription.duration || 0)
+    transcription_duration: Number(transcription.duration || 0),
+    follow_up_days: Number(soap.follow_up_days || analysis.follow_up_days || 7)
   };
 };
 
-const makePdf = async ({ title, body, outputPath }) =>
+const renderPdfTitle = (doc, title) => {
+  doc.font('Helvetica-Bold').fontSize(18).fillColor('#111827').text(title, { align: 'left' });
+  doc.moveDown(0.5);
+};
+
+const renderPdfMetaRow = (doc, label, value) => {
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#374151').text(`${label}: `, { continued: true });
+  doc.font('Helvetica').fillColor('#111827').text(String(value || 'No data available'));
+};
+
+const renderPdfSection = (doc, heading, content) => {
+  doc.moveDown(0.4);
+  doc.font('Helvetica-Bold').fontSize(13).fillColor('#111827').text(heading.toUpperCase());
+  doc.moveDown(0.2);
+  doc.font('Helvetica').fontSize(11).fillColor('#374151').text(content || 'No data available', {
+    width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+    align: 'left',
+    lineGap: 3
+  });
+  doc.moveDown(0.4);
+};
+
+const renderPdfList = (doc, heading, items) => {
+  doc.moveDown(0.4);
+  doc.font('Helvetica-Bold').fontSize(13).fillColor('#111827').text(heading.toUpperCase());
+  doc.moveDown(0.2);
+
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (list.length === 0) {
+    doc.font('Helvetica').fontSize(11).fillColor('#6b7280').text('No data available', {
+      width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+      lineGap: 3
+    });
+  } else {
+    list.forEach((item) => {
+      doc.font('Helvetica').fontSize(11).fillColor('#374151').text(`• ${item}`, {
+        indent: 12,
+        continued: false,
+        width: doc.page.width - doc.page.margins.left - doc.page.margins.right - 12,
+        lineGap: 3
+      });
+    });
+  }
+  doc.moveDown(0.4);
+};
+
+const makePdf = async ({ content, outputPath }) =>
   new Promise((resolve, reject) => {
     ensureDir(path.dirname(outputPath));
     const doc = new PDFDocument({ margin: 40 });
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
-    doc.fontSize(18).text(title);
-    doc.moveDown();
-    doc.fontSize(11).text(body || 'No content available');
+    renderPdfTitle(doc, content.title || 'Consultation SOAP Report');
+    renderPdfMetaRow(doc, 'Patient', content.patientName);
+    renderPdfMetaRow(doc, 'Date', content.consultationDate);
+    renderPdfMetaRow(doc, 'Doctor', content.doctorName);
+    renderPdfMetaRow(doc, 'Follow-up', `${content.followUpDays} days`);
+    doc.moveDown(0.5);
+
+    renderPdfSection(doc, 'Subjective', content.subjective);
+    renderPdfSection(doc, 'Objective', content.objective);
+    renderPdfSection(doc, 'Assessment', content.assessment);
+    renderPdfSection(doc, 'Plan', content.plan);
+    renderPdfList(doc, 'Medications', content.medications);
+    renderPdfList(doc, 'Medical Analysis', content.medicalAnalysis);
     doc.end();
     stream.on('finish', resolve);
     stream.on('error', reject);
@@ -128,69 +183,48 @@ const buildStructuredPreview = ({ consultation, transcription }) => {
   };
 };
 
-const buildSoapSections = (analysis = {}) => {
-  return {
-    subjective: String(analysis.subjective || 'No subjective findings documented.'),
-    objective: String(analysis.objective || 'No objective findings documented.'),
-    assessment: String(analysis.assessment || 'No assessment documented.'),
-    plan: String(analysis.plan || 'No plan documented.'),
-    medicationsMentioned: Array.isArray(analysis.medications_mentioned)
-      ? analysis.medications_mentioned.map((item) => String(item)).filter(Boolean)
-      : [],
-    followUpDays: Number.isFinite(Number(analysis.follow_up_days))
-      ? Number(analysis.follow_up_days)
-      : 7
-  };
-};
-
-const shouldIncludeRawTranscript = (analysis = {}) => {
-  const assessment = String(analysis.assessment || '').toLowerCase();
-  const plan = String(analysis.plan || '').toLowerCase();
-  return assessment.includes('ai analysis unavailable') || plan.includes('configure gemini_api_key');
-};
-
 const createAndStreamReportPdf = async ({ consultation, transcription, doctorId, generatedBy, res, previewId }) => {
-  const patientName = consultation.patientId ? `${consultation.patientId.firstName} ${consultation.patientId.lastName}` : 'Unknown Patient';
-  const soap = buildSoapSections(transcription.analysis || {});
-  const medicationsText = soap.medicationsMentioned.length > 0 ? soap.medicationsMentioned.join(', ') : 'None documented';
-
-  const body = [
-    `Patient: ${patientName}`,
-    `Consultation Type: ${consultation.consultationType}`,
-    `Status: ${consultation.status}`,
-    '',
-    'Subjective:',
-    soap.subjective,
-    '',
-    'Objective:',
-    soap.objective,
-    '',
-    'Assessment:',
-    soap.assessment,
-    '',
-    'Plan:',
-    soap.plan,
-    '',
-    `Medications Mentioned: ${medicationsText}`,
-    `Follow-up: ${soap.followUpDays} day(s)`
-  ].join('\n');
-
-  const transcriptReference = shouldIncludeRawTranscript(transcription.analysis || {})
-    ? `\n\nTranscript (fallback reference):\n${transcription.rawText || ''}`
-    : '';
-
-  const fullBody = `${body}${transcriptReference}`;
+  const structuredContent = buildStructuredContent({ consultation, transcription });
+  const patientName = structuredContent.patient_info.name || 'Unknown Patient';
+  const consultationDate = structuredContent.patient_info.consultation_date || formatDateOnly(consultation.startedAt || consultation.scheduledAt || consultation.createdAt);
+  const doctorName = structuredContent.patient_info.doctor_name || 'Unknown Doctor';
+  const medications = structuredContent.medical_analysis.current_medications.length > 0
+    ? structuredContent.medical_analysis.current_medications
+    : structuredContent.sections.pharmacological_treatment
+      ? [structuredContent.sections.pharmacological_treatment]
+      : [];
 
   const reportsDir = path.resolve(env.UPLOAD_REPORTS_DIR);
   const filename = `consultation-report-${consultation._id}-${Date.now()}.pdf`;
   const outputPath = path.join(reportsDir, filename);
-  await makePdf({ title: 'Consultation SOAP Report', body: fullBody, outputPath });
+  await makePdf({
+    content: {
+      title: 'Consultation SOAP Report',
+      patientName,
+      consultationDate,
+      doctorName,
+      followUpDays: structuredContent.follow_up_days || 7,
+      subjective: structuredContent.sections.subjective,
+      objective: structuredContent.sections.objective,
+      assessment: structuredContent.sections.assessment,
+      plan: structuredContent.sections.plan,
+      medications,
+      medicalAnalysis: [
+        ...structuredContent.medical_analysis.symptoms.map((item) => `Symptoms: ${item}`),
+        ...structuredContent.medical_analysis.medical_history.map((item) => `History: ${item}`),
+        ...structuredContent.medical_analysis.diagnosis.map((item) => `Diagnosis: ${item}`),
+        ...structuredContent.medical_analysis.treatment_plan.map((item) => `Treatment: ${item}`),
+        ...structuredContent.medical_analysis.follow_up.map((item) => `Follow-up: ${item}`)
+      ]
+    },
+    outputPath
+  });
 
   const report = await Report.create({
     consultationId: consultation._id,
     patientId: consultation.patientId?._id,
     doctorId,
-    content: fullBody,
+    content: JSON.stringify(structuredContent),
     format: 'PDF',
     status: 'generated',
     filePath: outputPath,
@@ -409,14 +443,7 @@ export const generateReportPreview = asyncHandler(async (req, res) => {
   const t = await Transcription.findOne({ consultationId: consultation._id });
   if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
 
-  let ai = null;
-  try {
-    ai = await generateAiReport({ transcriptionText: t.rawText, consultationType: consultation.consultationType, language: 'en' });
-  } catch (error) {
-    console.warn('[generateReportPreview] AI report generation failed, continuing with transcription analysis fallback.', error?.message || error);
-  }
-
-  const structured_content = buildStructuredContent({ consultation, transcription: t, aiReport: ai });
+  const structured_content = buildStructuredContent({ consultation, transcription: t });
 
   const data = { preview_id: consultation._id.toString(), structured_content };
   res.json({ success: true, data, ...data });
@@ -458,7 +485,6 @@ export const generateConsultationReportPreviewPdf = asyncHandler(async (req, res
   const t = await Transcription.findOne({ consultationId: consultation._id });
   if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
 
-  // Current preview implementation uses consultation id as preview id.
   const previewData = buildStructuredPreview({ consultation, transcription: t });
   if (req.params.previewId !== previewData.preview_id) {
     return res.status(404).json({ success: false, error: 'Report preview not found' });

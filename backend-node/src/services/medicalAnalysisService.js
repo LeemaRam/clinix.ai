@@ -1,19 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../config/env.js';
+import { formatSOAP, formatSoapText } from './soapFormatter.js';
 
 const DEFAULT_MODEL_CANDIDATES = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
 
 const summarizeTranscript = (transcript = '') => {
   const cleaned = String(transcript || '').replace(/\s+/g, ' ').trim();
-  if (!cleaned) return 'No transcript content available.';
+  if (!cleaned) return 'No data available';
   return cleaned.length > 280 ? `${cleaned.slice(0, 280)}...` : cleaned;
 };
 
 const fallbackAnalysis = (transcript = '') => ({
   subjective: summarizeTranscript(transcript),
-  objective: 'No objective findings documented.',
-  assessment: 'AI analysis unavailable; using fallback SOAP structure.',
-  plan: `Review transcript summary and continue manual documentation: ${summarizeTranscript(transcript)}`,
+  objective: 'No data available',
+  assessment: 'No data available',
+  plan: 'No data available',
   medications_mentioned: [],
   follow_up_days: 7
 });
@@ -31,16 +32,16 @@ const normalizeAnalysis = (candidate, transcript = '') => {
     return base;
   }
 
-  return {
-    subjective: String(candidate.subjective ?? base.subjective),
-    objective: String(candidate.objective ?? base.objective),
-    assessment: String(candidate.assessment ?? base.assessment),
-    plan: String(candidate.plan ?? base.plan),
-    medications_mentioned: Array.isArray(candidate.medications_mentioned)
-      ? candidate.medications_mentioned.map((item) => String(item)).filter(Boolean)
-      : [],
+  const normalized = formatSOAP({
+    subjective: candidate.subjective ?? base.subjective,
+    objective: candidate.objective ?? base.objective,
+    assessment: candidate.assessment ?? base.assessment,
+    plan: candidate.plan ?? base.plan,
+    medications_mentioned: Array.isArray(candidate.medications_mentioned) ? candidate.medications_mentioned : [],
     follow_up_days: toDays(candidate.follow_up_days)
-  };
+  });
+
+  return normalized;
 };
 
 const parseJsonObject = (value) => {
@@ -73,22 +74,12 @@ export const extractMedicalAnalysis = async (transcript) => {
     .filter((model, index, array) => array.indexOf(model) === index);
 
   if (!apiKey) {
-    console.error('[medicalAnalysisService] GEMINI_API_KEY missing. Returning fallback SOAP analysis.');
-    return normalizeAnalysis(
-      {
-        subjective: summarizeTranscript(transcriptText),
-        objective: 'No objective findings documented.',
-        assessment: 'Unable to analyze without API key.',
-        plan: `Configure GEMINI_API_KEY. Transcript summary: ${summarizeTranscript(transcriptText)}`,
-        medications_mentioned: [],
-        follow_up_days: 7
-      },
-      transcriptText
-    );
+    console.error('[medicalAnalysisService] GEMINI_API_KEY missing. Returning safe default SOAP analysis.');
+    return formatSOAP(fallbackAnalysis(transcriptText));
   }
 
   if (!transcriptText) {
-    return fallbackAnalysis('');
+    return formatSOAP(fallbackAnalysis(''));
   }
 
   const prompt = [
@@ -154,10 +145,10 @@ export const extractMedicalAnalysis = async (transcript) => {
       }
     }
 
-    console.error('[medicalAnalysisService] All configured Gemini models failed. Returning fallback SOAP analysis.');
-    return fallbackAnalysis(transcriptText);
+    console.error('[medicalAnalysisService] All configured Gemini models failed. Returning safe default SOAP analysis.');
+    return formatSOAP(fallbackAnalysis(transcriptText));
   } catch (error) {
-    console.error('[medicalAnalysisService] Gemini API request failed. Returning fallback SOAP analysis.', error);
-    return fallbackAnalysis(transcriptText);
+    console.error('[medicalAnalysisService] Gemini API request failed. Returning safe default SOAP analysis.', error);
+    return formatSOAP(fallbackAnalysis(transcriptText));
   }
 };

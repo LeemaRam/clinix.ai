@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../config/env.js';
+import { formatSOAP } from './soapFormatter.js';
 
 let geminiClient = null;
 let geminiInitAttempted = false;
@@ -14,9 +15,9 @@ const getModelCandidates = () => {
 
 const fallbackSoap = (transcript = '') => ({
   subjective: String(transcript || '').trim() || 'No transcript provided.',
-  objective: 'No objective findings documented.',
-  assessment: 'AI analysis unavailable; using fallback SOAP structure.',
-  plan: 'Review transcript manually and update SOAP note.',
+  objective: 'No data available',
+  assessment: 'No data available',
+  plan: 'No data available',
   medications_mentioned: [],
   follow_up_days: 7
 });
@@ -39,20 +40,18 @@ const parseJsonObject = (value) => {
 
 const normalizeSoap = (candidate, transcript = '') => {
   const fallback = fallbackSoap(transcript);
-  if (!candidate || typeof candidate !== 'object') return fallback;
+  if (!candidate || typeof candidate !== 'object') return formatSOAP(fallback);
 
-  return {
-    subjective: String(candidate.subjective ?? fallback.subjective),
-    objective: String(candidate.objective ?? fallback.objective),
-    assessment: String(candidate.assessment ?? fallback.assessment),
-    plan: String(candidate.plan ?? fallback.plan),
-    medications_mentioned: Array.isArray(candidate.medications_mentioned)
-      ? candidate.medications_mentioned.map((item) => String(item)).filter(Boolean)
-      : [],
+  return formatSOAP({
+    subjective: candidate.subjective ?? fallback.subjective,
+    objective: candidate.objective ?? fallback.objective,
+    assessment: candidate.assessment ?? fallback.assessment,
+    plan: candidate.plan ?? fallback.plan,
+    medications_mentioned: Array.isArray(candidate.medications_mentioned) ? candidate.medications_mentioned : [],
     follow_up_days: Number.isFinite(Number(candidate.follow_up_days))
       ? Number(candidate.follow_up_days)
       : 7
-  };
+  });
 };
 
 const getGeminiClient = () => {
@@ -108,7 +107,7 @@ export const generateSimpleGeminiResponse = async (promptText) => {
 export const generateSOAP = async (transcript) => {
   const transcriptText = String(transcript || '').trim();
   if (!transcriptText) {
-    return fallbackSoap('');
+    return formatSOAP(fallbackSoap(''));
   }
 
   const prompt = [
@@ -132,6 +131,6 @@ export const generateSOAP = async (transcript) => {
     return normalizeSoap(parsed, transcriptText);
   } catch (error) {
     console.error('[geminiService] SOAP generation failed.', error);
-    return fallbackSoap(transcriptText);
+    return formatSOAP(fallbackSoap(transcriptText));
   }
 };

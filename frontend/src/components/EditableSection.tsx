@@ -70,7 +70,7 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   return (
     <div className={`border border-gray-200 rounded-lg overflow-hidden ${className}`}>
       <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-        <h4 className="font-medium text-gray-800">{title}</h4>
+        <h4 className="font-medium text-gray-800 uppercase tracking-wide">{title}</h4>
         <div className="flex items-center space-x-2">
           {isEditing ? (
             <>

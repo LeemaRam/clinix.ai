@@ -2,9 +2,9 @@ import { generateSOAP, generateSimpleGeminiResponse } from '../services/geminiSe
 
 const fallbackSoap = (transcript = '') => ({
   subjective: String(transcript || '').trim() || 'No transcript provided.',
-  objective: 'No objective findings documented.',
-  assessment: 'AI analysis unavailable; using fallback SOAP structure.',
-  plan: 'Review transcript manually and update SOAP note.',
+  objective: 'No data available',
+  assessment: 'No data available',
+  plan: 'No data available',
   medications_mentioned: [],
   follow_up_days: 7
 });
