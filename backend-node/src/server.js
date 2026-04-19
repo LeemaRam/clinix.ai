@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { createApp } from './app.js';
@@ -5,10 +6,15 @@ import { connectToDatabase } from './config/db.js';
 import { env } from './config/env.js';
 import { setSocketServer } from './socket.js';
 
+dotenv.config();
+
 const bootstrap = async () => {
   await connectToDatabase();
   const app = createApp();
   const server = http.createServer(app);
+  // Allow long-running upload/transcription requests (e.g. multi-minute audio files).
+  server.requestTimeout = 15 * 60 * 1000;
+  server.headersTimeout = 16 * 60 * 1000;
 
   const io = new SocketIOServer(server, {
     cors: { origin: env.CORS_ORIGIN.split(',').map((x) => x.trim()), credentials: true }

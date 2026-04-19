@@ -60,6 +60,100 @@ interface StructuredContent {
   transcription_duration: number;
 }
 
+const createDefaultStructuredContent = (): StructuredContent => ({
+  patient_info: {
+    name: '',
+    age: 0,
+    gender: '',
+    date_of_birth: '',
+    consultation_date: '',
+    consultation_time: '',
+    doctor_name: '',
+    doctor_email: ''
+  },
+  sections: {
+    title: '',
+    subjective: '',
+    objective: '',
+    assessment: '',
+    plan: '',
+    vital_signs: '',
+    neurological_exam: '',
+    pharmacological_treatment: '',
+    self_care_measures: '',
+    dietary_recommendations: '',
+    follow_up: '',
+    signature: ''
+  },
+  medical_analysis: {
+    symptoms: [],
+    medical_history: [],
+    current_medications: [],
+    diagnosis: [],
+    treatment_plan: [],
+    follow_up: []
+  },
+  summary: '',
+  transcription_confidence: 0,
+  transcription_duration: 0
+});
+
+const normalizeStructuredContent = (raw: unknown): StructuredContent => {
+  const base = createDefaultStructuredContent();
+  const source = (raw && typeof raw === 'object') ? raw as Record<string, any> : {};
+  const rawSections = (source.sections && typeof source.sections === 'object')
+    ? source.sections as Record<string, any>
+    : {};
+  const rawPatientInfo = (source.patient_info && typeof source.patient_info === 'object')
+    ? source.patient_info as Record<string, any>
+    : {};
+  const rawMedicalAnalysis = (source.medical_analysis && typeof source.medical_analysis === 'object')
+    ? source.medical_analysis as Record<string, any>
+    : {};
+
+  return {
+    patient_info: {
+      ...base.patient_info,
+      ...rawPatientInfo,
+      name: String(rawPatientInfo.name ?? base.patient_info.name),
+      age: Number(rawPatientInfo.age ?? base.patient_info.age),
+      gender: String(rawPatientInfo.gender ?? base.patient_info.gender),
+      date_of_birth: String(rawPatientInfo.date_of_birth ?? base.patient_info.date_of_birth),
+      consultation_date: String(rawPatientInfo.consultation_date ?? base.patient_info.consultation_date),
+      consultation_time: String(rawPatientInfo.consultation_time ?? base.patient_info.consultation_time),
+      doctor_name: String(rawPatientInfo.doctor_name ?? base.patient_info.doctor_name),
+      doctor_email: String(rawPatientInfo.doctor_email ?? base.patient_info.doctor_email),
+    },
+    sections: {
+      ...base.sections,
+      ...rawSections,
+      title: String(rawSections.title ?? base.sections.title),
+      subjective: String(rawSections.subjective ?? rawSections.summary ?? base.sections.subjective),
+      objective: String(rawSections.objective ?? base.sections.objective),
+      assessment: String(rawSections.assessment ?? base.sections.assessment),
+      plan: String(rawSections.plan ?? rawSections.recommendations ?? base.sections.plan),
+      vital_signs: String(rawSections.vital_signs ?? base.sections.vital_signs),
+      neurological_exam: String(rawSections.neurological_exam ?? base.sections.neurological_exam),
+      pharmacological_treatment: String(rawSections.pharmacological_treatment ?? base.sections.pharmacological_treatment),
+      self_care_measures: String(rawSections.self_care_measures ?? base.sections.self_care_measures),
+      dietary_recommendations: String(rawSections.dietary_recommendations ?? base.sections.dietary_recommendations),
+      follow_up: String(rawSections.follow_up ?? base.sections.follow_up),
+      signature: String(rawSections.signature ?? base.sections.signature),
+    },
+    medical_analysis: {
+      symptoms: Array.isArray(rawMedicalAnalysis.symptoms) ? rawMedicalAnalysis.symptoms.map(String) : [],
+      medical_history: Array.isArray(rawMedicalAnalysis.medical_history) ? rawMedicalAnalysis.medical_history.map(String) : [],
+      current_medications: Array.isArray(rawMedicalAnalysis.current_medications) ? rawMedicalAnalysis.current_medications.map(String) : [],
+      diagnosis: Array.isArray(rawMedicalAnalysis.diagnosis) ? rawMedicalAnalysis.diagnosis.map(String) : [],
+      treatment_plan: Array.isArray(rawMedicalAnalysis.treatment_plan) ? rawMedicalAnalysis.treatment_plan.map(String) : [],
+      follow_up: Array.isArray(rawMedicalAnalysis.follow_up) ? rawMedicalAnalysis.follow_up.map(String) : [],
+    },
+    summary: String(source.summary ?? rawSections.summary ?? ''),
+    transcription_confidence: Number(source.transcription_confidence ?? 0),
+    transcription_duration: Number(source.transcription_duration ?? 0),
+  };
+};
+
 interface ReportPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -113,9 +207,10 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
         throw new Error(t('reports.previewGenerationFailed'));
       }
 
-      setStructuredContent(payload.structured_content);
+      const normalizedContent = normalizeStructuredContent(payload.structured_content);
+      setStructuredContent(normalizedContent);
       setPreviewId(payload.preview_id);
-      setEditedContent(payload.structured_content.sections);
+      setEditedContent(normalizedContent.sections);
     } catch (err: any) {
       setError(err.response?.data?.error || t('reports.previewGenerationFailed'));
     } finally {
@@ -217,7 +312,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
     if (structuredContent) {
       setEditedContent(prev => ({
         ...prev,
-        [sectionKey]: structuredContent.sections[sectionKey as keyof ReportSections]
+        [sectionKey]: structuredContent.sections?.[sectionKey as keyof ReportSections] ?? ''
       }));
     }
   };
@@ -314,20 +409,24 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="font-medium text-blue-700">{t('patients.patient')}:</span>
-                    <p className="text-blue-900">{structuredContent.patient_info.name}</p>
+                    <span className="font-medium text-blue-700">{t('reports.patient')}:</span>
+                    <p className="text-blue-900">{structuredContent.patient_info?.name || '-'}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-blue-700">{t('patients.age')}:</span>
-                    <p className="text-blue-900">{structuredContent.patient_info.age} {t('patients.years')}</p>
+                    <span className="font-medium text-blue-700">{t('reports.age', { defaultValue: 'Age' })}:</span>
+                    <p className="text-blue-900">
+                      {Number(structuredContent.patient_info?.age) > 0
+                        ? `${structuredContent.patient_info.age} ${t('patients.years')}`
+                        : '-'}
+                    </p>
                   </div>
                   <div>
                     <span className="font-medium text-blue-700">{t('patients.gender')}:</span>
-                    <p className="text-blue-900">{structuredContent.patient_info.gender}</p>
+                    <p className="text-blue-900">{structuredContent.patient_info?.gender || '-'}</p>
                   </div>
                   <div>
                     <span className="font-medium text-blue-700">{t('patients.date')}:</span>
-                    <p className="text-blue-900">{structuredContent.patient_info.consultation_date}</p>
+                    <p className="text-blue-900">{structuredContent.patient_info?.consultation_date || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -336,8 +435,9 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
               <div className="space-y-4">
                 {Object.entries(sectionLabels).map(([sectionKey, label]) => {
                   const isEditing = editingSections.has(sectionKey);
-                  const content = editedContent[sectionKey as keyof ReportSections] || 
-                                structuredContent.sections[sectionKey as keyof ReportSections] || '';
+                  const content = editedContent[sectionKey as keyof ReportSections]
+                    ?? structuredContent.sections?.[sectionKey as keyof ReportSections]
+                    ?? '';
                   
                   return (
                     <EditableSection
@@ -364,7 +464,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(structuredContent.medical_analysis).map(([key, items]) => (
-                      items && items.length > 0 && (
+                      Array.isArray(items) && items.length > 0 && (
                         <div key={key}>
                           <h4 className="font-medium text-green-700 mb-2">
                             {t(`transcription.${key}`)}

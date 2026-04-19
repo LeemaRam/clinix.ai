@@ -28,7 +28,8 @@ const Appointments = () => {
     try {
       setLoading(true);
       const response = await getAppointments();
-      setAppointments(response.data);
+      const payload = response?.data?.data ?? response?.data;
+      setAppointments(Array.isArray(payload) ? payload : []);
     } catch (err) {
       setError('Failed to load appointments');
       console.error(err);

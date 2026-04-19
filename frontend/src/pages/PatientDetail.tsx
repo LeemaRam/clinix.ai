@@ -62,6 +62,42 @@ interface Patient {
   }>;
 }
 
+const toSafeString = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+const normalizePatient = (input: any): Patient => {
+  const consultations = Array.isArray(input?.consultations)
+    ? input.consultations.map((consultation: any) => ({
+      id: String(consultation?.id || consultation?._id || ''),
+      type: toSafeString(consultation?.type || consultation?.consultation_type),
+      doctor_name: toSafeString(consultation?.doctor_name || consultation?.doctorName),
+      recording_type: toSafeString(consultation?.recording_type || consultation?.recordingType),
+      duration: toSafeString(consultation?.duration),
+      audio_duration: Number(consultation?.audio_duration || consultation?.audioDuration || 0),
+      created_at: toSafeString(consultation?.created_at || consultation?.createdAt),
+      status: toSafeString(consultation?.status),
+    }))
+    : [];
+
+  return {
+    _id: String(input?._id || input?.id || ''),
+    first_name: toSafeString(input?.first_name || input?.firstName),
+    last_name: toSafeString(input?.last_name || input?.lastName),
+    date_of_birth: toSafeString(input?.date_of_birth || input?.dateOfBirth),
+    gender: toSafeString(input?.gender),
+    email: toSafeString(input?.email),
+    phone: toSafeString(input?.phone),
+    address: toSafeString(input?.address),
+    blood_type: toSafeString(input?.blood_type || input?.bloodType),
+    allergies: Array.isArray(input?.allergies) ? input.allergies.map(String) : [],
+    medical_conditions: Array.isArray(input?.medical_conditions) ? input.medical_conditions.map(String) : [],
+    current_medications: Array.isArray(input?.current_medications) ? input.current_medications.map(String) : [],
+    consultations,
+    emergency_contact_name: toSafeString(input?.emergency_contact_name || input?.emergencyContactName),
+    emergency_contact_phone: toSafeString(input?.emergency_contact_phone || input?.emergencyContactPhone),
+    notes: Array.isArray(input?.notes) ? input.notes : []
+  };
+};
+
 interface Consultation {
   id: string;
   type: string;
@@ -500,16 +536,10 @@ const PatientDetail = () => {
 
         const body = unwrapData<{ patient?: Patient }>(response.data as any);
         if (body.patient) {
-          // Ensure all array fields exist to prevent undefined errors
-          const patientData = {
-            ...body.patient,
-            notes: body.patient.notes || [],
-            allergies: body.patient.allergies || [],
-            medical_conditions: body.patient.medical_conditions || [],
-            current_medications: body.patient.current_medications || [],
-            consultations: body.patient.consultations || []
-          };
+          const patientData = normalizePatient(body.patient);
           setPatient(patientData);
+        } else {
+          setError(t('common.patientNotFound'));
         }
       } catch (err) {
         setError(t('common.failedToFetchPatientDetails'));
@@ -656,7 +686,7 @@ const PatientDetail = () => {
             <div className="p-4 lg:p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
                 <div className="flex items-center justify-center w-16 h-16 text-xl font-bold rounded-full bg-cyan-100 text-cyan-600 mx-auto sm:mx-0">
-                  {patient.first_name[0]}{patient.last_name[0]}
+                  {(patient.first_name?.[0] || '?').toUpperCase()}{(patient.last_name?.[0] || '?').toUpperCase()}
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-4">
                   <h2 className="text-lg lg:text-xl font-semibold text-gray-800">{patient.first_name} {patient.last_name}</h2>

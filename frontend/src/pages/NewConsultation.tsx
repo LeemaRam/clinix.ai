@@ -616,7 +616,7 @@ const NewConsultation = () => {
       const audioResponse = await axios.post<AudioUploadResponse>(
         `${apiRoot}/consultations/${consultation.id}/upload-audio`,
         formData,
-        { headers }
+        { headers, timeout: 600000 } // 10 minute timeout for long audio transcription
       );
 
       if (!audioResponse.data.success) {
@@ -626,7 +626,7 @@ const NewConsultation = () => {
       // Wait for transcription to complete and get the result
       let transcriptionResult = null;
       let attempts = 0;
-      const maxAttempts = 30; // 30 seconds max wait
+      const maxAttempts = 600; // 10 minutes max wait
 
       while (attempts < maxAttempts) {
         try {

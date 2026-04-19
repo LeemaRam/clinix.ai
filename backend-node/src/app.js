@@ -15,6 +15,7 @@ import agentRoutes from './routes/agentRoutes.js';
 import followupRoutes from './routes/followupRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import patientFileRoutes from './routes/patientFileRoutes.js';
+import testRoutes from './routes/testRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 
@@ -54,6 +55,7 @@ export const createApp = () => {
   app.use('/api/followups', followupRoutes);
   app.use('/api/appointments', appointmentRoutes);
   app.use('/api/patients', patientFileRoutes);  // already /api/patients prefix
+  app.use('/api/test', testRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -3,27 +3,34 @@ import { SubscriptionPlan } from '../models/SubscriptionPlan.js';
 import { UserSubscription } from '../models/UserSubscription.js';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const getStripeClient = () => {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    return null;
+  }
+
+  return new Stripe(secretKey);
+};
 
 export const getPublicPlans = asyncHandler(async (_req, res) => {
   const plans = await SubscriptionPlan.find({ active: true, deleted: false }).sort({ price: 1 });
   const mappedPlans = plans.map((p) => ({
-      id: p._id,
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      currency: p.currency,
-      interval: p.interval,
-      transcriptionsPerMonth: p.transcriptionsPerMonth,
-      diskSpaceGB: p.diskSpaceGB,
-      features: p.features,
-      stripePriceId: p.stripePriceId,
-      popular: p.popular,
-      trial_days: p.trialDays,
-      admin_only: false,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt
-    }));
+    id: p._id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    currency: p.currency,
+    interval: p.interval,
+    transcriptionsPerMonth: p.transcriptionsPerMonth,
+    diskSpaceGB: p.diskSpaceGB,
+    features: p.features,
+    stripePriceId: p.stripePriceId,
+    popular: p.popular,
+    trial_days: p.trialDays,
+    admin_only: false,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt
+  }));
 
   const fallbackPlans = [
     {
@@ -141,6 +148,11 @@ export const getUserSubscription = asyncHandler(async (req, res) => {
 
 export const createCheckoutSession = asyncHandler(async (req, res) => {
   const { planId, successUrl, cancelUrl } = req.body;
+  const stripe = getStripeClient();
+
+  if (!stripe) {
+    return res.status(503).json({ success: false, error: 'Stripe is not configured' });
+  }
 
   const plan = await SubscriptionPlan.findById(planId);
   if (!plan || !plan.stripePriceId) {
@@ -190,6 +202,11 @@ export const reactivateSubscription = asyncHandler(async (req, res) => {
 });
 
 export const handleStripeWebhook = asyncHandler(async (req, res) => {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return res.status(503).send('Stripe is not configured');
+  }
+
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

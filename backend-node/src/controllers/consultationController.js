@@ -8,11 +8,103 @@ import { Report } from '../models/Report.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { serializeConsultation, serializeTranscription } from '../utils/serializers.js';
 import { transcribeAudio, generateReport as generateAiReport } from '../services/pythonService.js';
+import { extractMedicalAnalysis } from '../services/medicalAnalysisService.js';
 import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const formatDateOnly = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+};
+
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth) return 0;
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) return 0;
+
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const hasBirthdayPassed =
+    now.getMonth() > dob.getMonth()
+    || (now.getMonth() === dob.getMonth() && now.getDate() >= dob.getDate());
+
+  if (!hasBirthdayPassed) age -= 1;
+  return Math.max(0, age);
+};
+
+const normalizeAnalysisArray = (value) => (Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : []);
+
+const buildStructuredContent = ({ consultation, transcription, aiReport = null }) => {
+  const analysis = transcription.analysis || {};
+  const patient = consultation.patientId || {};
+  const doctor = consultation.doctorId || {};
+
+  const summaryText = String(
+    aiReport?.summary
+    || analysis.summary
+    || [analysis.subjective, analysis.objective, analysis.assessment].filter(Boolean).join(' ')
+    || transcription.rawText
+    || ''
+  );
+
+  const recommendationsText = Array.isArray(aiReport?.recommendations)
+    ? aiReport.recommendations.join('\n')
+    : (Array.isArray(analysis?.medical_info?.recommendations)
+      ? analysis.medical_info.recommendations.join('\n')
+      : String(analysis.plan || ''));
+
+  const subjectiveText = String(analysis.subjective || summaryText || 'No subjective findings documented.');
+  const objectiveText = String(analysis.objective || 'No objective findings documented.');
+  const assessmentText = String(analysis.assessment || 'No assessment documented.');
+  const planText = String(analysis.plan || recommendationsText || 'No plan documented.');
+
+  const consultationTimestamp = consultation.startedAt || consultation.scheduledAt || consultation.createdAt;
+
+  return {
+    patient_info: {
+      name: `${patient.firstName || ''} ${patient.lastName || ''}`.trim(),
+      age: calculateAge(patient.dateOfBirth),
+      gender: String(patient.gender || ''),
+      date_of_birth: formatDateOnly(patient.dateOfBirth),
+      consultation_date: formatDateOnly(consultationTimestamp),
+      consultation_time: consultationTimestamp ? new Date(consultationTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      doctor_name: String(doctor.fullName || ''),
+      doctor_email: String(doctor.email || '')
+    },
+    sections: {
+      title: 'Consultation SOAP Report',
+      subjective: subjectiveText,
+      objective: objectiveText,
+      assessment: assessmentText,
+      plan: planText,
+      vital_signs: String(analysis.vital_signs || ''),
+      neurological_exam: String(analysis.neurological_exam || ''),
+      pharmacological_treatment: String(analysis.pharmacological_treatment || ''),
+      self_care_measures: String(analysis.self_care_measures || ''),
+      dietary_recommendations: String(analysis.dietary_recommendations || ''),
+      follow_up: String(analysis.follow_up || ''),
+      signature: String(doctor.fullName || '')
+    },
+    medical_analysis: {
+      symptoms: normalizeAnalysisArray(analysis?.medical_info?.symptoms),
+      medical_history: normalizeAnalysisArray(analysis?.medical_info?.medical_history),
+      current_medications: normalizeAnalysisArray(analysis?.medical_info?.current_medications || analysis.medications_mentioned),
+      diagnosis: normalizeAnalysisArray(analysis?.medical_info?.diagnosis),
+      treatment_plan: normalizeAnalysisArray(analysis?.medical_info?.treatment_plan),
+      follow_up: normalizeAnalysisArray(analysis?.medical_info?.follow_up)
+    },
+    summary: summaryText,
+    transcription_confidence: Number(transcription.confidenceScore || 0),
+    transcription_duration: Number(transcription.duration || 0)
+  };
 };
 
 const makePdf = async ({ title, body, outputPath }) =>
@@ -29,43 +121,76 @@ const makePdf = async ({ title, body, outputPath }) =>
     stream.on('error', reject);
   });
 
-const buildStructuredPreview = ({ consultation, transcription }) => ({
-  preview_id: consultation._id.toString(),
-  structured_content: {
-    sections: {
-      summary: transcription.analysis?.summary || '',
-      transcript: transcription.rawText || '',
-      recommendations: Array.isArray(transcription.analysis?.medical_info?.recommendations)
-        ? transcription.analysis.medical_info.recommendations.join('\n')
-        : ''
-    }
-  }
-});
+const buildStructuredPreview = ({ consultation, transcription }) => {
+  return {
+    preview_id: consultation._id.toString(),
+    structured_content: buildStructuredContent({ consultation, transcription })
+  };
+};
+
+const buildSoapSections = (analysis = {}) => {
+  return {
+    subjective: String(analysis.subjective || 'No subjective findings documented.'),
+    objective: String(analysis.objective || 'No objective findings documented.'),
+    assessment: String(analysis.assessment || 'No assessment documented.'),
+    plan: String(analysis.plan || 'No plan documented.'),
+    medicationsMentioned: Array.isArray(analysis.medications_mentioned)
+      ? analysis.medications_mentioned.map((item) => String(item)).filter(Boolean)
+      : [],
+    followUpDays: Number.isFinite(Number(analysis.follow_up_days))
+      ? Number(analysis.follow_up_days)
+      : 7
+  };
+};
+
+const shouldIncludeRawTranscript = (analysis = {}) => {
+  const assessment = String(analysis.assessment || '').toLowerCase();
+  const plan = String(analysis.plan || '').toLowerCase();
+  return assessment.includes('ai analysis unavailable') || plan.includes('configure gemini_api_key');
+};
 
 const createAndStreamReportPdf = async ({ consultation, transcription, doctorId, generatedBy, res, previewId }) => {
   const patientName = consultation.patientId ? `${consultation.patientId.firstName} ${consultation.patientId.lastName}` : 'Unknown Patient';
+  const soap = buildSoapSections(transcription.analysis || {});
+  const medicationsText = soap.medicationsMentioned.length > 0 ? soap.medicationsMentioned.join(', ') : 'None documented';
+
   const body = [
     `Patient: ${patientName}`,
     `Consultation Type: ${consultation.consultationType}`,
     `Status: ${consultation.status}`,
     '',
-    'Summary:',
-    transcription.analysis?.summary || '',
+    'Subjective:',
+    soap.subjective,
     '',
-    'Transcript:',
-    transcription.rawText || ''
+    'Objective:',
+    soap.objective,
+    '',
+    'Assessment:',
+    soap.assessment,
+    '',
+    'Plan:',
+    soap.plan,
+    '',
+    `Medications Mentioned: ${medicationsText}`,
+    `Follow-up: ${soap.followUpDays} day(s)`
   ].join('\n');
+
+  const transcriptReference = shouldIncludeRawTranscript(transcription.analysis || {})
+    ? `\n\nTranscript (fallback reference):\n${transcription.rawText || ''}`
+    : '';
+
+  const fullBody = `${body}${transcriptReference}`;
 
   const reportsDir = path.resolve(env.UPLOAD_REPORTS_DIR);
   const filename = `consultation-report-${consultation._id}-${Date.now()}.pdf`;
   const outputPath = path.join(reportsDir, filename);
-  await makePdf({ title: 'Consultation Report', body, outputPath });
+  await makePdf({ title: 'Consultation SOAP Report', body: fullBody, outputPath });
 
   const report = await Report.create({
     consultationId: consultation._id,
     patientId: consultation.patientId?._id,
     doctorId,
-    content: body,
+    content: fullBody,
     format: 'PDF',
     status: 'generated',
     filePath: outputPath,
@@ -145,33 +270,49 @@ export const uploadAudio = asyncHandler(async (req, res) => {
   }
 
   try {
+    if (env.DEMO_MODE && io) {
+      await delay(300);
+      const payload = { consultationId: consultationRoomId, progress: 50, status: 'processing' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
+
     const aiResult = await transcribeAudio({
       audioFilePath: consultation.audioFilePath,
       speechLanguage,
-      consultationId: consultation._id.toString()
+      consultationId: consultation._id.toString(),
+      mimeType: consultation.audioFormat
     });
 
-    if (io) {
+    if (io && !env.DEMO_MODE) {
       const payload = { consultationId: consultationRoomId, progress: 80, status: 'finalizing' };
       io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
       io.emit('transcription_progress', payload);
     }
 
     transcription.status = 'completed';
-    transcription.rawText = aiResult.raw_text || '';
+    transcription.rawText = aiResult.transcript || aiResult.raw_text || '';
     transcription.segments = aiResult.segments || [];
     transcription.confidenceScore = aiResult.confidence_score || 0;
     transcription.duration = aiResult.duration || 0;
     transcription.language = aiResult.language || speechLanguage;
-    transcription.analysis = aiResult.analysis || {};
+    transcription.modelUsed = aiResult.model_used || transcription.modelUsed;
+    transcription.analysis = await extractMedicalAnalysis(transcription.rawText);
     transcription.completedAt = new Date();
     await transcription.save();
 
     consultation.status = 'transcribed';
     consultation.endedAt = new Date();
     consultation.languageDetected = transcription.language;
-    consultation.consultationSummary = transcription.analysis?.summary || '';
-    consultation.medicalInfo = transcription.analysis?.medical_info || {};
+    consultation.consultationSummary = [transcription.analysis?.subjective, transcription.analysis?.assessment]
+      .filter(Boolean)
+      .join(' | ')
+      .slice(0, 1000);
+    consultation.medicalInfo = {
+      medications_mentioned: transcription.analysis?.medications_mentioned || [],
+      follow_up_days: transcription.analysis?.follow_up_days || 7,
+      soap: transcription.analysis || {}
+    };
     await consultation.save();
 
     if (io) {
@@ -196,7 +337,7 @@ export const uploadAudio = asyncHandler(async (req, res) => {
       io.emit('transcription_progress', payload);
     }
 
-    return res.status(502).json({ success: false, error: 'Transcription failed', details: e.message });
+    return res.status(502).json({ success: false, error: e.message, fallback: false, details: e.message });
   }
 });
 
@@ -260,21 +401,22 @@ export const patchTranscriptionSegment = asyncHandler(async (req, res) => {
 });
 
 export const generateReportPreview = asyncHandler(async (req, res) => {
-  const consultation = await Consultation.findOne({ _id: req.params.consultationId, doctorId: req.user.id });
+  const consultation = await Consultation.findOne({ _id: req.params.consultationId, doctorId: req.user.id })
+    .populate('patientId')
+    .populate('doctorId');
   if (!consultation) return res.status(404).json({ success: false, error: 'Consultation not found' });
 
   const t = await Transcription.findOne({ consultationId: consultation._id });
   if (!t) return res.status(404).json({ success: false, error: 'Transcription not found' });
 
-  const ai = await generateAiReport({ transcriptionText: t.rawText, consultationType: consultation.consultationType, language: 'en' });
+  let ai = null;
+  try {
+    ai = await generateAiReport({ transcriptionText: t.rawText, consultationType: consultation.consultationType, language: 'en' });
+  } catch (error) {
+    console.warn('[generateReportPreview] AI report generation failed, continuing with transcription analysis fallback.', error?.message || error);
+  }
 
-  const structured_content = {
-    sections: {
-      summary: ai.summary || t.analysis?.summary || '',
-      transcript: t.rawText || '',
-      recommendations: (ai.recommendations || []).join('\n')
-    }
-  };
+  const structured_content = buildStructuredContent({ consultation, transcription: t, aiReport: ai });
 
   const data = { preview_id: consultation._id.toString(), structured_content };
   res.json({ success: true, data, ...data });

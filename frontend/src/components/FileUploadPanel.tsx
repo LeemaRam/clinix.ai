@@ -16,6 +16,21 @@ interface PatientFile {
   uploadedAt: string;
 }
 
+const normalizeFiles = (payload: unknown): PatientFile[] => {
+  if (Array.isArray(payload)) {
+    return payload as PatientFile[];
+  }
+
+  if (payload && typeof payload === 'object') {
+    const maybeData = (payload as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) {
+      return maybeData as PatientFile[];
+    }
+  }
+
+  return [];
+};
+
 const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
   const { t } = useTranslation();
   const [files, setFiles] = useState<PatientFile[]>([]);
@@ -32,7 +47,7 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
     try {
       setLoading(true);
       const response = await getPatientFiles(patientId);
-      setFiles(response.data);
+      setFiles(normalizeFiles(response.data));
     } catch (err) {
       setError('Failed to load files');
       console.error(err);
@@ -60,6 +75,7 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
       const formData = new FormData();
       formData.append('file', file);
 
+      await uploadPatientFile(patientId, formData);
       await uploadPatientFile(patientId, formData);
       await fetchFiles();
 
@@ -150,7 +166,7 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
       )}
 
       <div className="space-y-3">
-        {files.map((file) => (
+        {Array.isArray(files) && files.map((file) => (
           <div key={file._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center space-x-3">
               <span className="text-2xl">{getFileIcon(file.mimeType)}</span>
@@ -181,7 +197,7 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
           </div>
         ))}
 
-        {files.length === 0 && (
+        {(!Array.isArray(files) || files.length === 0) && (
           <div className="text-center py-8 text-gray-500">
             <File size={48} className="mx-auto mb-4 opacity-50" />
             <p>No files uploaded yet</p>

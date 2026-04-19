@@ -26,6 +26,7 @@ type ApiFetchConfig = Omit<AxiosRequestConfig, 'url'> & {
 export const apiFetch = <T = any>({ path, ...config }: ApiFetchConfig): Promise<AxiosResponse<T>> => {
   return axios({
     url: withApiRoot(path),
+    timeout: 600000, // 10 minute default timeout for long-running requests
     ...config,
   });
 };

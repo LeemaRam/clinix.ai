@@ -22,7 +22,11 @@ Copy `.env.example` to `.env` and set values:
 - `JWT_SECRET` - JWT signing secret
 - `JWT_EXPIRES_IN` - token lifetime (default `7d`)
 - `CORS_ORIGIN` - allowed origins (comma-separated)
+- `DEMO_MODE` - when true, skips external speech-to-text and uses predefined demo transcript with simulated progress
 - `PYTHON_AI_SERVICE_URL` - FastAPI service URL
+- `GOOGLE_APPLICATION_CREDENTIALS` - path to Google service account JSON for Speech-to-Text (environment variable)
+- `GOOGLE_CLOUD_API_KEY` - optional API key fallback for Google Speech client
+- `GEMINI_API_KEY` - Google Gemini API key used for SOAP extraction from transcripts
 - `STRIPE_SECRET_KEY` - Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook secret
 - `UPLOAD_AUDIO_DIR` - audio upload directory
@@ -35,6 +39,12 @@ Copy `.env.example` to `.env` and set values:
 npm install
 npm run dev
 ```
+
+Speech-to-Text notes:
+
+- Backend transcription uses Google Cloud Speech-to-Text via `@google-cloud/speech`.
+- Audio is converted to LINEAR16, 16kHz WAV using `ffmpeg` before recognition.
+- If Google Speech fails or credentials are missing, service falls back to demo transcript output.
 
 Health check:
 

@@ -10,6 +10,8 @@
     "seed:stripe": "node seed-stripe-plans.js"
   },
   "dependencies": {
+    "@google-cloud/speech": "^7.3.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.8.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

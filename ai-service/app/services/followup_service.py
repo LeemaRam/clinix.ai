@@ -1,7 +1,5 @@
 # ai-service/app/services/followup_service.py
-import json, os
-from openai import OpenAI
-from twilio.rest import Client as TwilioClient
+import os
 
 def extract_followup_from_soap(soap_note: dict, consultation_id: str) -> dict:
     followup_days = soap_note.get('follow_up_days', 7)
@@ -14,6 +12,11 @@ def extract_followup_from_soap(soap_note: dict, consultation_id: str) -> dict:
 
 def send_whatsapp_reminder(patient_phone: str, patient_name: str,
                             doctor_name: str, follow_up_date: str, reason: str) -> dict:
+    try:
+        from twilio.rest import Client as TwilioClient
+    except ImportError:
+        return {'sent': False, 'error': 'Twilio package is not installed'}
+
     account_sid = os.getenv('TWILIO_ACCOUNT_SID')
     auth_token  = os.getenv('TWILIO_AUTH_TOKEN')
     from_number = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')

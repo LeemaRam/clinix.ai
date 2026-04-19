@@ -8,6 +8,8 @@ node_modules/
 
 # Environment
 .env
+backend-node/secrets/
+backend-node/secrets/*.json
 
 # Upload artifacts
 uploads/

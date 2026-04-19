@@ -1,5 +1,5 @@
 import { checkDrugSafety } from '../services/pythonService.js';
-import asyncHandler from '../utils/asyncHandler.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const drugSafetyCheck = asyncHandler(async (req, res) => {
   const { medications, patientInfo, language = 'en' } = req.body;
