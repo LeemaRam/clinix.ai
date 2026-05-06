@@ -23,6 +23,7 @@ import { formatDuration } from '../utils/formatters';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 import PatientBriefCard from '../components/agents/PatientBriefCard';
+import SOAPNoteGenerator from '../components/agents/SOAPNoteGenerator';
 import FileUploadPanel from '../components/FileUploadPanel';
 
 const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
@@ -154,10 +155,10 @@ interface PdfOptions {
   includePatientDetails: boolean;
 }
 
-interface PatientBrief {
-  brief: string;
-  key_flags: string[];
-}
+// interface PatientBrief {
+//   brief: string;
+//   key_flags: string[];
+// }
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -189,9 +190,9 @@ const PatientDetail = () => {
   });
 
   // Patient brief state
-  const [patientBrief, setPatientBrief] = useState<PatientBrief | null>(null);
-  const [briefLoading, setBriefLoading] = useState(false);
-  const [briefError, setBriefError] = useState<string | null>(null);
+  // const [patientBrief, setPatientBrief] = useState<PatientBrief | null>(null);
+  // const [briefLoading, setBriefLoading] = useState(false);
+  // const [briefError, setBriefError] = useState<string | null>(null);
 
   const { t } = useTranslation();
 
@@ -253,28 +254,6 @@ const PatientDetail = () => {
   const handleReportPreview = (consultationId: string) => {
     setSelectedConsultationId(consultationId);
     setShowReportPreviewModal(true);
-  };
-
-  // Fetch patient brief
-  const fetchPatientBrief = async () => {
-    if (!id) return;
-    setBriefLoading(true);
-    setBriefError(null);
-    try {
-      const response = await axios.get(
-        `${API_ROOT}/agents/patient-brief/${id}`,
-        {
-          headers: getAuthHeaders()
-        }
-      );
-      const body = unwrapData<{ data?: PatientBrief }>(response.data as any);
-      setPatientBrief(body.data || body as PatientBrief);
-    } catch (error) {
-      const err = handleError(error);
-      setBriefError(err.message);
-    } finally {
-      setBriefLoading(false);
-    }
   };
 
   // Generate PDF Report with options
@@ -551,7 +530,6 @@ const PatientDetail = () => {
 
     if (id) {
       fetchPatient();
-      fetchPatientBrief();
     } else {
               setError(t('common.patientIdMissing'));
       setLoading(false);
@@ -639,7 +617,7 @@ const PatientDetail = () => {
       )}
       {showTranscriptionModal && <TranscriptionModal />}
 
-      <PatientBriefCard brief={patientBrief} loading={briefLoading} error={briefError} />
+      <PatientBriefCard patientId={id!} />
 
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 lg:mb-6 space-y-4 lg:space-y-0">
         <div>
@@ -778,11 +756,12 @@ const PatientDetail = () => {
 
           {/* Patient Brief Card */}
           <div className="mt-4">
-            <PatientBriefCard
-              brief={patientBrief}
-              loading={briefLoading}
-              error={briefError}
-            />
+            <PatientBriefCard patientId={id!} />
+          </div>
+
+          {/* SOAP Note Generator */}
+          <div className="mt-4">
+            <SOAPNoteGenerator patientId={id!} />
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 class GenerateReportRequest(BaseModel):
@@ -35,6 +35,7 @@ class GenerateReportResponse(BaseModel):
 class DrugSafetyRequest(BaseModel):
     medications: List[str]
     patient_info: Dict[str, Any] = {}
+    patient_files: List[Dict[str, Any]] = []
     language: str = "en"
 
 
@@ -52,6 +53,15 @@ class DrugCheckRequest(BaseModel):
 class PatientBriefRequest(BaseModel):
     patient: Dict[str, Any]
     recentConsultations: List[Dict[str, Any]]
+    reports: List[Dict[str, Any]] = []
+    patient_files: List[Dict[str, Any]] = []
+
+
+class SoapNoteRequest(BaseModel):
+    transcription: str
+    patient: Dict[str, Any]
+    consultation_reason: Optional[str] = None
+    existing_notes: Optional[str] = None
 
 
 class ExtractFollowupRequest(BaseModel):

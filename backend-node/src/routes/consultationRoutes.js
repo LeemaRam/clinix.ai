@@ -11,7 +11,8 @@ import {
   listConsultations,
   patchTranscriptionSegment,
   updateReportPreview,
-  uploadAudio as uploadAudioHandler
+  uploadAudio as uploadAudioHandler,
+  approveSoapNote
 } from '../controllers/consultationController.js';
 
 const router = Router();
@@ -20,6 +21,7 @@ router.use(authRequired);
 router.get('/', listConsultations);
 router.post('/', createConsultation);
 router.delete('/:id', deleteConsultation);
+router.post('/:consultationId/approve-soap', approveSoapNote);
 router.post('/:id/upload-audio', uploadAudio.single('audio'), uploadAudioHandler);
 router.get('/transcriptions/:consultationId', getTranscriptionByConsultation);
 router.patch('/transcriptions/:consultationId/segments/:segmentId', patchTranscriptionSegment);

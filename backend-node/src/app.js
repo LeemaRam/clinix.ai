@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
@@ -39,7 +40,20 @@ export const createApp = () => {
   });
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'clinix-ai-api' });
+    const dbStatus = mongoose.connection.readyState;
+    const dbConnected = dbStatus === 1; // 1 = connected
+
+    res.json({
+      status: dbConnected ? 'ok' : 'error',
+      service: 'clinix-ai-api',
+      database: {
+        connected: dbConnected,
+        status: dbStatus === 0 ? 'disconnected' :
+                dbStatus === 1 ? 'connected' :
+                dbStatus === 2 ? 'connecting' :
+                dbStatus === 3 ? 'disconnecting' : 'unknown'
+      }
+    });
   });
 
   app.use('/api/auth', authRoutes);

@@ -4,10 +4,11 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from .schemas import GenerateReportRequest, GenerateReportResponse, TranscribeResponse, DrugSafetyRequest, DrugSafetyResponse, DrugCheckRequest, PatientBriefRequest, ExtractFollowupRequest, SendReminderRequest
+from .schemas import GenerateReportRequest, GenerateReportResponse, TranscribeResponse, DrugSafetyRequest, DrugSafetyResponse, DrugCheckRequest, PatientBriefRequest, SoapNoteRequest, ExtractFollowupRequest, SendReminderRequest
 from .services.ai_service import transcribe_audio_file, generate_report, check_drug_safety
 from .services.drug_safety_service import check_interactions
 from .services.patient_brief_service import generate_patient_brief
+from .services.soap_note_service import generate_soap_note
 from .services.followup_service import extract_followup_from_soap, send_whatsapp_reminder
 
 load_dotenv()
@@ -84,6 +85,7 @@ def drug_safety_endpoint(payload: DrugSafetyRequest):
         data = check_drug_safety(
             medications=payload.medications,
             patient_info=payload.patient_info,
+            patient_files=payload.patient_files,
             language=payload.language,
         )
         return data
@@ -98,7 +100,22 @@ def drug_check(payload: DrugCheckRequest):
 
 @app.post("/patient-brief")
 def patient_brief_endpoint(payload: PatientBriefRequest):
-    return generate_patient_brief(payload.patient, payload.recentConsultations)
+    return generate_patient_brief(
+        payload.patient,
+        payload.recentConsultations,
+        payload.reports,
+        patient_files=payload.patient_files,
+    )
+
+
+@app.post("/soap-note")
+def soap_note_endpoint(payload: SoapNoteRequest):
+    return generate_soap_note(
+        transcription=payload.transcription,
+        patient_data=payload.patient,
+        consultation_reason=payload.consultation_reason,
+        existing_notes=payload.existing_notes,
+    )
 
 
 @app.post("/extract-followup")

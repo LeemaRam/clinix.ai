@@ -1,40 +1,51 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
 import { User } from '../models/User.js';
+import { ApiError } from '../utils/ApiError.js';
 
-export const authRequired = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   try {
-    const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    let token;
+
+    if (req.headers.authorization?.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
 
     if (!token) {
-      return res.status(401).json({ success: false, error: 'Missing auth token' });
+      throw new ApiError(401, 'Not authorized - No token provided');
     }
 
-    const payload = jwt.verify(token, env.JWT_SECRET);
-    const user = await User.findById(payload.sub).lean();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!user || !user.isActive) {
-      return res.status(401).json({ success: false, error: 'Invalid user' });
-    }
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) throw new ApiError(401, 'User not found');
 
-    req.user = {
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      fullName: user.fullName
-    };
+    if (user.status === 'inactive') throw new ApiError(403, 'Account is deactivated');
 
+    req.user = user;
     next();
-  } catch {
-    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return next(new ApiError(401, 'Token has expired'));
+    }
+    next(new ApiError(401, 'Not authorized'));
   }
 };
 
-export const roleRequired = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
-    return res.status(403).json({ success: false, error: 'Forbidden' });
-  }
-
-  return next();
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(new ApiError(403, `Role ${req.user.role} is not authorized to access this route`));
+    }
+    next();
+  };
 };
+
+export const superAdminOnly = (req, res, next) => {
+  if (req.user.role !== 'superadmin') {
+    return next(new ApiError(403, 'Super Admin access only'));
+  }
+  next();
+};
+
+export const authRequired = protect;
+export const roleRequired = authorize;

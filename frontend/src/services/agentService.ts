@@ -18,3 +18,27 @@ export const getPatientBrief = async (patientId: string) => {
   });
   return res.data;
 };
+
+export const generateSOAPNote = async (patientId: string, transcription: string, consultationReason?: string) => {
+  const res = await apiFetch({
+    path: '/agents/soap-note',
+    method: 'POST',
+    headers: getAuthHeaders(),
+    data: {
+      patientId,
+      transcription,
+      consultationReason
+    }
+  });
+  return res.data;
+};
+
+export const approveSoapNote = async (consultationId: string, approved: boolean) => {
+  const res = await apiFetch({
+    path: `/consultations/${consultationId}/approve-soap`,
+    method: 'POST',
+    headers: getAuthHeaders(),
+    data: { approved }
+  });
+  return res.data;
+};

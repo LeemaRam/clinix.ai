@@ -1,5 +1,6 @@
 import { Patient } from '../models/Patient.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { analyzePatientFiles } from '../services/patientFileAnalysisService.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -87,4 +88,19 @@ export const deletePatientFile = asyncHandler(async (req, res) => {
   await patient.save();
 
   res.json({ success: true, data: { deleted: true } });
+});
+
+export const analyzeUploadedPatientFiles = asyncHandler(async (req, res) => {
+  const { patientId } = req.params;
+  const patient = await Patient.findOne({ _id: patientId, doctorId: req.user.id });
+  if (!patient) {
+    return res.status(404).json({ success: false, error: 'Patient not found' });
+  }
+
+  if (!patient.uploadedFiles || !patient.uploadedFiles.length) {
+    return res.json({ success: true, data: [] });
+  }
+
+  const summaries = await analyzePatientFiles(patient.uploadedFiles);
+  res.json({ success: true, data: summaries });
 });

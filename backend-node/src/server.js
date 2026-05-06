@@ -8,31 +8,34 @@ import { setSocketServer } from './socket.js';
 
 dotenv.config();
 
-const bootstrap = async () => {
-  await connectToDatabase();
-  const app = createApp();
-  const server = http.createServer(app);
-  // Allow long-running upload/transcription requests (e.g. multi-minute audio files).
-  server.requestTimeout = 15 * 60 * 1000;
-  server.headersTimeout = 16 * 60 * 1000;
+const PORT = env.PORT || 5000;
 
-  const io = new SocketIOServer(server, {
-    cors: { origin: env.CORS_ORIGIN.split(',').map((x) => x.trim()), credentials: true }
-  });
-  setSocketServer(io);
+const startServer = async () => {
+  try {
+    await connectToDatabase();
 
-  io.on('connection', (socket) => {
-    socket.emit('connected', { message: 'Connected to Clinix.ai socket server' });
-    socket.on('join_consultation', (roomId) => socket.join(`consultation:${roomId}`));
-    socket.on('disconnect', () => undefined);
-  });
+    const app = createApp();
+    const server = http.createServer(app);
 
-  server.listen(env.PORT, () => {
-    console.log(`Clinix.ai Node API listening on port ${env.PORT}`);
-  });
+    const io = new SocketIOServer(server, {
+      cors: {
+        origin: env.FRONTEND_URL || "http://localhost:3000",
+        methods: ["GET", "POST"],
+        credentials: true
+      }
+    });
+
+    setSocketServer(io);
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📱 Frontend URL: ${env.FRONTEND_URL || "http://localhost:3000"}`);
+      console.log(`🔗 Socket.IO enabled`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
 };
 
-bootstrap().catch((error) => {
-  console.error('Failed to start server', error);
-  process.exit(1);
-});
+startServer();

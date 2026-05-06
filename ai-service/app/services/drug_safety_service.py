@@ -1,13 +1,18 @@
 # ai-service/app/services/drug_safety_service.py
+import os
 import requests
 from typing import List, Dict
 
 RXNORM_BASE = 'https://rxnav.nlm.nih.gov/REST'
+RXNORM_API_ID = os.getenv('RXNORM_API_ID', '')
 
 def get_rxcui(drug_name: str) -> str | None:
     try:
+        params = {'name': drug_name}
+        if RXNORM_API_ID:
+            params['apikey'] = RXNORM_API_ID
         r = requests.get(f'{RXNORM_BASE}/rxcui.json',
-                         params={'name': drug_name}, timeout=5)
+                         params=params, timeout=5)
         ids = r.json().get('idGroup', {}).get('rxnormId', [])
         return ids[0] if ids else None
     except Exception:
@@ -21,9 +26,12 @@ def check_interactions(new_drugs: List[str], existing_drugs: List[str]) -> Dict:
     if len(rxcuis) < 2:
         return {'warnings': [], 'safe': True, 'note': 'Could not resolve drug IDs'}
     try:
+        params = {'rxcuis': ' '.join(rxcuis)}
+        if RXNORM_API_ID:
+            params['apikey'] = RXNORM_API_ID
         r = requests.get(
             'https://rxnav.nlm.nih.gov/REST/interaction/list.json',
-            params={'rxcuis': ' '.join(rxcuis)}, timeout=8
+            params=params, timeout=8
         )
         data = r.json()
     except Exception as e:

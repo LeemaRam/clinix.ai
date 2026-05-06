@@ -299,7 +299,7 @@ The AI service exposes:
 - `POST /generate-report`
 ## Stripe Payment Integration
 
-Clinix.ai includes a complete Stripe integration for subscription management. This section covers setup and configuration.
+Clinix.ai includes a complete Stripe integration for subscription management. The full Stripe setup and configuration are consolidated in a single guide.
 
 ### Quick Start
 
@@ -313,9 +313,7 @@ Clinix.ai includes a complete Stripe integration for subscription management. Th
 ### Detailed Setup
 
 For comprehensive setup instructions, see:
-- **[STRIPE_SETUP.md](STRIPE_SETUP.md)** - Complete step-by-step guide
-- **[STRIPE_CHECKLIST.md](STRIPE_CHECKLIST.md)** - Implementation checklist
-- **[STRIPE_FRONTEND.md](STRIPE_FRONTEND.md)** - Frontend integration details
+- **[STRIPE_SETUP.md](STRIPE_SETUP.md)** - Complete Stripe integration guide
 
 ### Features
 

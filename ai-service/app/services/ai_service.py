@@ -100,7 +100,7 @@ Transcript:
     }
 
 
-def check_drug_safety(medications: list, patient_info: dict = None, language: str = "en") -> dict:
+def check_drug_safety(medications: list, patient_info: dict = None, patient_files: list = None, language: str = "en") -> dict:
     if not medications:
         return {
             "warnings": [],
@@ -109,11 +109,18 @@ def check_drug_safety(medications: list, patient_info: dict = None, language: st
         }
 
     patient_info = patient_info or {}
+    patient_files = patient_files or []
     fallback = {
         "warnings": ["Manual drug safety review recommended."],
         "interactions": [],
         "recommendations": ["Verify contraindications before prescribing."],
     }
+
+    file_context = ''
+    if patient_files:
+        file_context = '\nPatient files:\n' + '\n'.join(
+            [f"- {file.get('originalName', 'file')} ({file.get('mimeType', 'unknown')}): {file.get('summary', file.get('text', '')[:150])}" for file in patient_files]
+        )
 
     prompt = f"""
 You are a pharmaceutical safety assistant.
@@ -121,6 +128,7 @@ Return STRICT JSON with keys: warnings (array), interactions (array), recommenda
 Language: {language}
 Medications: {', '.join([str(m) for m in medications])}
 Patient info: {patient_info}
+{file_context}
 """.strip()
 
     parsed = generate_json(prompt, fallback)

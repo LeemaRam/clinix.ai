@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { env } from '../config/env.js';
 import { transcribeAudioWithGoogleSpeech } from './googleSpeechService.js';
+import { transcribeAudioWithWhisper } from './openaiWhisperService.js';
 
 const client = axios.create({
   baseURL: env.PYTHON_AI_SERVICE_URL,
@@ -35,8 +36,17 @@ export const transcribeAudio = async ({ audioFilePath, speechLanguage = 'en', co
   }
 
   try {
-    const response = await transcribeAudioWithGoogleSpeech({ audioFilePath, speechLanguage, mimeType });
-    const transcript = String(response.transcript || '').trim();
+    let response;
+    let modelUsed = 'google-cloud-speech';
+
+    if (env.OPENAI_API_KEY) {
+      response = await transcribeAudioWithWhisper({ audioFilePath, speechLanguage });
+      modelUsed = env.OPENAI_WHISPER_MODEL;
+    } else {
+      response = await transcribeAudioWithGoogleSpeech({ audioFilePath, speechLanguage, mimeType });
+    }
+
+    const transcript = String(response.transcript || response.raw_text || '').trim();
     const segments = Array.isArray(response.segments)
       ? response.segments.map((segment, index) => ({
         id: index + 1,
@@ -46,10 +56,10 @@ export const transcribeAudio = async ({ audioFilePath, speechLanguage = 'en', co
         speaker: 'unknown'
       })).filter((segment) => segment.text)
       : [];
-    const duration = segments.length > 0 ? segments[segments.length - 1].end : 0;
+    const duration = response.duration || (segments.length > 0 ? segments[segments.length - 1].end : 0);
 
     if (!transcript) {
-      throw new Error('Empty transcript from Google Speech API');
+      throw new Error('Empty transcript from transcription service');
     }
 
     return {
@@ -60,12 +70,12 @@ export const transcribeAudio = async ({ audioFilePath, speechLanguage = 'en', co
       confidence_score: Number(response.confidence || 0),
       duration,
       language: String(response.language || speechLanguage),
-      model_used: 'google-cloud-speech',
+      model_used: modelUsed,
       fallback: false
     };
   } catch (error) {
-    const message = error?.message || 'Google Speech transcription failed';
-    console.error('[pythonService] Real transcription failed in non-demo mode.', message);
+    const message = error?.message || 'Transcription service failed';
+    console.error('[pythonService] transcription failed.', message);
     throw Object.assign(new Error(message), { fallback: false });
   }
 };
@@ -80,11 +90,23 @@ export const generateReport = async ({ transcriptionText, consultationType = 'ge
   return data;
 };
 
-export const checkDrugSafety = async ({ medications, patientInfo = {}, language = 'en' }) => {
+export const checkDrugSafety = async ({ medications, patientInfo = {}, patientFiles = [], language = 'en' }) => {
   const { data } = await client.post('/drug-safety', {
     medications,
     patient_info: patientInfo,
+    patient_files: patientFiles,
     language
+  });
+
+  return data;
+};
+
+export const generateSOAPNote = async ({ patient, transcription, consultationReason, existingNotes }) => {
+  const { data } = await client.post('/soap-note', {
+    patient,
+    transcription,
+    consultation_reason: consultationReason,
+    existing_notes: existingNotes || null
   });
 
   return data;

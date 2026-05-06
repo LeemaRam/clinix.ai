@@ -1,62 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'lucide-react';
-
-interface PatientBrief {
-  brief: string;
-  key_flags: string[];
-}
+import { getPatientBrief } from '../../services/agentService';
 
 interface PatientBriefCardProps {
-  brief: PatientBrief | null;
-  loading: boolean;
-  error: string | null;
+  patientId: string;
 }
 
-const PatientBriefCard: React.FC<PatientBriefCardProps> = ({ brief, loading, error }) => {
-  if (loading) {
-    return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-blue-700">Generating patient brief...</span>
-        </div>
-      </div>
-    );
-  }
+const PatientBriefCard: React.FC<PatientBriefCardProps> = ({ patientId }) => {
+  const [brief, setBrief] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <User className="h-5 w-5 text-red-600" />
-          <span className="ml-2 text-red-700">Error generating brief: {error}</span>
-        </div>
-      </div>
-    );
-  }
+  const generateBrief = async () => {
+    setLoading(true);
+    setError('');
 
-  if (!brief) {
-    return null;
-  }
+    try {
+      const result = await getPatientBrief(patientId);
+      setBrief(result.brief || result.data?.brief || 'No brief generated');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err.message || 'Failed to generate patient brief');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div className="flex items-start">
-        <User className="h-5 w-5 text-blue-600 mt-0.5" />
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium text-blue-800">Patient Brief</h3>
-          <p className="mt-1 text-sm text-blue-700">{brief.brief}</p>
-          {brief.key_flags.length > 0 && (
-            <div className="mt-2">
-              <h4 className="text-sm font-medium text-blue-800">Key Flags:</h4>
-              <ul className="mt-1 list-disc list-inside text-sm text-blue-700">
-                {brief.key_flags.map((flag, index) => (
-                  <li key={index}>{flag}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center">
+          <User className="h-5 w-5 text-blue-600" />
+          <h5 className="ml-2 text-lg font-medium text-blue-800">🤖 Agent 2: Patient Brief History</h5>
         </div>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          onClick={generateBrief}
+          disabled={loading}
+        >
+          {loading ? 'Generating...' : 'Generate Brief'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 mb-3">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
+      {brief ? (
+        <div
+          className="text-sm text-blue-700 whitespace-pre-wrap p-3 bg-white rounded border"
+          style={{ lineHeight: '1.6' }}
+        >
+          {brief}
+        </div>
+      ) : (
+        <p className="text-blue-600 text-center py-4">
+          Click "Generate Brief" to get AI-powered patient summary with key medical insights.
+        </p>
+      )}
+
+      <div className="text-xs text-blue-500 mt-3">
+        Powered by Gemini • Updated in real-time
       </div>
     </div>
   );

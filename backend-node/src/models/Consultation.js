@@ -24,7 +24,9 @@ const consultationSchema = new mongoose.Schema(
     audioDuration: Number,
     languageDetected: String,
     medicalInfo: { type: mongoose.Schema.Types.Mixed },
-    consultationSummary: String
+    consultationSummary: String,
+    soapApprovalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    drugCheckStatus: { type: String, enum: ['pending', 'completed', 'skipped'], default: 'pending' }
   },
   { timestamps: true }
 );
