@@ -26,7 +26,7 @@ export const listFollowUps = async (): Promise<FollowUp[]> => {
     method: 'GET',
     headers: getAuthHeaders()
   });
-  return res.data;
+  return res.data?.data || [];
 };
 
 export const scheduleFollowUp = async (data: {
@@ -41,7 +41,7 @@ export const scheduleFollowUp = async (data: {
     headers: getAuthHeaders(),
     data
   });
-  return res.data;
+  return res.data?.data;
 };
 
 export const sendReminder = async (followUpId: string): Promise<{ success: boolean; message: string }> => {

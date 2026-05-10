@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { env } from '../config/env.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -11,20 +12,22 @@ const generateToken = (id) => {
 };
 
 export const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role = 'user' } = req.body;
+  const { name, email, password, role = 'doctor' } = req.body;
 
   if (!name || !email || !password) {
     throw new ApiError(400, 'Please provide name, email and password');
   }
 
-  const userExists = await User.findOne({ email });
+  const userExists = await User.findOne({ email: String(email).toLowerCase() });
   if (userExists) throw new ApiError(400, 'User already exists with this email');
 
+  const passwordHash = await bcrypt.hash(password, 10);
+
   const user = await User.create({
-    name,
-    email,
-    password,
-    role: role === 'superadmin' ? 'user' : role
+    fullName: name,
+    email: String(email).toLowerCase(),
+    passwordHash,
+    role: role || 'doctor'
   });
 
   res.status(201).json({
@@ -32,7 +35,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     message: 'User registered successfully',
     data: {
       _id: user._id,
-      name: user.name,
+      full_name: user.fullName,
       email: user.email,
       role: user.role,
       token: generateToken(user._id)
@@ -43,12 +46,13 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
-  if (!user || !(await user.matchPassword(password))) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
+  const user = await User.findOne({ email: String(email).toLowerCase() });
+  if (!user) throw new ApiError(401, 'Invalid email or password');
 
-  if (user.status === 'inactive') {
+  const ok = await bcrypt.compare(password || '', user.passwordHash || '');
+  if (!ok) throw new ApiError(401, 'Invalid email or password');
+
+  if (user.isActive === false) {
     throw new ApiError(403, 'Account is deactivated. Contact admin.');
   }
 
@@ -57,7 +61,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     message: 'Login successful',
     data: {
       _id: user._id,
-      name: user.name,
+      full_name: user.fullName,
       email: user.email,
       role: user.role,
       token: generateToken(user._id)

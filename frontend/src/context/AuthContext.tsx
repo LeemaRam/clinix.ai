@@ -116,11 +116,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { email: string; password: string; full_name: string }) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${apiRoot}/auth/register`, userData);
+      // Map frontend `full_name` to backend `name`
+      const payload = {
+        name: userData.full_name,
+        email: userData.email,
+        password: userData.password
+      };
 
-      const { access_token, user } = response.data;
+      const response = await axios.post(`${apiRoot}/auth/register`, payload);
 
-      localStorage.setItem('access_token', access_token);
+      const token = response.data?.data?.token;
+      const user = response.data?.data;
+
+      if (!token || !user) throw new Error('Registration failed: invalid server response');
+
+      localStorage.setItem('access_token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
       setUser(user);
@@ -137,8 +147,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               password: userData.password
             });
 
-            const { access_token, user } = loginResponse.data;
-            localStorage.setItem('access_token', access_token);
+            const token = loginResponse.data?.data?.token;
+            const user = loginResponse.data?.data;
+            localStorage.setItem('access_token', token);
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
             return;
@@ -163,9 +174,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await axios.post(`${apiRoot}/auth/login`, { email, password });
 
-      const { access_token, user } = response.data;
+      const token = response.data?.data?.token;
+      const user = response.data?.data;
 
-      localStorage.setItem('access_token', access_token);
+      if (!token || !user) throw new Error('Login failed: invalid server response');
+
+      localStorage.setItem('access_token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
       setUser(user);

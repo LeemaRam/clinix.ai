@@ -2,6 +2,27 @@ import fs from 'fs';
 import path from 'path';
 import { env } from '../config/env.js';
 
+const guessMimeType = (filePath) => {
+  const extension = path.extname(filePath).toLowerCase();
+
+  switch (extension) {
+    case '.mp3':
+      return 'audio/mpeg';
+    case '.m4a':
+      return 'audio/mp4';
+    case '.wav':
+      return 'audio/wav';
+    case '.webm':
+      return 'audio/webm';
+    case '.ogg':
+      return 'audio/ogg';
+    case '.flac':
+      return 'audio/flac';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
 const resolveAudioPath = (audioFilePath) => {
   const resolvedPath = path.resolve(audioFilePath);
   if (!fs.existsSync(resolvedPath)) {
@@ -13,9 +34,11 @@ const resolveAudioPath = (audioFilePath) => {
 const buildWhisperForm = ({ audioFilePath, speechLanguage }) => {
   const formData = new FormData();
   const resolvedPath = resolveAudioPath(audioFilePath);
-  const fileStream = fs.createReadStream(resolvedPath);
+  const audioBuffer = fs.readFileSync(resolvedPath);
+  const mimeType = guessMimeType(resolvedPath);
+  const audioFile = new File([audioBuffer], path.basename(resolvedPath), { type: mimeType });
 
-  formData.append('file', fileStream, path.basename(resolvedPath));
+  formData.append('file', audioFile);
   formData.append('model', env.OPENAI_WHISPER_MODEL);
   if (speechLanguage) {
     formData.append('language', speechLanguage);
@@ -23,6 +46,8 @@ const buildWhisperForm = ({ audioFilePath, speechLanguage }) => {
 
   return formData;
 };
+
+export { buildWhisperForm };
 
 export const transcribeAudioWithWhisper = async ({ audioFilePath, speechLanguage = 'en' }) => {
   if (!env.OPENAI_API_KEY) {
