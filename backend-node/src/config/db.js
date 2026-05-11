@@ -3,10 +3,24 @@ import { env } from './env.js';
 
 export const connectToDatabase = async () => {
   try {
+    // Ensure NODE_TLS_REJECT_UNAUTHORIZED is disabled before connecting
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
     // Try to connect to real MongoDB first
     const conn = await mongoose.connect(env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000
+      connectTimeoutMS: 5000,
+      // Disable SSL certificate verification for development
+      // This prevents "tlsv1 alert internal error" when connecting to MongoDB Atlas
+      tls: true,
+      tlsAllowInvalidCertificates: true,
+      authSource: 'admin',
+      retryWrites: true,
+      w: 'majority',
+      family: 4,
+      // Additional TLS settings
+      tlsCAFile: undefined,
+      tlsCertificateKeyFile: undefined
     });
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return;

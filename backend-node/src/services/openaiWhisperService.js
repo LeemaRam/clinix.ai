@@ -40,6 +40,7 @@ const buildWhisperForm = ({ audioFilePath, speechLanguage }) => {
 
   formData.append('file', audioFile);
   formData.append('model', env.OPENAI_WHISPER_MODEL);
+  formData.append('response_format', 'verbose_json');
   if (speechLanguage) {
     formData.append('language', speechLanguage);
   }
@@ -48,6 +49,28 @@ const buildWhisperForm = ({ audioFilePath, speechLanguage }) => {
 };
 
 export { buildWhisperForm };
+
+const detectSpeaker = (text, prevSpeaker) => {
+  // Heuristic-based speaker detection
+  // Typically doctors ask questions, patients respond with symptoms/experiences
+  const doctorPatterns = /^(what|when|how|where|do you|have you|are you|is there|can you|tell me|describe|explain|any|okay|alright|all right|so|uh)/i;
+  const patientPatterns = /^(i|yes|no|about|since|it|well|yeah|well|um|uh yeah)/i;
+  
+  const isDoctor = doctorPatterns.test(text);
+  const isPatient = patientPatterns.test(text);
+  
+  // If neither pattern matches, alternate from previous speaker
+  if (!isDoctor && !isPatient) {
+    return prevSpeaker === 'doctor' ? 'patient' : 'doctor';
+  }
+  
+  // If only one pattern matches, use that
+  if (isDoctor && !isPatient) return 'doctor';
+  if (isPatient && !isDoctor) return 'patient';
+  
+  // If both match (edge case), alternate
+  return prevSpeaker === 'doctor' ? 'patient' : 'doctor';
+};
 
 export const transcribeAudioWithWhisper = async ({ audioFilePath, speechLanguage = 'en' }) => {
   if (!env.OPENAI_API_KEY) {
@@ -73,14 +96,46 @@ export const transcribeAudioWithWhisper = async ({ audioFilePath, speechLanguage
 
   const data = await response.json();
   const transcript = String(data.text || '').trim();
+  
+  // Process segments with speaker detection
+  let segments = [];
+  let prevSpeaker = 'patient'; // Start with patient typically
+  
+  if (data.segments && Array.isArray(data.segments)) {
+    segments = data.segments.map((seg, index) => {
+      const speaker = detectSpeaker(seg.text || '', prevSpeaker);
+      prevSpeaker = speaker;
+      
+      return {
+        id: index,
+        start: seg.start || 0,
+        end: seg.end || 0,
+        text: seg.text || '',
+        speaker: speaker,
+        confidence: seg.confidence || 0,
+        no_speech_prob: seg.no_speech_prob || 0,
+      };
+    });
+  } else if (transcript) {
+    // Fallback: if no segments from API, create single segment
+    segments = [{ 
+      id: 0,
+      start: 0, 
+      end: Math.max(1, transcript.length / 50), 
+      text: transcript,
+      speaker: 'doctor',
+      confidence: 0,
+      no_speech_prob: 0,
+    }];
+  }
 
   return {
     transcript,
     raw_text: transcript,
     confidence: Number(data.confidence || 0),
     language: speechLanguage,
-    segments: transcript ? [{ start: 0, end: transcript.length ? Math.max(1, transcript.length / 50) : 0, text: transcript }] : [],
+    segments: segments,
     model_used: env.OPENAI_WHISPER_MODEL,
-    duration: 0,
+    duration: data.duration || 0,
   };
 };

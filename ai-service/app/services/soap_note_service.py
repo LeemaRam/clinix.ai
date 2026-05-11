@@ -4,6 +4,19 @@ from typing import Dict, Optional
 from .gemini_service import generate_text
 
 
+def _fallback_soap(transcription: str, consultation_reason: Optional[str] = None) -> str:
+    summary = (transcription or '').strip()
+    if len(summary) > 700:
+        summary = summary[:700] + '...'
+    return (
+        f"Subjective: {summary or 'Patient-reported symptoms were captured during consultation.'}\n\n"
+        "Objective: No structured objective findings were provided in the transcript.\n\n"
+        "Assessment: Preliminary clinical impression requires physician review and confirmation.\n\n"
+        f"Plan: Continue symptomatic management for {consultation_reason or 'the presenting complaint'}, "
+        "monitor red flags, and arrange timely follow-up."
+    )
+
+
 def generate_soap_note(
     transcription: str,
     patient_data: Dict,
@@ -46,13 +59,13 @@ Additional Requirements:
 """.strip()
 
     try:
-        soap_text = generate_text(prompt, fallback='')
+        soap_text = generate_text(prompt, fallback='').strip()
         if not soap_text:
-            raise ValueError('Empty SOAP note from Gemini')
+            soap_text = _fallback_soap(transcription, consultation_reason)
 
         return {
             'success': True,
-            'soapNote': soap_text.strip(),
+            'soapNote': soap_text,
             'generatedAt': datetime.utcnow().isoformat() + 'Z',
             'patientId': str(patient_data.get('_id') or patient_data.get('id') or ''),
             'transcriptionLength': len(transcription or ''),

@@ -14,4 +14,14 @@
     "cancel": "Cancel",
     "saving": "Saving..."
   }
+  ,
+  "dashboard": {
+    "dashboardOverview": "Dashboard Overview",
+    "totalPatients": "Total Patients",
+    "totalConsultations": "Total Consultations",
+    "totalReports": "Total Reports",
+    "recentPatients": "Recent Patients",
+    "patientName": "Patient",
+    "consultationDate": "Consultation Date"
+  }
 } 

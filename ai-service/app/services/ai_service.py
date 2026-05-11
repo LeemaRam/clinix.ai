@@ -8,32 +8,57 @@ def transcribe_audio_file(file_path: str, speech_language: str = "en") -> dict:
     language = "ur" if str(speech_language).lower().startswith("ur") else "en"
     demo_mode = str(os.getenv("DEMO_MODE", "false")).strip().lower() in {"1", "true", "yes", "on"}
 
-    transcript = (
-        "Demo transcription: Patient reports persistent headache for 3 days, mild nausea, "
-        "and partial relief after paracetamol. No fever or breathing difficulty reported. "
-        "Follow-up advised in 7 days."
-    )
+    # Create dialogue-style demo transcription with realistic segments
+    demo_segments = [
+        {"start": 0.0, "end": 2.5, "text": "What brings you in today?", "speaker": "doctor"},
+        {"start": 2.5, "end": 5.0, "text": "I've been having persistent headaches for the last 3 days, and it's really affecting my sleep.", "speaker": "patient"},
+        {"start": 5.0, "end": 7.0, "text": "I see. Have you experienced any nausea or sensitivity to light?", "speaker": "doctor"},
+        {"start": 7.0, "end": 9.5, "text": "Yes, some mild nausea, but no light sensitivity. The pain is mainly on the right side.", "speaker": "patient"},
+        {"start": 9.5, "end": 11.0, "text": "Have you taken anything for the pain?", "speaker": "doctor"},
+        {"start": 11.0, "end": 13.0, "text": "I took paracetamol yesterday and it helped a bit, but the pain came back.", "speaker": "patient"},
+        {"start": 13.0, "end": 15.0, "text": "Any fever or recent infections?", "speaker": "doctor"},
+        {"start": 15.0, "end": 17.0, "text": "No fever. I had a cold last week, but that's resolved.", "speaker": "patient"},
+    ]
 
-    if not has_gemini_key() and not demo_mode:
+    transcript = " ".join([seg["text"] for seg in demo_segments])
+
+    if not demo_mode:
+        # In non-demo mode, use fallback text
         transcript = "Transcription fallback: GEMINI_API_KEY not configured."
+        demo_segments = [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 5.0,
+                "text": transcript,
+                "speaker": "doctor",
+                "confidence": 0.95,
+                "no_speech_prob": 0.0,
+            }
+        ]
 
     analysis = extract_medical_analysis(transcript, language)
+
+    # Build segments with proper IDs
+    segments = [
+        {
+            "id": i,
+            "start": seg.get("start", 0.0),
+            "end": seg.get("end", 0.0),
+            "text": seg.get("text", ""),
+            "speaker": seg.get("speaker", "unknown"),
+            "confidence": 0.95,
+            "no_speech_prob": 0.0,
+        }
+        for i, seg in enumerate(demo_segments)
+    ]
 
     return {
         "language": language,
         "raw_text": transcript,
-        "segments": [
-            {
-                "id": 1,
-                "start": 0.0,
-                "end": 5.0,
-                "text": transcript,
-                "confidence": 0.95,
-                "speaker": "unknown",
-            }
-        ],
+        "segments": segments,
         "confidence_score": 0.95,
-        "duration": 5.0,
+        "duration": demo_segments[-1]["end"] if demo_segments else 0.0,
         "analysis": analysis,
     }
 

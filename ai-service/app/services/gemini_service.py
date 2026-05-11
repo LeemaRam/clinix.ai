@@ -9,7 +9,8 @@ GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')
 
 
 def has_gemini_key() -> bool:
-    return bool(str(os.getenv('GEMINI_API_KEY', '')).strip())
+    key = str(os.getenv('GEMINI_API_KEY', '')).strip()
+    return bool(key) and key.lower() not in {'your_key_here', 'changeme', 'change_me'}
 
 
 def _extract_json(text: str):
@@ -31,7 +32,7 @@ def _extract_json(text: str):
 
 def generate_json(prompt: str, fallback: dict) -> dict:
     key = str(os.getenv('GEMINI_API_KEY', '')).strip()
-    if not key:
+    if not key or key.lower() in {'your_key_here', 'changeme', 'change_me'}:
         return fallback
 
     endpoint = (
@@ -75,7 +76,7 @@ def generate_json(prompt: str, fallback: dict) -> dict:
 
 def generate_text(prompt: str, fallback: str = '') -> str:
     key = str(os.getenv('GEMINI_API_KEY', '')).strip()
-    if not key:
+    if not key or key.lower() in {'your_key_here', 'changeme', 'change_me'}:
         return fallback
 
     endpoint = (
