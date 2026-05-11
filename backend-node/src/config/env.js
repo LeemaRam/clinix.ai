@@ -8,7 +8,7 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET || 'jwt-secret-key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || 'AIzaSyCwMtgAg6PvSFrcVl_R5ZneZ0PjZhoZ3ZU',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   OPENAI_WHISPER_MODEL: process.env.OPENAI_WHISPER_MODEL || 'whisper-1',
