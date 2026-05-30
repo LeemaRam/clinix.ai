@@ -30,6 +30,10 @@ router.use(authRequired);
 router.post('/:patientId/files', upload.single('file'), uploadPatientFile);
 router.get('/:patientId/files', listPatientFiles);
 router.get('/:patientId/files/analyze', analyzeUploadedPatientFiles);
+<<<<<<< HEAD
 router.get('/:patientId/files/:fileId/download', downloadPatientFile);
+=======
+router.get('/:patientId/files/:fileId', downloadPatientFile);
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 router.delete('/:patientId/files/:fileId', deletePatientFile);
 export default router;

@@ -20,17 +20,25 @@
     "express-rate-limit": "^8.5.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb-memory-server": "^11.1.0",
     "mongoose": "^8.10.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+<<<<<<< HEAD
     "openai": "^4.12.0",
+=======
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.18.0",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.1",
     "stripe": "^17.6.0",
+<<<<<<< HEAD
     "twilio": "^6.0.0",
     "form-data": "^4.0.0"
+=======
+    "twilio": "^6.0.0"
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

@@ -2,12 +2,15 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 
+<<<<<<< HEAD
 const normalizeRole = (role) => {
   const rawRole = String(role || '').toLowerCase().trim();
   if (['superadmin', 'super_admin', 'admin'].includes(rawRole)) return 'super_admin';
   return 'doctor';
 };
 
+=======
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 export const protect = async (req, res, next) => {
   try {
     let token;
@@ -24,6 +27,7 @@ export const protect = async (req, res, next) => {
 
     const user = await User.findById(decoded.id).select('-password');
     if (!user) throw new ApiError(401, 'User not found');
+<<<<<<< HEAD
 
     const normalizedRole = normalizeRole(user.role);
     if (user.role !== normalizedRole) {
@@ -32,6 +36,10 @@ export const protect = async (req, res, next) => {
     }
 
     if (!user.isActive) throw new ApiError(403, 'Account is deactivated');
+=======
+
+    if (user.status === 'inactive') throw new ApiError(403, 'Account is deactivated');
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
     req.user = user;
     next();
@@ -53,7 +61,11 @@ export const authorize = (...roles) => {
 };
 
 export const superAdminOnly = (req, res, next) => {
+<<<<<<< HEAD
   if (req.user.role !== 'super_admin') {
+=======
+  if (req.user.role !== 'superadmin') {
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
     return next(new ApiError(403, 'Super Admin access only'));
   }
   next();

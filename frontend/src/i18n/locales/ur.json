@@ -110,4 +110,14 @@
     "failedToLoadLanguage": "زبان لوڈ کرنے میں ناکامی",
     "failedToUpdateLanguage": "زبان اپ ڈیٹ کرنے میں ناکامی"
   }
+  ,
+  "dashboard": {
+    "dashboardOverview": "ڈیش بورڈ اوور ویو",
+    "totalPatients": "کل مریض",
+    "totalConsultations": "کل مشاورت",
+    "totalReports": "کل رپورٹس",
+    "recentPatients": "حالیہ مریض",
+    "patientName": "مریض",
+    "consultationDate": "مشاورت کی تاریخ"
+  }
 }

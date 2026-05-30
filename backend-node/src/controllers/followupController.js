@@ -3,9 +3,16 @@ import { Patient } from '../models/Patient.js';
 import { Consultation } from '../models/Consultation.js';
 import { Transcription } from '../models/Transcription.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+<<<<<<< HEAD
 import { extractFollowupDetails } from '../services/openaiService.js';
 import { sendFollowupInvitation, getDoctorName } from '../services/followupInvitationService.js';
 import { sendWhatsAppMessage } from '../services/twilioService.js';
+=======
+import axios from 'axios';
+import { env } from '../config/env.js';
+import { sendWhatsAppMessage } from '../services/twilioService.js';
+import { scheduleFollowUpReminders } from '../services/reminderScheduleService.js';
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 export const listFollowUps = asyncHandler(async (req, res) => {
   const doctorId = req.user.id;
@@ -55,6 +62,7 @@ export const scheduleFollowUp = asyncHandler(async (req, res) => {
   });
 
   await followUp.save();
+<<<<<<< HEAD
 
   try {
     const doctorName = await getDoctorName(doctorId);
@@ -69,6 +77,12 @@ export const scheduleFollowUp = asyncHandler(async (req, res) => {
     console.error('[followupController] sendFollowupInvitation failed:', error);
   }
 
+=======
+  
+  // Schedule automatic reminders
+  await scheduleFollowUpReminders(followUp._id);
+  
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   res.json({ success: true, data: followUp });
 });
 
@@ -86,11 +100,19 @@ export const sendReminder = asyncHandler(async (req, res) => {
     await sendWhatsAppMessage(to, message);
     followUp.reminderSent = true;
     followUp.reminderSentAt = new Date();
+<<<<<<< HEAD
     await followUp.save();
     res.json({ success: true, message: 'Reminder sent via WhatsApp' });
   } catch (error) {
     console.error('[followupController] sendReminder failed:', error);
     const message = error?.message || 'Failed to send WhatsApp reminder';
     res.status(500).json({ success: false, error: message });
+=======
+    followUp.status = 'sent';
+    await followUp.save();
+    res.json({ success: true, message: 'Reminder sent via WhatsApp' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to send WhatsApp reminder' });
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   }
 });

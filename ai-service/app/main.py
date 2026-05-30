@@ -11,6 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from .schemas import GenerateReportRequest, GenerateReportResponse, TranscribeResponse, DrugSafetyRequest, DrugSafetyResponse, DrugCheckRequest, PatientBriefRequest, SoapNoteRequest, ExtractFollowupRequest, SendReminderRequest
+<<<<<<< HEAD
+=======
+from .services.ai_service import transcribe_audio_file, generate_report, check_drug_safety
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 from .services.drug_safety_service import check_interactions
 from .services.patient_brief_service import generate_patient_brief
 from .services.soap_note_service import generate_soap_note

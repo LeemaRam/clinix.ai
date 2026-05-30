@@ -6,22 +6,34 @@ from typing import List, Dict
 # Keep using RxNorm only for normalization / RXCUI lookup
 RXNORM_BASE = 'https://rxnav.nlm.nih.gov/REST'
 RXNORM_API_ID = os.getenv('RXNORM_API_ID', '')
+<<<<<<< HEAD
 
 # OpenAI helper is in sibling module; use it for interaction analysis
 from .ai_service import generate_json
 
+=======
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 def get_rxcui(drug_name: str) -> str | None:
     params = {'name': drug_name}
     if RXNORM_API_ID:
         params['apikey'] = RXNORM_API_ID
     try:
+<<<<<<< HEAD
         r = requests.get(f'{RXNORM_BASE}/rxcui.json', params=params, timeout=5)
         print("RXNORM STATUS:", r.status_code)
         print("RXNORM URL:", r.url)
         print("RXNORM TEXT:", (r.text or '')[:1000])
         data = r.json()
         ids = data.get('idGroup', {}).get('rxnormId', [])
+=======
+        params = {'name': drug_name}
+        if RXNORM_API_ID:
+            params['apikey'] = RXNORM_API_ID
+        r = requests.get(f'{RXNORM_BASE}/rxcui.json',
+                         params=params, timeout=5)
+        ids = r.json().get('idGroup', {}).get('rxnormId', [])
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
         return ids[0] if ids else None
     except Exception as exc:
         print(f"[DrugSafety] RXNORM lookup failed for {drug_name}: {exc}")
@@ -29,6 +41,7 @@ def get_rxcui(drug_name: str) -> str | None:
 
 
 def check_interactions(new_drugs: List[str], existing_drugs: List[str]) -> Dict:
+<<<<<<< HEAD
     """
     Normalizes medication names via RxNorm (RXCUI lookup) and delegates
     interaction/warning/recommendation generation to OpenAI (via generate_json).
@@ -92,3 +105,39 @@ Guidelines:
         'safe': safe,
         'rxNorm': resolved
     }
+=======
+    if not new_drugs or not existing_drugs:
+        return {'warnings': [], 'safe': True}
+    all_drugs = new_drugs + existing_drugs
+    rxcuis = [c for d in all_drugs if (c := get_rxcui(d))]
+    if len(rxcuis) < 2:
+        return {'warnings': [], 'safe': True, 'note': 'Could not resolve drug IDs'}
+    try:
+        params = {'rxcuis': ' '.join(rxcuis)}
+        if RXNORM_API_ID:
+            params['apikey'] = RXNORM_API_ID
+        r = requests.get(
+            'https://rxnav.nlm.nih.gov/REST/interaction/list.json',
+            params=params, timeout=8
+        )
+        data = r.json()
+    except Exception as e:
+        return {'warnings': [], 'safe': True, 'error': str(e)}
+    warnings = []
+    groups = data.get('fullInteractionTypeGroup', [])
+    for group in groups:
+        for itype in group.get('fullInteractionType', []):
+            for pair in itype.get('interactionPair', []):
+                desc = pair.get('description', '')
+                severity = pair.get('severity', 'N/A')
+                drugs_in = [c['minConcept'][0]['name']
+                            for c in pair.get('interactionConcept', [])
+                            if c.get('minConcept')]
+                warnings.append({
+                    'drugs': drugs_in,
+                    'description': desc,
+                    'severity': severity,
+                    'color': 'red' if 'major' in severity.lower() else 'yellow'
+                })
+    return {'warnings': warnings, 'safe': len(warnings) == 0}
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280

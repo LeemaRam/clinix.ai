@@ -53,7 +53,11 @@ const SOAPNoteGenerator: React.FC<SOAPNoteGeneratorProps> = ({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-emerald-700" />
+<<<<<<< HEAD
           <h5 className="text-lg font-medium text-emerald-900">SOAP Note Generator</h5>
+=======
+          <h5 className="text-lg font-medium text-emerald-900">🤖 Agent 3: SOAP Note Generator</h5>
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
         </div>
         <button
           className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"

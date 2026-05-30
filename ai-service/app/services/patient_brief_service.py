@@ -1,7 +1,11 @@
 from datetime import datetime
 from typing import Dict, List
 
+<<<<<<< HEAD
 from .ai_service import generate_text
+=======
+from .gemini_service import generate_text
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 
 def generate_patient_brief(
@@ -44,10 +48,16 @@ Patient Profile:
         context += "\nPatient Uploaded Medical Files:\n"
         for file in patient_files[-5:]:
             file_desc = file.get('summary') or file.get('text', '')[:250] or 'No readable text available.'
+<<<<<<< HEAD
             file_desc_sanitized = file_desc[:250].replace('\n', ' ')
             context += (
                 f"- {file.get('originalName', 'File')} ({file.get('mimeType', 'document')}, uploaded: {file.get('uploadedAt', 'N/A')}): "
                 f"{file_desc_sanitized}\n"
+=======
+            context += (
+                f"- {file.get('originalName', 'File')} ({file.get('mimeType', 'document')}, uploaded: {file.get('uploadedAt', 'N/A')}): "
+                f"{file_desc[:250].replace('\n', ' ')}\n"
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
             )
 
     prompt = f"""

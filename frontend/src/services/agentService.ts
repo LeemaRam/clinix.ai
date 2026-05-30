@@ -16,7 +16,11 @@ export const getPatientBrief = async (patientId: string) => {
     method: 'GET',
     headers: getAuthHeaders()
   });
+<<<<<<< HEAD
   return unwrapApiData(res);
+=======
+  return res.data;
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };
 
 export const generateSOAPNote = async (patientId: string, transcription: string, consultationReason?: string) => {
@@ -30,7 +34,11 @@ export const generateSOAPNote = async (patientId: string, transcription: string,
       consultationReason
     }
   });
+<<<<<<< HEAD
   return unwrapApiData(res);
+=======
+  return res.data;
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };
 
 export const approveSoapNote = async (consultationId: string, approved: boolean) => {
@@ -40,5 +48,9 @@ export const approveSoapNote = async (consultationId: string, approved: boolean)
     headers: getAuthHeaders(),
     data: { approved }
   });
+<<<<<<< HEAD
   return res.data; // This endpoint doesn't use the standard data wrapper
+=======
+  return res.data;
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };

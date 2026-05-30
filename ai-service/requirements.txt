@@ -4,6 +4,10 @@ python-multipart==0.0.9
 pydantic==2.13.4
 python-dotenv==1.0.1
 pydub==0.25.1
+<<<<<<< HEAD
 openai==1.108.2
 requests==2.33.1
 twilio==8.0.0
+=======
+requests==2.32.3
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280

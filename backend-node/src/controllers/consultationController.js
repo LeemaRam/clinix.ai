@@ -5,6 +5,7 @@ import { Consultation } from '../models/Consultation.js';
 import { Patient } from '../models/Patient.js';
 import { Transcription } from '../models/Transcription.js';
 import { Report } from '../models/Report.js';
+<<<<<<< HEAD
 import { Appointment } from '../models/Appointment.js';
 import { AiTask } from '../models/AiTask.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -14,6 +15,19 @@ import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 import { createAiTask, processConsultationAiTask } from '../services/aiTaskService.js';
 import { sendAppointmentInvitation, getDoctorName } from '../services/followupInvitationService.js';
+=======
+import { FollowUp } from '../models/FollowUp.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { serializeConsultation, serializeTranscription } from '../utils/serializers.js';
+import { transcribeAudio, generateSOAPNote } from '../services/pythonService.js';
+import { extractMedicalAnalysis } from '../services/medicalAnalysisService.js';
+import { formatSOAP, formatSoapText } from '../services/soapFormatter.js';
+import { env } from '../config/env.js';
+import { getSocketServer } from '../socket.js';
+import { scheduleFollowUpReminders } from '../services/reminderScheduleService.js';
+import { analyzePatientFiles } from '../services/patientFileAnalysisService.js';
+import { runAgentLeaderWorkflow } from '../services/agentLeaderService.js';
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -550,7 +564,134 @@ export const uploadAudio = asyncHandler(async (req, res) => {
     }
   };
 
+<<<<<<< HEAD
   return res.json({ success: true, data, ...data });
+=======
+    const aiResult = await transcribeAudio({
+      audioFilePath: consultation.audioFilePath,
+      speechLanguage,
+      consultationId: consultation._id.toString(),
+      mimeType: consultation.audioFormat
+    });
+
+    if (io && !env.DEMO_MODE) {
+      const payload = { consultationId: consultationRoomId, progress: 80, status: 'finalizing' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
+
+    transcription.status = 'completed';
+    transcription.rawText = aiResult.transcript || aiResult.raw_text || '';
+    transcription.segments = aiResult.segments || [];
+    transcription.confidenceScore = aiResult.confidence_score || 0;
+    transcription.duration = aiResult.duration || 0;
+    transcription.language = aiResult.language || speechLanguage;
+    transcription.modelUsed = aiResult.model_used || transcription.modelUsed;
+    transcription.analysis = await extractMedicalAnalysis(transcription.rawText);
+
+    let soapNoteText = '';
+    try {
+      const patient = await Patient.findById(consultation.patientId);
+      if (patient) {
+        const soapResult = await generateSOAPNote({
+          patient: patient.toObject(),
+          transcription: transcription.rawText,
+          consultationReason: consultation.consultationType
+        });
+
+        soapNoteText = String(soapResult?.data?.soapNote || soapResult?.soapNote || '').trim();
+        if (soapNoteText) {
+          transcription.analysis.soap_note = soapNoteText;
+        }
+      }
+    } catch (soapError) {
+      console.error('[consultationController] SOAP note generation failed:', soapError?.message || soapError);
+      transcription.analysis.soap_note_error = String(soapError?.message || soapError || 'SOAP note generation failed');
+    }
+
+    transcription.completedAt = new Date();
+    await transcription.save();
+
+    consultation.status = 'transcribed';
+    consultation.endedAt = new Date();
+    consultation.languageDetected = transcription.language;
+    consultation.consultationSummary = [transcription.analysis?.subjective, transcription.analysis?.assessment, soapNoteText]
+      .filter(Boolean)
+      .join(' | ')
+      .slice(0, 1000);
+    consultation.medicalInfo = {
+      medications_mentioned: transcription.analysis?.medications_mentioned || [],
+      follow_up_days: transcription.analysis?.follow_up_days || 7,
+      soap: {
+        ...transcription.analysis,
+        note: soapNoteText
+      }
+    };
+    consultation.soapApprovalStatus = 'pending';
+    await consultation.save();
+
+    // Auto-schedule follow-up with reminder system
+    try {
+      const followUpDays = transcription.analysis?.follow_up_days || 7;
+      const followUpDate = new Date(Date.now() + followUpDays * 24 * 60 * 60 * 1000);
+      const followUpReason = transcription.analysis?.follow_up || 'Routine follow-up after consultation';
+
+      const followUp = new FollowUp({
+        consultationId: consultation._id,
+        patientId: consultation.patientId,
+        doctorId: consultation.doctorId,
+        followUpDate,
+        followUpReason,
+        patientPhone: patient.phone // assuming patient is fetched earlier
+      });
+      await followUp.save();
+      
+      // Schedule reminders (day before, day of, during appointment)
+      await scheduleFollowUpReminders(followUp._id);
+      console.log('Follow-up scheduled automatically with reminders');
+    } catch (followUpError) {
+      console.error('Failed to schedule follow-up:', followUpError);
+    }
+
+    try {
+      const patientFileSummaries = patient.uploadedFiles && patient.uploadedFiles.length
+        ? await analyzePatientFiles(patient.uploadedFiles)
+        : [];
+
+      await runAgentLeaderWorkflow({
+        consultation,
+        patient,
+        patientFileSummaries
+      });
+    } catch (leaderError) {
+      console.error('Agent Leader workflow failed:', leaderError?.message || leaderError);
+    }
+
+    if (io) {
+      const payload = { consultationId: consultationRoomId, progress: 100, status: 'completed' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
+
+    const data = { consultation: serializeConsultation(consultation), transcription: serializeTranscription(transcription) };
+    return res.json({ success: true, data, ...data });
+  } catch (e) {
+    transcription.status = 'failed';
+    transcription.errorMessage = e.message;
+    await transcription.save();
+
+    consultation.status = 'failed';
+    await consultation.save();
+
+    if (io) {
+      const payload = { consultationId: consultationRoomId, progress: 100, status: 'failed' };
+      io.to(`consultation:${consultationRoomId}`).emit('transcription_progress', payload);
+      io.emit('transcription_progress', payload);
+    }
+
+    return res.status(502).json({ success: false, error: e.message, fallback: false, details: e.message });
+  }
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 });
 
 export const listConsultations = asyncHandler(async (req, res) => {

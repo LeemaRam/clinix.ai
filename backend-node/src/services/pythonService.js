@@ -62,9 +62,54 @@ export const transcribeAudio = async ({ audioFilePath, speechLanguage = 'en', co
     throw new Error('Audio file path is required for transcription');
   }
 
+<<<<<<< HEAD
   const resolvedPath = path.resolve(audioFilePath);
   if (!fs.existsSync(resolvedPath)) {
     throw new Error('Audio file not found on server');
+=======
+  try {
+    let response;
+    let modelUsed = 'google-cloud-speech';
+
+    if (env.OPENAI_API_KEY) {
+      response = await transcribeAudioWithWhisper({ audioFilePath, speechLanguage });
+      modelUsed = env.OPENAI_WHISPER_MODEL;
+    } else {
+      response = await transcribeAudioWithGoogleSpeech({ audioFilePath, speechLanguage, mimeType });
+    }
+
+    const transcript = String(response.transcript || response.raw_text || '').trim();
+    const segments = Array.isArray(response.segments)
+      ? response.segments.map((segment, index) => ({
+        id: index + 1,
+        start: Number(segment.start || 0),
+        end: Number(segment.end || 0),
+        text: String(segment.text || '').trim(),
+        speaker: 'unknown'
+      })).filter((segment) => segment.text)
+      : [];
+    const duration = response.duration || (segments.length > 0 ? segments[segments.length - 1].end : 0);
+
+    if (!transcript) {
+      throw new Error('Empty transcript from transcription service');
+    }
+
+    return {
+      success: true,
+      transcript,
+      segments,
+      raw_text: transcript,
+      confidence_score: Number(response.confidence || 0),
+      duration,
+      language: String(response.language || speechLanguage),
+      model_used: modelUsed,
+      fallback: false
+    };
+  } catch (error) {
+    const message = error?.message || 'Transcription service failed';
+    console.error('[pythonService] transcription failed.', message);
+    throw Object.assign(new Error(message), { fallback: false });
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   }
 
   let response;
@@ -192,6 +237,7 @@ export const checkDrugSafety = async ({ medications, patientInfo = {}, patientFi
   return data;
 };
 
+<<<<<<< HEAD
 export const checkDrugInteractions = async ({ newDrugs = [], existingDrugs = [] }) => {
   console.log('[pythonService] checkDrugInteractions request', {
     newDrugs: Array.isArray(newDrugs) ? newDrugs : [],
@@ -207,6 +253,8 @@ export const checkDrugInteractions = async ({ newDrugs = [], existingDrugs = [] 
   return response.data;
 };
 
+=======
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 export const generateSOAPNote = async ({ patient, transcription, consultationReason, existingNotes }) => {
   const { data } = await client.post('/soap-note', {
     patient,

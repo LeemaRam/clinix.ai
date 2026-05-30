@@ -29,6 +29,7 @@ export const env = {
   // Authentication
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+<<<<<<< HEAD
 
   // CORS - Require explicit configuration in production
   CORS_ORIGIN: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
@@ -37,6 +38,15 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
 
   // AI Services
+=======
+  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  OPENAI_WHISPER_MODEL: process.env.OPENAI_WHISPER_MODEL || 'whisper-1',
+  OPENAI_API_BASE_URL: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1',
+  GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || './secrets/google-speech.json',
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   PYTHON_AI_SERVICE_URL: process.env.PYTHON_AI_SERVICE_URL || 'http://localhost:8001',
 
   // OpenAI
@@ -58,6 +68,7 @@ export const env = {
   // Upload Configuration
   UPLOAD_AUDIO_DIR: process.env.UPLOAD_AUDIO_DIR || 'uploads/audio',
   UPLOAD_REPORTS_DIR: process.env.UPLOAD_REPORTS_DIR || 'uploads/reports',
+<<<<<<< HEAD
   MAX_UPLOAD_SIZE_MB: Number(process.env.MAX_UPLOAD_SIZE_MB || 50),
 
   // External APIs
@@ -79,6 +90,14 @@ export const env = {
   SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL || '',
   SUPER_ADMIN_PASSWORD: process.env.SUPER_ADMIN_PASSWORD || '',
   SUPER_ADMIN_FULL_NAME: process.env.SUPER_ADMIN_FULL_NAME || 'Super Admin'
+=======
+  MAX_UPLOAD_SIZE_MB: Number(process.env.MAX_UPLOAD_SIZE_MB || 1024),
+  OPENFDA_API_KEY: process.env.OPENFDA_API_KEY || '',
+  RXNORM_API_ID: process.env.RXNORM_API_ID || '6745c86f-389a-4135-8432-119cc332c50a',
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
+  TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886' // Twilio sandbox number
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };
 
 // Validate CORS configuration in production

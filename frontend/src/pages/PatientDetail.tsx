@@ -24,6 +24,7 @@ import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments 
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 import PatientBriefCard from '../components/agents/PatientBriefCard';
+import SOAPNoteGenerator from '../components/agents/SOAPNoteGenerator';
 import FileUploadPanel from '../components/FileUploadPanel';
 import { getPatient } from '../services/patientService';
 
@@ -746,6 +747,18 @@ const PatientDetail = () => {
             </div>
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Patient Brief Card */}
+          <div className="mt-4">
+            <PatientBriefCard patientId={id!} />
+          </div>
+
+          {/* SOAP Note Generator */}
+          <div className="mt-4">
+            <SOAPNoteGenerator patientId={id!} />
+          </div>
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
         </div>
 
         <div className="lg:col-span-2">

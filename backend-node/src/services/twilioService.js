@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 
 const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
 
+<<<<<<< HEAD
 const normalizeWhatsAppAddress = (value) => {
   if (!value) return '';
   const trimmed = String(value).trim();
@@ -39,6 +40,8 @@ export const validateTwilioConfig = () => {
   });
 };
 
+=======
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 /**
  * Send a WhatsApp message using Twilio sandbox
  * @param {string} to - Recipient's WhatsApp number (e.g., 'whatsapp:+1234567890')
@@ -47,16 +50,23 @@ export const validateTwilioConfig = () => {
  */
 export const sendWhatsAppMessage = async (to, message) => {
   try {
+<<<<<<< HEAD
     const fromNumber = normalizeWhatsAppAddress(env.TWILIO_WHATSAPP_NUMBER);
     const toNumber = normalizeWhatsAppAddress(to);
     console.log('[twilioService] Sending WhatsApp message', { fromNumber, toNumber });
     const response = await client.messages.create({
       from: fromNumber,
       to: toNumber,
+=======
+    const response = await client.messages.create({
+      from: env.TWILIO_WHATSAPP_NUMBER,
+      to: to,
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
       body: message
     });
     return response;
   } catch (error) {
+<<<<<<< HEAD
     const twilioError = error.code || 'UNKNOWN';
     const twilioMessage = error.message || 'Unknown error';
     const fromNumber = normalizeWhatsAppAddress(env.TWILIO_WHATSAPP_NUMBER);
@@ -73,6 +83,10 @@ export const sendWhatsAppMessage = async (to, message) => {
       twilioErrorCode: twilioError,
       twilioErrorMessage: twilioMessage
     });
+=======
+    console.error('Error sending WhatsApp message:', error);
+    throw new Error('Failed to send WhatsApp message');
+>>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   }
 };
 
