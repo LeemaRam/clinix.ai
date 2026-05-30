@@ -1,61 +1,25 @@
-import axios, { AxiosResponse } from 'axios';
-import { 
-  SubscriptionPlan, 
-  UserSubscription, 
+import { apiFetch, getAuthHeaders, unwrapApiData } from './apiFetch';
+import {
+  SubscriptionPlan,
+  UserSubscription,
   SubscriptionUsage,
   CreatePlanRequest,
   CheckoutSessionRequest,
   CheckoutSession
 } from '../types/subscription';
 
-const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
-
-// In browser-hosted dev environments (e.g., Codespaces), localhost points to the user machine,
-// so prefer Vite proxy for local API targets.
-const shouldUseProxy = (() => {
-  if (!API_URL) return true;
-  try {
-    const { hostname } = new URL(API_URL);
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch {
-    return true;
-  }
-})();
-
-const API_ROOT = shouldUseProxy ? '/api' : `${API_URL}/api`;
-
 const unwrapData = <T>(payload: { data?: T } & T): T => (payload?.data || payload) as T;
-
-// Helper to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  };
-};
-
-// Handle API errors consistently
-const handleApiError = (error: unknown): Error => {
-  if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.error || 
-                   error.response?.data?.message || 
-                   error.message || 
-                   'An error occurred';
-    return new Error(message);
-  }
-  return error instanceof Error ? error : new Error('An unexpected error occurred');
-};
 
 // Public subscription plans API (for pricing page)
 export const subscriptionPlansApi = {
   // Get all active plans for public pricing page
   getAvailablePlans: async (): Promise<SubscriptionPlan[]> => {
     try {
-      const response: AxiosResponse<{ plans: any[] }> = await axios.get(
-        `${API_ROOT}/subscription/plans`
-      );
-      const body = unwrapData<{ plans: any[] }>(response.data as any);
+      const res = await apiFetch({
+        path: '/subscription/plans',
+        method: 'GET'
+      });
+      const body = unwrapApiData(res);
       
       // Transform backend data to frontend format
       return body.plans.map(plan => ({
@@ -77,17 +41,18 @@ export const subscriptionPlansApi = {
         updatedAt: new Date(plan.updatedAt || Date.now())
       }));
     } catch (error) {
-      throw handleApiError(error);
+      throw error;
     }
   },
 
   // Get specific plan details
   getPlanDetails: async (planId: string): Promise<SubscriptionPlan> => {
     try {
-      const response: AxiosResponse<{ plan: any }> = await axios.get(
-        `${API_ROOT}/subscription/plans/${planId}`
-      );
-      const body = unwrapData<{ plan: any }>(response.data as any);
+      const res = await apiFetch({
+        path: `/subscription/plans/${planId}`,
+        method: 'GET'
+      });
+      const body = unwrapApiData(res);
       
       const plan = body.plan;
       return {
@@ -109,18 +74,19 @@ export const subscriptionPlansApi = {
         updatedAt: new Date(plan.updatedAt)
       };
     } catch (error) {
-      throw handleApiError(error);
+      throw error;
     }
   },
 
   // Compare multiple plans
   comparePlans: async (planIds: string[]): Promise<SubscriptionPlan[]> => {
     try {
-      const response: AxiosResponse<{ plans: any[] }> = await axios.post(
-        `${API_ROOT}/subscription/plans/compare`,
-        { plan_ids: planIds }
-      );
-      const body = unwrapData<{ plans: any[] }>(response.data as any);
+      const res = await apiFetch({
+        path: '/subscription/plans/compare',
+        method: 'POST',
+        data: { plan_ids: planIds }
+      });
+      const body = unwrapApiData(res);
       
       return body.plans.map(plan => ({
         id: plan.id,
@@ -141,7 +107,7 @@ export const subscriptionPlansApi = {
         updatedAt: new Date(plan.updatedAt)
       }));
     } catch (error) {
-      throw handleApiError(error);
+      throw error;
     }
   }
 };

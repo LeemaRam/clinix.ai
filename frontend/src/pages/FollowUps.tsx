@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Calendar, Clock, User, Phone, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { listFollowUps, sendReminder as sendReminderAPI, FollowUp as FollowUpType } from '../services/followupService';
+import { toast } from 'react-toastify';
 
 const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
 const shouldUseProxy = (() => {
@@ -19,20 +20,7 @@ const getAuthHeaders = () => ({
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`
 });
 
-interface FollowUp {
-  _id: string;
-  consultationId: string;
-  patientId: {
-    firstName: string;
-    lastName: string;
-  };
-  followUpDate: string;
-  followUpReason: string;
-  patientPhone: string;
-  reminderSent: boolean;
-  reminderSentAt?: string;
-  status: 'pending' | 'sent' | 'completed' | 'missed';
-}
+interface FollowUp extends FollowUpType {}
 
 const FollowUps = () => {
   const { t } = useTranslation();
@@ -48,8 +36,8 @@ const FollowUps = () => {
   const fetchFollowUps = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_ROOT}/followups`, { headers: getAuthHeaders() });
-      setFollowUps(response.data.data);
+      const data = await listFollowUps();
+      setFollowUps(data);
     } catch (err) {
       setError('Failed to load follow-ups');
       console.error(err);
@@ -61,7 +49,7 @@ const FollowUps = () => {
   const sendReminder = async (followUpId: string) => {
     try {
       setSendingReminder(followUpId);
-      await axios.post(`${API_ROOT}/followups/${followUpId}/send`, {}, { headers: getAuthHeaders() });
+      await sendReminderAPI(followUpId);
       // Refresh the list
       await fetchFollowUps();
     } catch (err) {
@@ -107,12 +95,18 @@ const FollowUps = () => {
     );
   }
 
+  const followUpList = Array.isArray(followUps)
+    ? followUps
+    : Array.isArray((followUps as any)?.data)
+      ? (followUps as any).data
+      : [];
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Follow-up Management</h1>
 
       <div className="space-y-4">
-        {followUps.map((followUp) => (
+        {followUpList.map((followUp) => (
           <div key={followUp._id} className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -169,7 +163,7 @@ const FollowUps = () => {
           </div>
         ))}
 
-        {followUps.length === 0 && (
+        {followUpList.length === 0 && (
           <div className="text-center py-12">
             <Clock size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No follow-ups scheduled</h3>

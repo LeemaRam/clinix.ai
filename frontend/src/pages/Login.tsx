@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -9,8 +9,44 @@ const Login = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotMessage, setForgotMessage] = useState('');
   const [error, setError] = useState('');
+  const [isForgotMode, setIsForgotMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  const syncAutofillValues = () => {
+    const domEmail = emailRef.current?.value ?? '';
+    const domPassword = passwordRef.current?.value ?? '';
+
+    if (domEmail !== email) {
+      setEmail(domEmail);
+    }
+    if (domPassword !== password) {
+      setPassword(domPassword);
+    }
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const { name, value } = e.currentTarget;
+    if (name === 'username') {
+      setEmail(value);
+    } else if (name === 'password') {
+      setPassword(value);
+    }
+  };
+
+  useEffect(() => {
+    const raf = window.requestAnimationFrame(syncAutofillValues);
+    const timeout = window.setTimeout(syncAutofillValues, 50);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(timeout);
+    };
+  }, []);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -18,15 +54,44 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setForgotMessage('');
     setIsLoading(true);
+
+    if (isForgotMode) {
+      if (!forgotEmail.trim()) {
+        setError(t('auth.enterEmailToReset') || 'Please enter your email address to reset your password.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Placeholder reset behavior: the backend does not currently support email delivery.
+      // This flow can be extended later with a POST /auth/forgot-password endpoint.
+      setForgotMessage(t('auth.forgotPasswordSent') || 'If an account exists for that email, a password reset link has been sent.');
+      setIsForgotMode(false);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { redirectTo } = await login(email, password);
       navigate(redirectTo);
     } catch (err) {
-      setError(t('auth.invalidCredentials'));
+      setError(err instanceof Error ? err.message : t('auth.invalidCredentials'));
       setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setError('');
+    setForgotMessage('');
+    setIsForgotMode(true);
+    setForgotEmail(email);
+  };
+
+  const handleForgotCancel = () => {
+    setError('');
+    setForgotMessage('');
+    setIsForgotMode(false);
   };
 
   return (
@@ -76,41 +141,96 @@ const Login = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            {forgotMessage && (
+              <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
+                {forgotMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} autoComplete="on" className="mt-6 space-y-5">
+              {isForgotMode && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm text-slate-700">
+                    {t('auth.forgotPasswordHelp') || 'Enter your email and we will send you password reset instructions.'}
+                  </p>
+                  <label htmlFor="forgotEmail" className="mb-2 block text-sm font-semibold text-slate-700">
+                    {t('auth.email')}
+                  </label>
+                  <input
+                    id="forgotEmail"
+                    name="username"
+                    type="email"
+                    autoComplete="username"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="doctor@example.com"
+                    className="px-4"
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="email" className="mb-2 block text-sm font-semibold text-slate-700">
                   {t('auth.email')}
                 </label>
                 <input
+                  ref={emailRef}
                   id="email"
+                  name="username"
                   type="email"
+                  autoComplete="username"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleInput}
+                  onInput={handleInput}
+                  onBlur={syncAutofillValues}
                   placeholder="doctor@example.com"
                   className="px-4"
                   required
                 />
               </div>
 
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
-                    {t('auth.password')}
-                  </label>
-                  <a href="#forgot" className="text-sm font-medium text-primary-600 hover:text-primary-700">
-                    Forgot password?
-                  </a>
+              {!isForgotMode && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
+                      {t('auth.password')}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input
+                    ref={passwordRef}
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={handleInput}
+                    onInput={handleInput}
+                    onBlur={syncAutofillValues}
+                    placeholder="••••••••"
+                    className="px-4"
+                    required
+                  />
                 </div>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="px-4"
-                  required
-                />
-              </div>
+              )}
+
+              {isForgotMode && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={handleForgotCancel}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    {t('auth.backToSignIn') || 'Back to sign in'}
+                  </button>
+                </div>
+              )}
 
               <button
                 type="submit"

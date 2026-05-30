@@ -1,12 +1,23 @@
 import { Router } from 'express';
-import { getCurrentUser, login, register, validateToken } from '../controllers/authController.js';
-import { authRequired } from '../middleware/auth.js';
+import { protect } from '../middleware/auth.js';
+import { loginUser, registerUser, validateToken, logoutUser } from '../controllers/authController.js';
 
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/validate-token', authRequired, validateToken);
-router.get('/me', authRequired, getCurrentUser);
+// Public routes
+router.post('/register', registerUser);
+router.post('/login', loginUser);
+
+// Token validation endpoint for frontend session sync
+router.get('/validate-token', protect, validateToken);
+router.post('/logout', protect, logoutUser);
+
+// Protected routes (example)
+router.get('/profile', protect, (req, res) => {
+  res.json({
+    success: true,
+    data: req.user
+  });
+});
 
 export default router;

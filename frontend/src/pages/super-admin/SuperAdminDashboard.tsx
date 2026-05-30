@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Users, 
@@ -23,6 +24,7 @@ interface SystemStats {
 
 const SuperAdminDashboard: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,7 +214,10 @@ const SuperAdminDashboard: React.FC = () => {
             Quick Actions
           </h3>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => navigate('/super-admin/users')}
+              className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
               <div className="font-medium text-gray-800">
                 {t('superAdmin.manageUsers')}
               </div>
@@ -220,7 +225,10 @@ const SuperAdminDashboard: React.FC = () => {
                 Add, edit, or remove user accounts
               </div>
             </button>
-            <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
               <div className="font-medium text-gray-800">
                 {t('superAdmin.manageSystem')}
               </div>
@@ -228,7 +236,10 @@ const SuperAdminDashboard: React.FC = () => {
                 Configure system settings and preferences
               </div>
             </button>
-            <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => navigate('/super-admin/languages')}
+              className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
               <div className="font-medium text-gray-800">
                 {t('superAdmin.manageLanguages')}
               </div>

@@ -20,10 +20,12 @@ import {
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { formatDuration } from '../utils/formatters';
+import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments } from '../utils/transcription';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 import PatientBriefCard from '../components/agents/PatientBriefCard';
 import FileUploadPanel from '../components/FileUploadPanel';
+import { getPatient } from '../services/patientService';
 
 const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
 const shouldUseProxy = (() => {
@@ -154,10 +156,10 @@ interface PdfOptions {
   includePatientDetails: boolean;
 }
 
-interface PatientBrief {
-  brief: string;
-  key_flags: string[];
-}
+// interface PatientBrief {
+//   brief: string;
+//   key_flags: string[];
+// }
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -189,9 +191,9 @@ const PatientDetail = () => {
   });
 
   // Patient brief state
-  const [patientBrief, setPatientBrief] = useState<PatientBrief | null>(null);
-  const [briefLoading, setBriefLoading] = useState(false);
-  const [briefError, setBriefError] = useState<string | null>(null);
+  // const [patientBrief, setPatientBrief] = useState<PatientBrief | null>(null);
+  // const [briefLoading, setBriefLoading] = useState(false);
+  // const [briefError, setBriefError] = useState<string | null>(null);
 
   const { t } = useTranslation();
 
@@ -232,7 +234,7 @@ const PatientDetail = () => {
       );
 
       const body = unwrapData<{ transcription?: TranscriptionDetail }>(response.data as any);
-      setTranscription(body.transcription || null);
+      setTranscription(normalizeTranscription(body.transcription || body));
     } catch (error) {
       const err = handleError(error);
       setDetailError(err.message);
@@ -253,28 +255,6 @@ const PatientDetail = () => {
   const handleReportPreview = (consultationId: string) => {
     setSelectedConsultationId(consultationId);
     setShowReportPreviewModal(true);
-  };
-
-  // Fetch patient brief
-  const fetchPatientBrief = async () => {
-    if (!id) return;
-    setBriefLoading(true);
-    setBriefError(null);
-    try {
-      const response = await axios.get(
-        `${API_ROOT}/agents/patient-brief/${id}`,
-        {
-          headers: getAuthHeaders()
-        }
-      );
-      const body = unwrapData<{ data?: PatientBrief }>(response.data as any);
-      setPatientBrief(body.data || body as PatientBrief);
-    } catch (error) {
-      const err = handleError(error);
-      setBriefError(err.message);
-    } finally {
-      setBriefLoading(false);
-    }
   };
 
   // Generate PDF Report with options
@@ -330,7 +310,12 @@ const PatientDetail = () => {
   };
 
   // Transcription Modal Component
-  const TranscriptionModal = () => (
+  const TranscriptionModal = () => {
+    const transcriptionText = getTranscriptionText(transcription);
+    const transcriptionSegments = getTranscriptionSegments(transcription);
+    const readyForDisplay = Boolean(transcriptionText) || transcription?.status === 'completed';
+
+    return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
@@ -355,11 +340,7 @@ const PatientDetail = () => {
             <div className="bg-gray-50 rounded-lg overflow-hidden">
               {/* Transcription Details Header */}
               <div className="bg-white border-b border-gray-200 p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">{t('transcription.confidenceScore')}:</span>
-                    <span className="ml-2 font-medium">{(transcription.confidence_score * 100).toFixed(1)}%</span>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">{t('transcription.duration')}:</span>
                     <span className="ml-2 font-medium">{formatDuration(transcription.duration)}</span>
@@ -375,38 +356,46 @@ const PatientDetail = () => {
                 </div>
               </div>
               
-              {transcription.segments ? (
-                <div className="divide-y divide-gray-200">
-                  {transcription.segments.map((segment, index) => (
-                    <div 
-                      key={index} 
-                      className={`p-4 ${
-                        segment.speaker === 'doctor' ? 'bg-blue-50' : 'bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-xs mb-2">
-                        <span className={`font-medium ${
-                          segment.speaker === 'doctor' ? 'text-blue-700' : 'text-gray-700'
-                        }`}>
-                          {segment.speaker === 'doctor' ? t('patients.doctor') : t('patients.patient')}
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-gray-500">
-                            {formatTime(segment.start)} - {formatTime(segment.end)}
+              {readyForDisplay ? (
+                transcriptionSegments.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {transcription.segments.map((segment, index) => (
+                      <div 
+                        key={index} 
+                        className={`p-4 ${
+                          segment.speaker === 'doctor' ? 'bg-blue-50' : 'bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className={`font-medium ${
+                            segment.speaker === 'doctor' ? 'text-blue-700' : 'text-gray-700'
+                          }`}>
+                            {segment.speaker === 'doctor' ? t('patients.doctor') : t('patients.patient')}
                           </span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">
+                              {formatTime(segment.start)} - {formatTime(segment.end)}
+                            </span>
+                          </div>
                         </div>
+                        <p className="text-sm">{segment.text}</p>
                       </div>
-                      <p className="text-sm">{segment.text}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : transcription.raw_text ? (
-                <div className="p-4 whitespace-pre-wrap">
-                  {transcription.raw_text}
-                </div>
+                    ))}
+                  </div>
+                ) : transcriptionText ? (
+                  <div className="p-4 whitespace-pre-wrap">
+                    {transcriptionText}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500 italic">
+                    {t('transcription.noTranscriptionAvailable')}
+                  </div>
+                )
               ) : (
-                <div className="p-4 text-center text-gray-500 italic">
-                  {t('transcription.noTranscriptionAvailable')}
+                <div className="p-8 text-center text-gray-600">
+                  <Loader2 className="animate-spin mx-auto mb-3" />
+                  <h4 className="text-lg font-semibold mb-1">{t('transcription.processing')}</h4>
+                  <p>{t('transcription.processingTranscription', 'Transcription is still processing. Please wait.')}</p>
                 </div>
               )}
             </div>
@@ -424,6 +413,7 @@ const PatientDetail = () => {
       </div>
     </div>
   );
+  };
 
   // PDF Options Modal Component
   const PdfOptionsModal = ({ consultationId }: { consultationId: string }) => (
@@ -524,23 +514,9 @@ const PatientDetail = () => {
           return;
         }
 
-        console.log('Fetching patient with ID:', id); // Debug log
-        
-        const response = await axios.get(`${API_ROOT}/patients/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
-        
-        console.log('Patient data received:', response.data); // Debug log
-
-        const body = unwrapData<{ patient?: Patient }>(response.data as any);
-        if (body.patient) {
-          const patientData = normalizePatient(body.patient);
-          setPatient(patientData);
-        } else {
-          setError(t('common.patientNotFound'));
-        }
+        const rawPatient = await getPatient(id);
+        const patientData = normalizePatient(rawPatient);
+        setPatient(patientData);
       } catch (err) {
         setError(t('common.failedToFetchPatientDetails'));
         console.error('Error fetching patient:', err);
@@ -551,7 +527,6 @@ const PatientDetail = () => {
 
     if (id) {
       fetchPatient();
-      fetchPatientBrief();
     } else {
               setError(t('common.patientIdMissing'));
       setLoading(false);
@@ -605,8 +580,9 @@ const PatientDetail = () => {
       setShowAddNote(false);
       toast.success(t('Patient Note Added'));
     } catch (error) {
-      setNotesError(t('patients.errorAddingNote'));
-      handleError(error);
+      const err = handleError(error);
+      setNotesError(err.message || t('patients.errorAddingNote'));
+      toast.error(err.message || t('patients.errorAddingNote'));
     } finally {
       setNotesLoading(false);
     }
@@ -639,20 +615,14 @@ const PatientDetail = () => {
       )}
       {showTranscriptionModal && <TranscriptionModal />}
 
-      <PatientBriefCard brief={patientBrief} loading={briefLoading} error={briefError} />
+      <PatientBriefCard patientId={id!} />
 
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 lg:mb-6 space-y-4 lg:space-y-0">
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-gray-800">{patient.first_name} {patient.last_name}</h1>
           <p className="text-sm lg:text-base text-gray-600">
-            {getAge(patient.date_of_birth)} {t('patients.years')} • {patient.gender} • {t('patients.patientId')}: {id}
+            {getAge(patient.date_of_birth)} {t('patients.years')} • {patient.gender}
           </p>
-          {/* Debug info - remove in production */}
-          {import.meta.env.DEV && (
-            <p className="text-xs text-gray-400 mt-1">
-              Debug: URL ID: {id} | Patient ID: {id}
-            </p>
-          )}
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
@@ -776,14 +746,6 @@ const PatientDetail = () => {
             </div>
           </div>
 
-          {/* Patient Brief Card */}
-          <div className="mt-4">
-            <PatientBriefCard
-              brief={patientBrief}
-              loading={briefLoading}
-              error={briefError}
-            />
-          </div>
         </div>
 
         <div className="lg:col-span-2">

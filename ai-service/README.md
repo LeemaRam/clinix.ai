@@ -19,7 +19,8 @@ This service handles AI-heavy tasks for transcription and report generation.
 Copy `.env.example` to `.env`:
 
 - `AI_SERVICE_PORT` - service port (default `8001`)
-- `GEMINI_API_KEY` - Gemini API key for report generation and structured analysis
+- `OPENAI_API_KEY` - OpenAI API key for report generation and structured analysis
+- `OPENAI_MODEL` - OpenAI model to use for generation (default `gpt-4o-mini`)
 - `DEMO_MODE` - when `true`, allows deterministic fallback behavior for transcription/demo flows
 - `MAX_FILE_MB` - max file size
 

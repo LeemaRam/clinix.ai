@@ -15,6 +15,47 @@ Clinix.ai is organized as a three-service application:
 
 The migration away from a monolithic Flask backend was done to improve separation of concerns and make the platform easier to maintain.
 
+## Local Runtime Testing
+
+To run the full platform locally, start the services in this order:
+
+1. **AI service** (`ai-service`) on port `8001`
+2. **Backend API** (`backend-node`) on port `5000`
+3. **Frontend** (`frontend`) on port `3000`
+
+### Local startup commands
+
+```powershell
+cd ai-service
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+```powershell
+cd backend-node
+npm install
+npm run dev
+```
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+### Local environment variables
+
+- `backend-node/.env.example` is now configured for development by default.
+- `frontend/.env.example` uses `VITE_API_URL=http://localhost:5000`.
+- `ai-service/.env.example` is configured to run locally on port `8001`.
+
+### Local connectivity checks
+
+- Frontend API calls use `VITE_API_URL` when configured, otherwise Vite proxying to `/api`.
+- Socket.IO connects to `/socket.io` through the frontend dev proxy in development mode.
+- Backend uses `PYTHON_AI_SERVICE_URL=http://localhost:8001` by default.
+- Backend now creates upload directories on startup if they are missing.
+
 Benefits of the current design:
 
 - Frontend and backend can be developed and deployed independently.
@@ -299,7 +340,7 @@ The AI service exposes:
 - `POST /generate-report`
 ## Stripe Payment Integration
 
-Clinix.ai includes a complete Stripe integration for subscription management. This section covers setup and configuration.
+Clinix.ai includes a complete Stripe integration for subscription management. The full Stripe setup and configuration are consolidated in a single guide.
 
 ### Quick Start
 
@@ -313,9 +354,7 @@ Clinix.ai includes a complete Stripe integration for subscription management. Th
 ### Detailed Setup
 
 For comprehensive setup instructions, see:
-- **[STRIPE_SETUP.md](STRIPE_SETUP.md)** - Complete step-by-step guide
-- **[STRIPE_CHECKLIST.md](STRIPE_CHECKLIST.md)** - Implementation checklist
-- **[STRIPE_FRONTEND.md](STRIPE_FRONTEND.md)** - Frontend integration details
+- **[STRIPE_SETUP.md](STRIPE_SETUP.md)** - Complete Stripe integration guide
 
 ### Features
 
@@ -403,6 +442,120 @@ CVC:         123 (any 3 digits)
 For other test scenarios, see [Stripe Testing Documentation](https://stripe.com/docs/testing).
 
 ### Production Deployment
+
+#### Prerequisites
+
+1. **Domain and SSL Certificate**: Obtain a domain name and SSL certificate for HTTPS
+2. **Cloud Infrastructure**: Choose a cloud provider (AWS, GCP, Azure, DigitalOcean, etc.)
+3. **Database**: Set up MongoDB Atlas or equivalent managed MongoDB service
+4. **File Storage**: Configure cloud storage for file uploads (AWS S3, Google Cloud Storage, etc.)
+5. **Reverse Proxy**: Set up nginx or similar for load balancing and SSL termination
+
+#### Environment Configuration
+
+1. **Copy environment templates**:
+   ```bash
+   cp backend-node/.env.example backend-node/.env
+   cp frontend/.env.example frontend/.env
+   cp ai-service/.env.example ai-service/.env
+   ```
+
+2. **Configure production environment variables**:
+
+   **Backend (.env)**:
+   ```env
+   NODE_ENV=production
+   PORT=5000
+   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/clinix_prod
+   JWT_SECRET=your-super-secure-jwt-secret-here
+   CORS_ORIGIN=https://yourdomain.com
+   FRONTEND_URL=https://yourdomain.com
+   MAX_UPLOAD_SIZE_MB=50
+   # Add all other required API keys
+   ```
+
+   **Frontend (.env)**:
+   ```env
+   VITE_API_URL=https://api.yourdomain.com
+   ```
+
+   **AI Service (.env)**:
+   ```env
+   NODE_ENV=production
+   OPENAI_API_KEY=your-production-openai-key
+   # Add other AI service keys
+   ```
+
+#### Docker Deployment
+
+1. **Build and push images**:
+   ```bash
+   # Build images
+   docker-compose build
+
+   # Tag and push to registry
+   docker tag clinix-frontend your-registry/clinix-frontend:latest
+   docker tag clinix-backend your-registry/clinix-backend:latest
+   docker tag clinix-ai-service your-registry/clinix-ai-service:latest
+   docker push your-registry/clinix-frontend:latest
+   docker push your-registry/clinix-backend:latest
+   docker push your-registry/clinix-ai-service:latest
+   ```
+
+2. **Production docker-compose.yml**:
+   ```yaml
+   version: '3.9'
+   services:
+     ai-service:
+       image: your-registry/clinix-ai-service:latest
+       environment:
+         - NODE_ENV=production
+       restart: unless-stopped
+
+     backend:
+       image: your-registry/clinix-backend:latest
+       environment:
+         - NODE_ENV=production
+       depends_on:
+         - ai-service
+       restart: unless-stopped
+
+     frontend:
+       image: your-registry/clinix-frontend:latest
+       environment:
+         - API_URL=https://api.yourdomain.com
+       restart: unless-stopped
+   ```
+
+#### Security Checklist
+
+- [ ] All `.env` files contain production values only
+- [ ] No sensitive data in `.env.example` files
+- [ ] JWT secrets are strong and unique
+- [ ] CORS is restricted to your domain only
+- [ ] HTTPS is enabled with valid SSL certificate
+- [ ] File upload limits are reasonable (50MB max)
+- [ ] Rate limiting is configured
+- [ ] Security headers are enabled (Helmet.js)
+- [ ] Database connections use authentication
+- [ ] API keys are production keys, not test keys
+
+#### Monitoring and Maintenance
+
+1. **Health Checks**: All services have `/health` endpoints
+2. **Logging**: Configure centralized logging (CloudWatch, Stackdriver, etc.)
+3. **Backups**: Set up automated database backups
+4. **SSL Renewal**: Configure automatic SSL certificate renewal
+5. **Updates**: Plan for dependency updates and security patches
+
+#### Performance Optimization
+
+- [ ] Enable gzip compression in nginx
+- [ ] Configure proper cache headers for static assets
+- [ ] Set up CDN for static file delivery
+- [ ] Configure database connection pooling
+- [ ] Implement Redis for session storage if needed
+- [ ] Monitor and optimize database queries
 
 Before deploying to production:
 

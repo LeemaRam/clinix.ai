@@ -1,14 +1,31 @@
-export const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
+import { ApiError } from '../utils/ApiError.js';
 
-  if (statusCode >= 500) {
-    console.error('[ERROR]', err);
+export const errorHandler = (err, req, res, next) => {
+  let error = { ...err };
+  error.message = err.message;
+
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    error = new ApiError(400, 'Resource not found');
   }
 
-  res.status(statusCode).json({
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    error = new ApiError(400, 'Duplicate field value entered');
+  }
+
+  // Validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message);
+    error = new ApiError(400, message);
+  }
+
+  // JWT errors already handled in auth middleware
+
+  res.status(error.statusCode || 500).json({
     success: false,
-    error: message,
-    details: err.details || null
+    message: error.message || 'Server Error',
+    errors: error.errors || null,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 };

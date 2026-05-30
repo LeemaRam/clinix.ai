@@ -3,8 +3,9 @@ import { Patient } from '../models/Patient.js';
 import { Consultation } from '../models/Consultation.js';
 import { Transcription } from '../models/Transcription.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import axios from 'axios';
-import { env } from '../config/env.js';
+import { extractFollowupDetails } from '../services/openaiService.js';
+import { sendFollowupInvitation, getDoctorName } from '../services/followupInvitationService.js';
+import { sendWhatsAppMessage } from '../services/twilioService.js';
 
 export const listFollowUps = asyncHandler(async (req, res) => {
   const doctorId = req.user.id;
@@ -32,14 +33,17 @@ export const scheduleFollowUp = asyncHandler(async (req, res) => {
   if (!reason) {
     const transcription = await Transcription.findOne({ consultationId });
     if (transcription && transcription.analysis) {
-      const followupInfo = await axios.post(`${env.PYTHON_AI_SERVICE_URL}/extract-followup`, {
-        soap_note: transcription.analysis,
-        consultation_id: consultationId
-      });
-      reason = followupInfo.data.follow_up_reason;
-      days = followupInfo.data.follow_up_days;
+      try {
+        const followupInfo = await extractFollowupDetails(transcription.analysis);
+        reason = followupInfo?.follow_up_reason || reason;
+        days = Number(followupInfo?.follow_up_days || days) || days;
+      } catch (error) {
+        console.error('[followupController] extractFollowupDetails failed, using fallback values:', error?.message || error);
+      }
     }
   }
+  reason = String(reason || 'Routine follow-up').trim() || 'Routine follow-up';
+  days = Number(days) || 7;
 
   const followUp = new FollowUp({
     consultationId,
@@ -51,6 +55,20 @@ export const scheduleFollowUp = asyncHandler(async (req, res) => {
   });
 
   await followUp.save();
+
+  try {
+    const doctorName = await getDoctorName(doctorId);
+    await sendFollowupInvitation({
+      followUpId: followUp._id,
+      patientName: `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || 'Patient',
+      patientPhone: followUp.patientPhone,
+      doctorName,
+      followUpDate: followUp.followUpDate
+    });
+  } catch (error) {
+    console.error('[followupController] sendFollowupInvitation failed:', error);
+  }
+
   res.json({ success: true, data: followUp });
 });
 
@@ -60,18 +78,19 @@ export const sendReminder = asyncHandler(async (req, res) => {
     .populate('doctorId', 'firstName lastName');
   if (!followUp) return res.status(404).json({ success: false, error: 'Follow-up not found' });
 
-  const result = await axios.post(`${env.PYTHON_AI_SERVICE_URL}/send-reminder`, {
-    patient_phone: followUp.patientPhone,
-    patient_name: `${followUp.patientId.firstName} ${followUp.patientId.lastName}`,
-    doctor_name: `${followUp.doctorId.firstName} ${followUp.doctorId.lastName}`,
-    follow_up_date: followUp.followUpDate.toISOString().split('T')[0],
-    reason: followUp.followUpReason
-  });
+  // Send WhatsApp message using Twilio
+  const message = `Hello ${followUp.patientId.firstName}, this is a reminder from Dr. ${followUp.doctorId.firstName} ${followUp.doctorId.lastName}. Your follow-up is scheduled for ${followUp.followUpDate.toISOString().split('T')[0]}. Reason: ${followUp.followUpReason}`;
+  const to = `whatsapp:${followUp.patientPhone}`;
 
-  followUp.reminderSent = true;
-  followUp.reminderSentAt = new Date();
-  followUp.status = 'sent';
-  await followUp.save();
-
-  res.json({ success: true, data: result.data });
+  try {
+    await sendWhatsAppMessage(to, message);
+    followUp.reminderSent = true;
+    followUp.reminderSentAt = new Date();
+    await followUp.save();
+    res.json({ success: true, message: 'Reminder sent via WhatsApp' });
+  } catch (error) {
+    console.error('[followupController] sendReminder failed:', error);
+    const message = error?.message || 'Failed to send WhatsApp reminder';
+    res.status(500).json({ success: false, error: message });
+  }
 });

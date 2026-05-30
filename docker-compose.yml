@@ -6,7 +6,17 @@ services:
     env_file:
       - ./ai-service/.env
     ports:
-      - '8001:8001'
+      - '${AI_SERVICE_PORT:-8001}:${AI_SERVICE_PORT:-8001}'
+    environment:
+      - AI_SERVICE_PORT=${AI_SERVICE_PORT:-8001}
+      - AI_SERVICE_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${AI_SERVICE_PORT:-8001}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   backend:
     build:
@@ -14,22 +24,33 @@ services:
     env_file:
       - ./backend-node/.env
     ports:
-      - '5000:5000'
+      - '${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}'
     depends_on:
-      - ai-service
+      ai-service:
+        condition: service_healthy
     environment:
-      - PYTHON_AI_SERVICE_URL=http://ai-service:8001
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
-      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - PYTHON_AI_SERVICE_URL=http://ai-service:${AI_SERVICE_PORT:-8001}
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-5000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./backend-node/uploads:/app/uploads
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: http://backend:5000
+        VITE_API_URL: ${VITE_API_URL:-http://backend:5000}
     ports:
-      - '3000:80'
+      - '${FRONTEND_PORT:-3000}:80'
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    environment:
+      - API_URL=${VITE_API_URL:-http://backend:5000}
+    restart: unless-stopped

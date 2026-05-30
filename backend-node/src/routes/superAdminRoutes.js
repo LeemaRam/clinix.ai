@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authRequired, roleRequired } from '../middleware/auth.js';
+import { authRequired, authorize } from '../middleware/auth.js';
 import {
   createPlan,
   createUser,
@@ -22,7 +22,7 @@ import {
 
 const router = Router();
 
-router.use(authRequired, roleRequired('super_admin', 'admin'));
+router.use(authRequired, authorize('super_admin'));
 
 router.get('/stats', getStats);
 router.get('/users', listUsers);

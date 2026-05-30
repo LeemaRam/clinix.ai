@@ -7,6 +7,7 @@ import { Loader2, Calendar, Clock, AlertCircle, FileTextIcon, CheckCircle, Downl
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { formatDuration } from '../utils/formatters';
+import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments } from '../utils/transcription';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import StatCard from '../components/ui/StatCard';
 
@@ -133,7 +134,7 @@ const Dashboard = () => {
         );
 
         const payload = response.data?.data || response.data;
-        setTranscription(payload.transcription);
+        setTranscription(normalizeTranscription(payload.transcription || payload));
       } catch (error) {
         const err = handleError(error);
         setDetailError(err.message);
@@ -203,7 +204,12 @@ const Dashboard = () => {
     };
 
     // Transcription Modal Component
-    const TranscriptionModal = () => (
+    const TranscriptionModal = () => {
+    const transcriptionText = getTranscriptionText(transcription);
+    const transcriptionSegments = getTranscriptionSegments(transcription);
+    const readyForDisplay = Boolean(transcriptionText) || transcription?.status === 'completed';
+
+    return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
@@ -228,11 +234,7 @@ const Dashboard = () => {
               <div className="bg-gray-50 rounded-lg overflow-hidden">
                 {/* Transcription Details Header */}
                 <div className="bg-white border-b border-gray-200 p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">{t('transcription.confidenceScore')}:</span>
-                      <span className="ml-2 font-medium">{(transcription.confidence_score * 100).toFixed(1)}%</span>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">{t('transcription.duration')}:</span>
                       <span className="ml-2 font-medium">{formatDuration(transcription.duration)}</span>
@@ -248,38 +250,46 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                {transcription.segments ? (
-                  <div className="divide-y divide-gray-200">
-                    {transcription.segments.map((segment, index) => (
-                      <div 
-                        key={index} 
-                        className={`p-4 ${
-                          segment.speaker === 'doctor' ? 'bg-blue-50' : 'bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-xs mb-2">
-                          <span className={`font-medium ${
-                            segment.speaker === 'doctor' ? 'text-blue-700' : 'text-gray-700'
-                          }`}>
-                            {segment.speaker === 'doctor' ? t('patients.doctor') : t('patients.patient')}
-                          </span>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-gray-500">
-                              {formatTime(segment.start)} - {formatTime(segment.end)}
+                {readyForDisplay ? (
+                  transcriptionSegments.length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                      {transcription.segments.map((segment, index) => (
+                        <div 
+                          key={index} 
+                          className={`p-4 ${
+                            segment.speaker === 'doctor' ? 'bg-blue-50' : 'bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-xs mb-2">
+                            <span className={`font-medium ${
+                              segment.speaker === 'doctor' ? 'text-blue-700' : 'text-gray-700'
+                            }`}>
+                              {segment.speaker === 'doctor' ? t('patients.doctor') : t('patients.patient')}
                             </span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-500">
+                                {formatTime(segment.start)} - {formatTime(segment.end)}
+                              </span>
+                            </div>
                           </div>
+                          <p className="text-sm">{segment.text}</p>
                         </div>
-                        <p className="text-sm">{segment.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : transcription.raw_text ? (
-                  <div className="p-4 whitespace-pre-wrap">
-                    {transcription.raw_text}
-                  </div>
+                      ))}
+                    </div>
+                  ) : transcriptionText ? (
+                    <div className="p-4 whitespace-pre-wrap">
+                      {transcriptionText}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 italic">
+                      {t('transcription.noTranscriptionAvailable')}
+                    </div>
+                  )
                 ) : (
-                  <div className="p-4 text-center text-gray-500 italic">
-                    {t('transcription.noTranscriptionAvailable')}
+                  <div className="p-8 text-center text-gray-600">
+                    <Loader2 className="animate-spin mx-auto mb-3" />
+                    <h4 className="text-lg font-semibold mb-1">{t('transcription.processing')}</h4>
+                    <p>{t('transcription.processingTranscription', 'Transcription is still processing. Please wait.')}</p>
                   </div>
                 )}
               </div>
@@ -297,6 +307,7 @@ const Dashboard = () => {
         </div>
       </div>
     );
+  };
 
     // PDF Options Modal Component
     const PdfOptionsModal = ({ consultationId }: { consultationId: string }) => (

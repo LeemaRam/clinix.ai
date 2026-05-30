@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { Loader2, Calendar, Clock, AlertCircle, Trash2, FileText, CheckCircle, Download, Settings, Edit2, Save, X, Eye, FileDown, Search, FileBarChart } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { formatDuration, formatTime } from '../utils/formatters';
+import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments } from '../utils/transcription';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 import { getSocket, joinConsultationRoom } from '../services/socket';
@@ -162,6 +163,7 @@ const PastConsultations: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<TranscriptionDetail | null>(null);
+  const selectedConsultationIdRef = useRef<string | null>(null);
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
     page: 1,
@@ -223,8 +225,12 @@ const PastConsultations: React.FC = () => {
       // Transform the API response to match our component's needs
       const transformedConsultations = (payload.consultations || []).map((consultation: ConsultationBasic) => {
         let transformedStatus: 'completed' | 'pending';
-        // Improved status mapping logic
-        if (consultation.status === 'recorded' || consultation.status === 'in_progress') {
+        if (
+          consultation.status === 'recorded' ||
+          consultation.status === 'transcribed' ||
+          consultation.status === 'completed' ||
+          consultation.status === 'in_progress'
+        ) {
           transformedStatus = 'completed';
         } else {
           transformedStatus = 'pending';
@@ -302,7 +308,7 @@ const PastConsultations: React.FC = () => {
         }
       );
       const payload = response.data?.data || response.data;
-      setTranscription(payload.transcription);
+      setTranscription(normalizeTranscription(payload.transcription || payload));
     } catch (error) {
       const err = handleError(error);
       setDetailError(err.message);
@@ -320,6 +326,10 @@ const PastConsultations: React.FC = () => {
       fetchConsultationDetail(consultation.id);
     }
   };
+
+  useEffect(() => {
+    selectedConsultationIdRef.current = selectedConsultation?.id ?? null;
+  }, [selectedConsultation]);
 
   // Handle view consultation details
   const handleViewConsultation = async (consultation: TransformedConsultation) => {
@@ -507,7 +517,12 @@ const PastConsultations: React.FC = () => {
   );
 
   // Transcription Modal Component
-  const TranscriptionModal = () => (
+  const TranscriptionModal = () => {
+    const transcriptionText = getTranscriptionText(transcription);
+    const transcriptionSegments = getTranscriptionSegments(transcription);
+    const readyForDisplay = Boolean(transcriptionText) || transcription?.status === 'completed';
+
+    return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
@@ -532,11 +547,7 @@ const PastConsultations: React.FC = () => {
             <div className="bg-gray-50 rounded-lg overflow-hidden">
               {/* Transcription Details Header */}
               <div className="bg-white border-b border-gray-200 p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">{t('transcription.confidenceScore')}:</span>
-                    <span className="ml-2 font-medium">{(transcription.confidence_score * 100).toFixed(1)}%</span>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">{t('transcription.duration')}:</span>
                     <span className="ml-2 font-medium">{formatDuration(transcription.duration)}</span>
@@ -552,7 +563,7 @@ const PastConsultations: React.FC = () => {
                 </div>
               </div>
               
-              {transcription.segments ? (
+              {transcriptionSegments.length > 0 ? (
                 <div className="divide-y divide-gray-200">
                   {transcription.segments.map((segment, index) => (
                     <div 
@@ -624,9 +635,9 @@ const PastConsultations: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              ) : transcription.raw_text ? (
+              ) : transcriptionText ? (
                 <div className="p-4 whitespace-pre-wrap">
-                  {transcription.raw_text}
+                  {transcriptionText}
                 </div>
               ) : (
                 <div className="p-4 text-center text-gray-500 italic">
@@ -648,6 +659,7 @@ const PastConsultations: React.FC = () => {
       </div>
     </div>
   );
+  };
 
   // PDF Options Modal Component
   const PdfOptionsModal = ({ consultationId }: { consultationId: string }) => (
@@ -792,7 +804,7 @@ const PastConsultations: React.FC = () => {
         [event.consultationId]: event.progress
       }));
 
-      if (event.status === 'completed') {
+      if (event.status === 'completed' || event.status === 'partial') {
         setConsultations((prev) => prev.map((item) => (
           item.id === event.consultationId ? { ...item, status: 'completed' } : item
         )));
@@ -800,11 +812,23 @@ const PastConsultations: React.FC = () => {
           item.id === event.consultationId ? { ...item, status: 'completed' } : item
         )));
       }
+      if (event.status === 'failed') {
+        setConsultations((prev) => prev.map((item) => (
+          item.id === event.consultationId ? { ...item, status: 'failed' } : item
+        )));
+        setFilteredConsultations((prev) => prev.map((item) => (
+          item.id === event.consultationId ? { ...item, status: 'failed' } : item
+        )));
+      }
 
       setTranscription((prev) => {
         if (!prev || prev.consultation_id !== event.consultationId) return prev;
-        return { ...prev, status: event.status === 'completed' ? 'completed' : 'processing' };
+        return { ...prev, status: event.status === 'completed' || event.status === 'partial' ? 'completed' : 'processing' };
       });
+
+      if ((event.status === 'completed' || event.status === 'partial') && selectedConsultationIdRef.current === event.consultationId) {
+        fetchConsultationDetail(event.consultationId);
+      }
     };
 
     const onReportGenerationStarted = (event: ReportGenerationEvent) => {
@@ -816,11 +840,13 @@ const PastConsultations: React.FC = () => {
     };
 
     socket.on('transcription_progress', onTranscriptionProgress);
+    socket.on('ai_task_status', onTranscriptionProgress);
     socket.on('report_generation_started', onReportGenerationStarted);
     socket.on('report_generation_completed', onReportGenerationCompleted);
 
     return () => {
       socket.off('transcription_progress', onTranscriptionProgress);
+      socket.off('ai_task_status', onTranscriptionProgress);
       socket.off('report_generation_started', onReportGenerationStarted);
       socket.off('report_generation_completed', onReportGenerationCompleted);
     };

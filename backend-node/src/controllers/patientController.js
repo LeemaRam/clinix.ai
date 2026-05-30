@@ -25,8 +25,21 @@ export const listPatients = asyncHandler(async (req, res) => {
     Patient.countDocuments(query)
   ]);
 
+  const consultationCounts = await Consultation.aggregate([
+    { $match: { patientId: { $in: patients.map((p) => p._id) } } },
+    { $group: { _id: '$patientId', count: { $sum: 1 } } }
+  ]);
+
+  const countsByPatient = consultationCounts.reduce((acc, item) => {
+    acc[item._id.toString()] = item.count;
+    return acc;
+  }, {});
+
   const data = {
-    patients: patients.map(serializePatient),
+    patients: patients.map((patient) => ({
+      ...serializePatient(patient),
+      consultation_count: countsByPatient[patient._id.toString()] || 0
+    })),
     total,
     page,
     pages: Math.ceil(total / limit)

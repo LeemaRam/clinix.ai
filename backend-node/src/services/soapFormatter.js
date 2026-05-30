@@ -5,7 +5,6 @@ const BAD_PHRASES = [
   makePattern(['ai', 'analysis', 'unavailable']),
   makePattern(['fallback', 'soap', 'structure']),
   makePattern(['fallback', 'reference']),
-  makePattern(['configure', 'gemini_api_key']),
   makePattern(['unable', 'to', 'analyze', 'without', 'api', 'key'])
 ];
 
@@ -46,6 +45,7 @@ export const formatSoapList = (value) => {
 
 export const formatSOAP = (soapData = {}) => {
   const source = (soapData && typeof soapData === 'object') ? soapData : {};
+  const sourceMedicalInfo = (source.medical_info && typeof source.medical_info === 'object') ? source.medical_info : {};
 
   return {
     subjective: formatSoapText(source.subjective),
@@ -55,7 +55,15 @@ export const formatSOAP = (soapData = {}) => {
     medications_mentioned: formatSoapList(source.medications_mentioned),
     follow_up_days: Number.isFinite(Number(source.follow_up_days)) && Number(source.follow_up_days) >= 0
       ? Number(source.follow_up_days)
-      : 7
+      : 7,
+    medical_info: {
+      symptoms: formatSoapList(sourceMedicalInfo.symptoms),
+      medical_history: formatSoapList(sourceMedicalInfo.medical_history),
+      current_medications: formatSoapList(sourceMedicalInfo.current_medications),
+      diagnosis: formatSoapList(sourceMedicalInfo.diagnosis),
+      treatment_plan: formatSoapList(sourceMedicalInfo.treatment_plan),
+      follow_up: formatSoapList(sourceMedicalInfo.follow_up)
+    }
   };
 };
 

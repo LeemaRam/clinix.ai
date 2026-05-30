@@ -5,7 +5,6 @@ const BAD_PHRASES = [
   makePattern(['ai', 'analysis', 'unavailable']),
   makePattern(['fallback', 'soap', 'structure']),
   makePattern(['fallback', 'reference']),
-  makePattern(['configure', 'gemini_api_key']),
   makePattern(['unable', 'to', 'analyze', 'without', 'api', 'key'])
 ];
 

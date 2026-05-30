@@ -33,6 +33,12 @@ const patientSchema = new mongoose.Schema(
       uploadedAt: { type: Date, default: Date.now },
       uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     }],
+    briefHistory: [{
+      summary: String,
+      generatedAt: { type: Date, default: Date.now },
+      source: String,
+      patientFiles: { type: [mongoose.Schema.Types.Mixed], default: [] }
+    }],
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: { type: String, default: 'new' },
     lastVisit: Date

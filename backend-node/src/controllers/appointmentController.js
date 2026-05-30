@@ -1,5 +1,6 @@
 import { Appointment } from '../models/Appointment.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { getSocketServer } from '../socket.js';
 
 export const bookAppointment = asyncHandler(async (req, res) => {
   const { patient_name, patient_phone, preferred_date, reason, doctor_id } = req.body;
@@ -13,6 +14,12 @@ export const bookAppointment = asyncHandler(async (req, res) => {
   });
 
   await appointment.save();
+
+  const io = getSocketServer();
+  if (io) {
+    io.emit('appointment_created', { appointment: appointment.toObject() });
+  }
+
   res.json({ success: true, data: appointment });
 });
 

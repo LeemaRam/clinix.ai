@@ -44,7 +44,7 @@ const BookAppointment = () => {
         reason: ''
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to book appointment');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to book appointment');
     } finally {
       setLoading(false);
     }

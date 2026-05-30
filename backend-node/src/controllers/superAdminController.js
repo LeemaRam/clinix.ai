@@ -2,6 +2,14 @@ import bcrypt from 'bcryptjs';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { User } from '../models/User.js';
 import { SubscriptionPlan } from '../models/SubscriptionPlan.js';
+import { Consultation } from '../models/Consultation.js';
+import { Transcription } from '../models/Transcription.js';
+
+const normalizeRole = (role) => {
+  const rawRole = String(role || '').toLowerCase().trim();
+  if (['superadmin', 'super_admin', 'admin'].includes(rawRole)) return 'super_admin';
+  return 'doctor';
+};
 
 const languageState = {
   uiLanguages: [
@@ -16,39 +24,70 @@ const languageState = {
 };
 
 export const getStats = asyncHandler(async (_req, res) => {
-  const [users, doctors, plans] = await Promise.all([
+  const [totalUsers, totalDoctors, activeDoctors, totalConsultations, pendingTranscriptions, storageAggregation] = await Promise.all([
     User.countDocuments({}),
     User.countDocuments({ role: 'doctor' }),
-    SubscriptionPlan.countDocuments({ deleted: { $ne: true } })
+    User.countDocuments({ role: 'doctor', isActive: true }),
+    Consultation.countDocuments({}),
+    Transcription.countDocuments({ status: 'processing' }),
+    Consultation.aggregate([
+      { $match: { audioFileSize: { $exists: true, $ne: null } } },
+      { $group: { _id: null, totalSize: { $sum: '$audioFileSize' } } }
+    ])
   ]);
-  res.json({ totalUsers: users, totalDoctors: doctors, totalPlans: plans });
+
+  const totalBytes = storageAggregation?.[0]?.totalSize || 0;
+  const storageUsageGB = Number((totalBytes / (1024 * 1024 * 1024)).toFixed(2));
+  const storageLimitGB = Number(process.env.SUPER_ADMIN_STORAGE_LIMIT_GB || '500');
+
+  const systemHealth = pendingTranscriptions > 50 ? 'warning' : 'healthy';
+
+  res.json({
+    totalUsers,
+    activeUsers: activeDoctors,
+    totalConsultations,
+    pendingTranscriptions,
+    systemHealth,
+    serverStatus: 'online',
+    storageUsage: storageUsageGB,
+    storageLimit: storageLimitGB
+  });
 });
 
-export const listUsers = asyncHandler(async (_req, res) => {
-  const users = await User.find({}).sort({ createdAt: -1 });
+export const listUsers = asyncHandler(async (req, res) => {
+  const query = {};
+  if (typeof req.query.role === 'string') {
+    query.role = req.query.role;
+  }
+
+  const users = await User.find(query).sort({ createdAt: -1 });
   res.json({
     users: users.map((u) => ({
       id: u._id,
       full_name: u.fullName,
       email: u.email,
-      role: u.role,
+      role: normalizeRole(u.role),
       is_active: u.isActive,
       language: u.language || 'en',
-      created_at: u.createdAt
+      created_at: u.createdAt,
+      last_login: u.lastLogin || null,
+      subscription_plan_id: u.subscriptionPlanId ? u.subscriptionPlanId.toString() : null
     }))
   });
 });
 
 export const createUser = asyncHandler(async (req, res) => {
-  const { full_name, email, password, role } = req.body;
+  const { full_name, email, password, role, subscription_plan_id } = req.body;
   const exists = await User.findOne({ email: String(email).toLowerCase() });
   if (exists) return res.status(409).json({ success: false, error: 'Email already exists' });
 
+  const normalizedRole = normalizeRole(role);
   const user = await User.create({
     fullName: full_name,
     email: String(email).toLowerCase(),
     passwordHash: await bcrypt.hash(password, 10),
-    role: role || 'doctor'
+    role: normalizedRole,
+    subscriptionPlanId: normalizedRole === 'doctor' && subscription_plan_id ? subscription_plan_id : null
   });
 
   res.status(201).json({
@@ -57,21 +96,37 @@ export const createUser = asyncHandler(async (req, res) => {
       full_name: user.fullName,
       email: user.email,
       role: user.role,
-      is_active: user.isActive
+      is_active: user.isActive,
+      subscription_plan_id: user.subscriptionPlanId ? user.subscriptionPlanId.toString() : null
     }
   });
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
+  const { subscription_plan_id } = req.body;
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
   user.fullName = req.body.full_name ?? user.fullName;
   user.email = req.body.email ? String(req.body.email).toLowerCase() : user.email;
-  user.role = req.body.role ?? user.role;
+  user.role = normalizeRole(req.body.role ?? user.role);
+  if (user.role === 'doctor') {
+    user.subscriptionPlanId = subscription_plan_id || user.subscriptionPlanId;
+  } else {
+    user.subscriptionPlanId = null;
+  }
   await user.save();
 
-  res.json({ user: { id: user._id, full_name: user.fullName, email: user.email, role: user.role, is_active: user.isActive } });
+  res.json({
+    user: {
+      id: user._id,
+      full_name: user.fullName,
+      email: user.email,
+      role: user.role,
+      is_active: user.isActive,
+      subscription_plan_id: user.subscriptionPlanId ? user.subscriptionPlanId.toString() : null
+    }
+  });
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {

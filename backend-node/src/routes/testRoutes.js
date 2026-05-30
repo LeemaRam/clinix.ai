@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { testGemini, testGeminiSoap } from '../controllers/testController.js';
+import { testOpenAI, testOpenAISoap } from '../controllers/testController.js';
 
 const router = Router();
 
-router.get('/gemini', testGemini);
-router.post('/gemini-soap', testGeminiSoap);
+router.get('/openai', testOpenAI);
+router.post('/openai-soap', testOpenAISoap);
 
 export default router;

@@ -1,4 +1,4 @@
-import { apiFetch, getAuthHeaders } from './apiFetch';
+import { apiFetch, getAuthHeaders, unwrapApiData } from './apiFetch';
 
 // Public — no auth needed
 export const bookAppointment = async (data: {
@@ -15,26 +15,29 @@ export const bookAppointment = async (data: {
     reason: data.reason
   };
 
-  return apiFetch({
+  const res = await apiFetch({
     path: '/appointments',
     method: 'POST',
     data: backendData
   });
+  return unwrapApiData(res);
 };
 
 export const getAppointments = async () => {
-  return apiFetch({
+  const res = await apiFetch({
     path: '/appointments',
     method: 'GET',
     headers: getAuthHeaders()
   });
+  return unwrapApiData(res);
 };
 
 export const updateAppointment = async (id: string, status: 'confirmed' | 'cancelled') => {
-  return apiFetch({
+  const res = await apiFetch({
     path: `/appointments/${id}`,
     method: 'PATCH',
     headers: getAuthHeaders(),
     data: { status }
   });
+  return unwrapApiData(res);
 };

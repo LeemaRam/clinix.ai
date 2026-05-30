@@ -315,19 +315,25 @@ const UserManagement: React.FC = () => {
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
-      case 'super_admin': return t('superAdmin.superAdmin');
-      case 'admin': return t('superAdmin.admin');
-      case 'doctor': return t('superAdmin.doctor');
-      default: return role;
+      case 'super_admin':
+      case 'admin':
+        return t('superAdmin.superAdmin');
+      case 'doctor':
+        return t('superAdmin.doctor');
+      default:
+        return role;
     }
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'super_admin': return 'bg-red-100 text-red-800';
-      case 'admin': return 'bg-blue-100 text-blue-800';
-      case 'doctor': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'super_admin':
+      case 'admin':
+        return 'bg-purple-100 text-purple-800';
+      case 'doctor':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -647,7 +653,6 @@ const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 >
                   <option value="doctor">{t('superAdmin.doctor')}</option>
-                  <option value="admin">{t('superAdmin.admin')}</option>
                   <option value="super_admin">{t('superAdmin.superAdmin')}</option>
                 </select>
               </div>
@@ -799,7 +804,6 @@ const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 >
                   <option value="doctor">{t('superAdmin.doctor')}</option>
-                  <option value="admin">{t('superAdmin.admin')}</option>
                   <option value="super_admin">{t('superAdmin.superAdmin')}</option>
                 </select>
               </div>
@@ -945,6 +949,28 @@ const UserManagement: React.FC = () => {
       )}
     </div>
   );
+};
+
+const getRoleDisplay = (role: string) => {
+  switch (role) {
+    case 'super_admin':
+      return t('superAdmin.superAdmin');
+    case 'doctor':
+      return t('superAdmin.doctor');
+    default:
+      return role;
+  }
+};
+
+const getRoleBadgeColor = (role: string) => {
+  switch (role) {
+    case 'super_admin':
+      return 'bg-purple-100 text-purple-800';
+    case 'doctor':
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 };
 
 export default UserManagement; 

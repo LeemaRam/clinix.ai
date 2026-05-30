@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, File, X, Loader2, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { uploadPatientFile, getPatientFiles, deletePatientFile } from '../services/patientService';
+import { uploadPatientFile, getPatientFiles, deletePatientFile, downloadPatientFile } from '../services/patientService';
 
 interface FileUploadPanelProps {
   patientId: string;
@@ -35,6 +35,7 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
   const { t } = useTranslation();
   const [files, setFiles] = useState<PatientFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,8 +47,8 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
   const fetchFiles = async () => {
     try {
       setLoading(true);
-      const response = await getPatientFiles(patientId);
-      setFiles(normalizeFiles(response.data));
+      const filesData = await getPatientFiles(patientId);
+      setFiles(normalizeFiles(filesData));
     } catch (err) {
       setError('Failed to load files');
       console.error(err);
@@ -76,15 +77,14 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
       formData.append('file', file);
 
       await uploadPatientFile(patientId, formData);
-      await uploadPatientFile(patientId, formData);
       await fetchFiles();
 
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload file');
+    } catch (err) {
+      console.error('Failed to upload file', err);
+      setError('Unable to upload file. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -103,11 +103,22 @@ const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ patientId }) => {
 
   const handleDownloadFile = async (fileId: string, fileName: string) => {
     try {
-      // This would typically call a download endpoint
-      // For now, we'll just show an alert
-      alert(`Download functionality for ${fileName} would be implemented here`);
+      setDownloadingFileId(fileId);
+      const response = await downloadPatientFile(patientId, fileId);
+      const blob = new Blob([response.data], { type: response.data.type || 'application/octet-stream' });
+      const fileURL = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(fileURL);
     } catch (err) {
       console.error('Failed to download file', err);
+      setError('Unable to download file. Please try again.');
+    } finally {
+      setDownloadingFileId(null);
     }
   };
 

@@ -3,7 +3,13 @@ import { authRequired } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { uploadPatientFile, listPatientFiles, downloadPatientFile, deletePatientFile } from '../controllers/patientFileController.js';
+import {
+  uploadPatientFile,
+  listPatientFiles,
+  downloadPatientFile,
+  deletePatientFile,
+  analyzeUploadedPatientFiles
+} from '../controllers/patientFileController.js';
 
 const uploadDirectory = path.join('uploads', 'patient_files');
 if (!fs.existsSync(uploadDirectory)) {
@@ -23,6 +29,7 @@ const router = Router();
 router.use(authRequired);
 router.post('/:patientId/files', upload.single('file'), uploadPatientFile);
 router.get('/:patientId/files', listPatientFiles);
-router.get('/:patientId/files/:fileId', downloadPatientFile);
+router.get('/:patientId/files/analyze', analyzeUploadedPatientFiles);
+router.get('/:patientId/files/:fileId/download', downloadPatientFile);
 router.delete('/:patientId/files/:fileId', deletePatientFile);
 export default router;

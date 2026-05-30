@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import EditableSection from './EditableSection';
 import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
+import { saveReportPreview } from '../services/reportService';
 import { formatFollowUpDays, formatSoapList, formatSoapText } from '../utils/soapFormatter';
 
 interface PatientInfo {
@@ -52,10 +53,20 @@ interface MedicalAnalysis {
   follow_up: string[];
 }
 
+interface DrugSafetyContent {
+  warnings: string[];
+  interactions: string[];
+  recommendations: string[];
+  safe: boolean;
+  riskLevel?: string;
+  rxNorm?: Record<string, any>;
+}
+
 interface StructuredContent {
   patient_info: PatientInfo;
   sections: ReportSections;
   medical_analysis: MedicalAnalysis;
+  drug_safety: DrugSafetyContent;
   summary: string;
   transcription_confidence: number;
   transcription_duration: number;
@@ -95,11 +106,23 @@ const createDefaultStructuredContent = (): StructuredContent => ({
     treatment_plan: [],
     follow_up: []
   },
+  drug_safety: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    safe: true
+  },
   summary: '',
   transcription_confidence: 0,
   transcription_duration: 0,
   follow_up_days: 7
 });
+
+const normalizeTextValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  const text = String(value).trim();
+  return text.toLowerCase() === 'null' ? '' : text;
+};
 
 const normalizeStructuredContent = (raw: unknown): StructuredContent => {
   const base = createDefaultStructuredContent();
@@ -118,30 +141,30 @@ const normalizeStructuredContent = (raw: unknown): StructuredContent => {
     patient_info: {
       ...base.patient_info,
       ...rawPatientInfo,
-      name: String(rawPatientInfo.name ?? base.patient_info.name),
+      name: normalizeTextValue(rawPatientInfo.name ?? base.patient_info.name),
       age: Number(rawPatientInfo.age ?? base.patient_info.age),
-      gender: String(rawPatientInfo.gender ?? base.patient_info.gender),
-      date_of_birth: String(rawPatientInfo.date_of_birth ?? base.patient_info.date_of_birth),
-      consultation_date: String(rawPatientInfo.consultation_date ?? base.patient_info.consultation_date),
-      consultation_time: String(rawPatientInfo.consultation_time ?? base.patient_info.consultation_time),
-      doctor_name: String(rawPatientInfo.doctor_name ?? base.patient_info.doctor_name),
-      doctor_email: String(rawPatientInfo.doctor_email ?? base.patient_info.doctor_email),
+      gender: normalizeTextValue(rawPatientInfo.gender ?? base.patient_info.gender),
+      date_of_birth: normalizeTextValue(rawPatientInfo.date_of_birth ?? base.patient_info.date_of_birth),
+      consultation_date: normalizeTextValue(rawPatientInfo.consultation_date ?? base.patient_info.consultation_date),
+      consultation_time: normalizeTextValue(rawPatientInfo.consultation_time ?? base.patient_info.consultation_time),
+      doctor_name: normalizeTextValue(rawPatientInfo.doctor_name ?? base.patient_info.doctor_name),
+      doctor_email: normalizeTextValue(rawPatientInfo.doctor_email ?? base.patient_info.doctor_email),
     },
     sections: {
       ...base.sections,
       ...rawSections,
-      title: String(rawSections.title ?? base.sections.title),
-      subjective: String(rawSections.subjective ?? rawSections.summary ?? base.sections.subjective),
-      objective: String(rawSections.objective ?? base.sections.objective),
-      assessment: String(rawSections.assessment ?? base.sections.assessment),
-      plan: String(rawSections.plan ?? rawSections.recommendations ?? base.sections.plan),
-      vital_signs: String(rawSections.vital_signs ?? base.sections.vital_signs),
-      neurological_exam: String(rawSections.neurological_exam ?? base.sections.neurological_exam),
-      pharmacological_treatment: String(rawSections.pharmacological_treatment ?? base.sections.pharmacological_treatment),
-      self_care_measures: String(rawSections.self_care_measures ?? base.sections.self_care_measures),
-      dietary_recommendations: String(rawSections.dietary_recommendations ?? base.sections.dietary_recommendations),
-      follow_up: String(rawSections.follow_up ?? base.sections.follow_up),
-      signature: String(rawSections.signature ?? base.sections.signature),
+      title: normalizeTextValue(rawSections.title ?? base.sections.title),
+      subjective: normalizeTextValue(rawSections.subjective ?? rawSections.summary ?? base.sections.subjective),
+      objective: normalizeTextValue(rawSections.objective ?? base.sections.objective),
+      assessment: normalizeTextValue(rawSections.assessment ?? base.sections.assessment),
+      plan: normalizeTextValue(rawSections.plan ?? rawSections.recommendations ?? base.sections.plan),
+      vital_signs: normalizeTextValue(rawSections.vital_signs ?? base.sections.vital_signs),
+      neurological_exam: normalizeTextValue(rawSections.neurological_exam ?? base.sections.neurological_exam),
+      pharmacological_treatment: normalizeTextValue(rawSections.pharmacological_treatment ?? base.sections.pharmacological_treatment),
+      self_care_measures: normalizeTextValue(rawSections.self_care_measures ?? base.sections.self_care_measures),
+      dietary_recommendations: normalizeTextValue(rawSections.dietary_recommendations ?? base.sections.dietary_recommendations),
+      follow_up: normalizeTextValue(rawSections.follow_up ?? base.sections.follow_up),
+      signature: normalizeTextValue(rawSections.signature ?? base.sections.signature),
     },
     medical_analysis: {
       symptoms: Array.isArray(rawMedicalAnalysis.symptoms) ? rawMedicalAnalysis.symptoms.map(String) : [],
@@ -151,7 +174,16 @@ const normalizeStructuredContent = (raw: unknown): StructuredContent => {
       treatment_plan: Array.isArray(rawMedicalAnalysis.treatment_plan) ? rawMedicalAnalysis.treatment_plan.map(String) : [],
       follow_up: Array.isArray(rawMedicalAnalysis.follow_up) ? rawMedicalAnalysis.follow_up.map(String) : [],
     },
-    summary: formatSoapText(source.summary ?? rawSections.summary ?? ''),
+    summary: normalizeTextValue(source.summary ?? rawSections.summary ?? ''),
+    drug_safety: {
+      warnings: Array.isArray(source.drug_safety?.warnings) ? source.drug_safety.warnings.map(String) : [],
+      interactions: Array.isArray(source.drug_safety?.interactions) ? source.drug_safety.interactions.map(String) : [],
+      recommendations: Array.isArray(source.drug_safety?.recommendations) ? source.drug_safety.recommendations.map(String) : [],
+      safe: source.drug_safety?.safe !== false,
+      riskLevel: source.drug_safety?.riskLevel ?? undefined,
+      rxNorm: source.drug_safety?.rxNorm ?? undefined
+    },
+
     transcription_confidence: Number(source.transcription_confidence ?? 0),
     transcription_duration: Number(source.transcription_duration ?? 0),
     follow_up_days: Number(source.follow_up_days ?? 7)
@@ -181,10 +213,13 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingReport, setSavingReport] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingSections, setEditingSections] = useState<Set<string>>(new Set());
   const [editedContent, setEditedContent] = useState<Partial<ReportSections>>({});
+  const [editedMedicalAnalysis, setEditedMedicalAnalysis] = useState<Partial<MedicalAnalysis>>({});
+  const [editedFollowUpDays, setEditedFollowUpDays] = useState<number>(7);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Generate preview
@@ -212,13 +247,51 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
       }
 
       const normalizedContent = normalizeStructuredContent(payload.structured_content);
+      console.debug('[ReportPreviewModal] Loaded structured preview', { consultationId, normalizedContent });
       setStructuredContent(normalizedContent);
       setPreviewId(payload.preview_id);
       setEditedContent(normalizedContent.sections);
+      setEditedMedicalAnalysis({
+        ...normalizedContent.medical_analysis,
+        current_medications: normalizedContent.medical_analysis.current_medications,
+        follow_up: normalizedContent.medical_analysis.follow_up
+      });
+      setEditedFollowUpDays(normalizedContent.follow_up_days || 7);
     } catch (err: any) {
       setError(err.response?.data?.error || t('reports.previewGenerationFailed'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getUpdatedStructuredContent = (): StructuredContent | null => {
+    if (!structuredContent) return null;
+    return {
+      ...structuredContent,
+      sections: { ...structuredContent.sections, ...editedContent },
+      medical_analysis: { ...structuredContent.medical_analysis, ...editedMedicalAnalysis },
+      follow_up_days: editedFollowUpDays
+    };
+  };
+
+  const saveReport = async () => {
+    if (!previewId || !structuredContent) return;
+
+    const updatedStructuredContent = getUpdatedStructuredContent();
+    if (!updatedStructuredContent) return;
+
+    setSavingReport(true);
+    try {
+      await saveReportPreview(consultationId, previewId, updatedStructuredContent, localStorage.getItem('user_name') || 'System');
+      setStructuredContent(updatedStructuredContent);
+      setEditedContent(updatedStructuredContent.sections);
+      setEditedMedicalAnalysis({ ...updatedStructuredContent.medical_analysis });
+      setHasUnsavedChanges(false);
+      toast.success(t('reports.reportSaved', { defaultValue: 'Report saved successfully' }));
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('reports.saveReportFailed', { defaultValue: 'Failed to save report' }));
+    } finally {
+      setSavingReport(false);
     }
   };
 
@@ -228,10 +301,8 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
 
     setSaving(true);
     try {
-      const updatedStructuredContent = {
-        ...structuredContent,
-        sections: { ...structuredContent.sections, ...editedContent }
-      };
+      const updatedStructuredContent = getUpdatedStructuredContent();
+      if (!updatedStructuredContent) return;
 
       await apiFetch({
         path: `/consultations/${consultationId}/report/preview/${previewId}`,
@@ -244,10 +315,14 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
       });
 
       setStructuredContent(updatedStructuredContent);
+      setEditedContent(updatedStructuredContent.sections);
+      setEditedMedicalAnalysis({
+        ...updatedStructuredContent.medical_analysis
+      });
       setHasUnsavedChanges(false);
-      toast.success(t('reports.changesSaved'));
+      toast.success(t('reports.changesSaved', { defaultValue: 'Changes saved successfully' }));
     } catch (err: any) {
-      toast.error(err.response?.data?.error || t('reports.saveChangesFailed'));
+      toast.error(err.response?.data?.error || t('reports.saveChangesFailed', { defaultValue: 'Failed to save changes' }));
     } finally {
       setSaving(false);
     }
@@ -264,10 +339,21 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
 
     setGenerating(true);
     try {
+      const updatedStructuredContent = {
+        ...structuredContent,
+        sections: { ...structuredContent.sections, ...editedContent },
+        medical_analysis: { ...structuredContent.medical_analysis, ...editedMedicalAnalysis },
+        follow_up_days: editedFollowUpDays
+      };
+
       const response = await apiFetch<Blob>({
         path: `/consultations/${consultationId}/report/preview/${previewId}/generate`,
         method: 'POST',
-        headers: getAuthHeaders(),
+        data: { structured_content: updatedStructuredContent },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
         responseType: 'blob'
       });
 
@@ -313,7 +399,16 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
       newSet.delete(sectionKey);
       return newSet;
     });
+
     if (structuredContent) {
+      if (sectionKey === 'current_medications') {
+        setEditedMedicalAnalysis(prev => ({
+          ...prev,
+          current_medications: structuredContent.medical_analysis.current_medications
+        }));
+        return;
+      }
+
       setEditedContent(prev => ({
         ...prev,
         [sectionKey]: structuredContent.sections?.[sectionKey as keyof ReportSections] ?? ''
@@ -327,6 +422,24 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
       ...prev,
       [sectionKey]: value
     }));
+  };
+
+  const handleMedicalAnalysisChange = (fieldKey: keyof MedicalAnalysis, value: string) => {
+    const normalized = value
+      .split('\n')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    setEditedMedicalAnalysis(prev => ({
+      ...prev,
+      [fieldKey]: normalized
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleFollowUpDaysChange = (value: number) => {
+    setEditedFollowUpDays(value);
+    setHasUnsavedChanges(true);
   };
 
   // Load preview when modal opens
@@ -343,6 +456,8 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
       setPreviewId(null);
       setEditingSections(new Set());
       setEditedContent({});
+      setEditedMedicalAnalysis({});
+      setEditedFollowUpDays(7);
       setHasUnsavedChanges(false);
       setError(null);
     }
@@ -437,53 +552,65 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
 
               {/* Editable Report Sections */}
               <div className="space-y-4">
-                {Object.entries(sectionLabels).map(([sectionKey, label]) => {
-                  const isEditing = editingSections.has(sectionKey);
-                  const content = editedContent[sectionKey as keyof ReportSections]
-                    ?? structuredContent.sections?.[sectionKey as keyof ReportSections]
-                    ?? '';
-                  
-                  return (
-                    <EditableSection
-                      key={sectionKey}
-                      title={label}
-                      content={content}
-                      isEditing={isEditing}
-                      onEdit={() => handleEditSection(sectionKey)}
-                      onSave={() => handleSaveSection(sectionKey)}
-                      onCancel={() => handleCancelSection(sectionKey)}
-                      onChange={(value) => handleContentChange(sectionKey, value)}
-                      placeholder={t('reports.enterContent')}
-                    />
-                  );
-                })}
+                {Object.entries(sectionLabels)
+                  .filter(([sectionKey]) => sectionKey !== 'follow_up' || structuredContent.sections.follow_up?.trim())
+                  .map(([sectionKey, label]) => {
+                    const isEditing = editingSections.has(sectionKey);
+                    const content = editedContent[sectionKey as keyof ReportSections]
+                      ?? structuredContent.sections?.[sectionKey as keyof ReportSections]
+                      ?? '';
+
+                    return (
+                      <EditableSection
+                        key={sectionKey}
+                        title={label}
+                        content={content}
+                        isEditing={isEditing}
+                        onEdit={() => handleEditSection(sectionKey)}
+                        onSave={() => handleSaveSection(sectionKey)}
+                        onCancel={() => handleCancelSection(sectionKey)}
+                        onChange={(value) => handleContentChange(sectionKey, value)}
+                        placeholder={t('reports.enterContent')}
+                      />
+                    );
+                  })}
               </div>
 
               {/* Medication + Follow-up Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3 uppercase tracking-wide">
-                    {t('transcription.current_medications', { defaultValue: 'Medications' })}
-                  </h3>
-                  {formatSoapList(structuredContent.medical_analysis.current_medications).length > 0 ? (
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      {formatSoapList(structuredContent.medical_analysis.current_medications).map((item) => (
-                        <li key={item} className="flex items-start">
-                          <span className="mr-2 text-slate-400">-</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-slate-500">No data available</p>
-                  )}
+                  <EditableSection
+                    title={t('transcription.current_medications', { defaultValue: 'Medications' })}
+                    content={editedMedicalAnalysis.current_medications !== undefined
+                      ? editedMedicalAnalysis.current_medications.join('\n')
+                      : structuredContent.medical_analysis.current_medications.join('\n')}
+                    isEditing={editingSections.has('current_medications')}
+                    onEdit={() => handleEditSection('current_medications')}
+                    onSave={() => handleSaveSection('current_medications')}
+                    onCancel={() => handleCancelSection('current_medications')}
+                    onChange={(value) => handleMedicalAnalysisChange('current_medications', value)}
+                    placeholder={t('reports.enterMedications', { defaultValue: 'Enter current medications, one per line' })}
+                  />
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3 uppercase tracking-wide">
-                    {t('reports.followUp', { defaultValue: 'Follow-up' })}
-                  </h3>
-                  <p className="text-sm text-slate-700">{formatFollowUpDays(structuredContent.follow_up_days)}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-slate-800 uppercase tracking-wide">
+                      {t('reports.followUpDays', { defaultValue: 'Follow-up Days' })}
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <input
+                      type="number"
+                      min={0}
+                      value={editedFollowUpDays}
+                      onChange={(event) => handleFollowUpDaysChange(Number(event.target.value))}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                    <p className="text-sm text-slate-500">
+                      {t('reports.followUpDaysHint', { defaultValue: 'Update the follow-up interval for this consultation.' })}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -495,24 +622,86 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                     <h3 className="text-lg font-semibold text-green-800">{t('reports.medicalAnalysis')}</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(structuredContent.medical_analysis).map(([key, items]) => (
-                      Array.isArray(items) && items.length > 0 && (
-                        <div key={key}>
-                          <h4 className="font-medium text-green-700 mb-2">
-                            {t(`transcription.${key}`, { defaultValue: key.replace(/_/g, ' ') })}
-                          </h4>
-                          <ul className="text-sm text-green-900 space-y-1">
-                            {(items as string[]).map((item: string, index: number) => (
-                              <li key={index} className="flex items-start">
-                                <span className="text-green-400 mr-2">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )
-                    ))}
+                    {Object.entries(structuredContent.medical_analysis)
+                      .filter(([key]) => key !== 'follow_up')
+                      .map(([key, items]) => (
+                        Array.isArray(items) && items.length > 0 && (
+                          <div key={key}>
+                            <h4 className="font-medium text-green-700 mb-2">
+                              {t(`transcription.${key}`, { defaultValue: key.replace(/_/g, ' ') })}
+                            </h4>
+                            <ul className="text-sm text-green-900 space-y-1">
+                              {(items as string[]).map((item: string, index: number) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="text-green-400 mr-2">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )
+                      ))}
                   </div>
+                </div>
+              )}
+
+              {/* Drug Safety Summary */}
+              {(structuredContent.drug_safety.warnings.length > 0 || structuredContent.drug_safety.interactions.length > 0 || structuredContent.drug_safety.recommendations.length > 0 || typeof structuredContent.drug_safety.safe === 'boolean') && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                  <div className="flex items-center mb-4">
+                    <AlertCircle className="text-amber-600 mr-2" size={20} />
+                    <h3 className="text-lg font-semibold text-amber-800">{t('reports.drugSafetyTitle', { defaultValue: 'Medication Safety' })}</h3>
+                  </div>
+
+                  {structuredContent.drug_safety.riskLevel && (
+                    <div className="mb-3">
+                      <h4 className="font-medium text-amber-700 mb-2">{t('reports.drugSafetyRiskLevel', { defaultValue: 'Risk Level' })}</h4>
+                      <p className="text-sm text-amber-900">{structuredContent.drug_safety.riskLevel}</p>
+                    </div>
+                  )}
+
+                  {structuredContent.drug_safety.warnings.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium text-amber-700 mb-2">{t('reports.drugSafetyWarnings', { defaultValue: 'Warnings' })}</h4>
+                      <ul className="text-sm text-amber-900 space-y-1">
+                        {structuredContent.drug_safety.warnings.map((item, index) => (
+                          <li key={`warning-${index}`} className="flex items-start">
+                            <span className="text-amber-500 mr-2">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {structuredContent.drug_safety.interactions.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium text-amber-700 mb-2">{t('reports.drugSafetyInteractions', { defaultValue: 'Interactions' })}</h4>
+                      <ul className="text-sm text-amber-900 space-y-1">
+                        {structuredContent.drug_safety.interactions.map((item, index) => (
+                          <li key={`interaction-${index}`} className="flex items-start">
+                            <span className="text-amber-500 mr-2">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {structuredContent.drug_safety.recommendations.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium text-amber-700 mb-2">{t('reports.drugSafetyRecommendations', { defaultValue: 'Recommendations' })}</h4>
+                      <ul className="text-sm text-amber-900 space-y-1">
+                        {structuredContent.drug_safety.recommendations.map((item, index) => (
+                          <li key={`recommendation-${index}`} className="flex items-start">
+                            <span className="text-amber-500 mr-2">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {structuredContent.drug_safety.warnings.length === 0 && structuredContent.drug_safety.interactions.length === 0 && structuredContent.drug_safety.recommendations.length === 0 && (
+                    <p className="text-sm text-amber-900">{structuredContent.drug_safety.safe ? t('reports.drugSafetyNoIssues', { defaultValue: 'No drug safety issues were detected.' }) : t('reports.drugSafetyReviewRequired', { defaultValue: 'No drug safety warnings were generated. Please review manually if needed.' })}</p>
+                  )}
                 </div>
               )}
 
@@ -528,10 +717,6 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                     <div className="flex items-center">
                       <Clock size={14} className="mr-1" />
                       {t('transcription.duration')}: {Math.round(structuredContent.transcription_duration)}s
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle size={14} className="mr-1" />
-                      {t('transcription.confidence')}: {(structuredContent.transcription_confidence * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
@@ -577,6 +762,23 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 {t('common.cancel')}
               </button>
               <button
+                onClick={saveReport}
+                disabled={savingReport || generating}
+                className="flex items-center px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {savingReport ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={16} />
+                    {t('reports.savingReport', { defaultValue: 'Saving Report' })}
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-2" />
+                    {t('reports.saveReport', { defaultValue: 'Save Report' })}
+                  </>
+                )}
+              </button>
+              <button
                 onClick={generateFinalPDF}
                 disabled={generating || hasUnsavedChanges}
                 className="flex items-center px-6 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
@@ -584,12 +786,12 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({
                 {generating ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={16} />
-                    {t('reports.generating')}
+                    {t('reports.generating', { defaultValue: 'Generating' })}
                   </>
                 ) : (
                   <>
                     <Download size={16} className="mr-2" />
-                    {t('reports.downloadPDF')}
+                    {t('reports.downloadPDF', { defaultValue: 'Download PDF' })}
                   </>
                 )}
               </button>

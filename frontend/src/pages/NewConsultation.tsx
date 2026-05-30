@@ -4,8 +4,8 @@ import { Mic, MicOff, User, UserPlus, CheckCircle, AlertTriangle, Loader2, Uploa
 import { useTranslation } from 'react-i18next';
 import ConsentForm from '../components/consultation/ConsentForm';
 import RecordingTypeSelector from '../components/consultation/RecordingTypeSelector';
-import DrugWarningCard from '../components/agents/DrugWarningCard';
-import { checkDrugSafety } from '../services/agentService';
+import { listPatients, createPatient } from '../services/patientService';
+import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../services/socket';
 import axios from 'axios';
 
 // Patient type matching backend
@@ -72,19 +72,6 @@ interface AudioUploadResponse {
   transcription_job_id?: string;
 }
 
-interface DrugCheckResponse {
-  warnings: string[];
-  interactions: Array<{
-    drugs: string;
-    description: string;
-    severity: string;
-    color: string;
-  }>;
-  safe: boolean;
-  note?: string;
-  error?: string;
-}
-
 const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
 const shouldUseProxy = (() => {
   if (!API_URL) return true;
@@ -97,6 +84,7 @@ const shouldUseProxy = (() => {
 })();
 
 const apiRoot = shouldUseProxy ? '/api' : `${API_URL}/api`;
+const PENDING_CONSULTATION_STORAGE_KEY = 'clinix_pending_consultation';
 
 // Add API service functions
 const api = {
@@ -163,18 +151,13 @@ const NewConsultation = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submittedConsultationId, setSubmittedConsultationId] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
 
   // Recording and upload state
   const [recordingMode, setRecordingMode] = useState<'record' | 'upload'>('record');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Drug safety check state
-  const [drugCheck, setDrugCheck] = useState<DrugCheckResponse | null>(null);
-  const [drugCheckLoading, setDrugCheckLoading] = useState(false);
-  const [drugCheckError, setDrugCheckError] = useState<string | null>(null);
-  const [medicationsInput, setMedicationsInput] = useState('');
 
   const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -187,10 +170,116 @@ const NewConsultation = () => {
   const [loadingStage, setLoadingStage] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
   const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
+  const [taskProgress, setTaskProgress] = useState(0);
+  const [taskCurrentStep, setTaskCurrentStep] = useState('');
+  const [taskStatus, setTaskStatus] = useState<'idle' | 'queued' | 'processing' | 'completed' | 'failed'>('idle');
 
-  // Fetch patients on mount and preload patient if patientId is provided
+  // Cleanup effect for media resources and timers
   useEffect(() => {
-    fetchPatients();
+    return () => {
+      // Clean up timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // Clean up media recorder
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+
+      // Clean up audio URL
+      if (audioURL) {
+        URL.revokeObjectURL(audioURL);
+      }
+
+      // Clean up socket room
+      if (submittedConsultationId) {
+        leaveConsultationRoom(submittedConsultationId);
+      }
+    };
+  }, [mediaRecorder, audioURL, submittedConsultationId]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    const handleProgress = (event: any) => {
+      if (!event || !event.consultationId) return;
+      if (submittedConsultationId && event.consultationId !== submittedConsultationId) return;
+
+      setTaskCurrentStep(event.currentStep || 'processing');
+      setTaskProgress(Number(event.progress || 0));
+      const status = event.status || 'processing';
+      setTaskStatus(status as any);
+
+      if (status === 'completed' || status === 'partial') {
+        setSubmitSuccess('AI processing completed. Your consultation is ready.');
+        setAutoRedirectCountdown(10);
+        setShowLoadingModal(false);
+        localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+      }
+
+      if (status === 'failed') {
+        setSubmitError('AI processing failed. Please check the consultation details and try again.');
+        setShowLoadingModal(false);
+        localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+      }
+    };
+
+    socket.on('transcription_progress', handleProgress);
+    socket.on('ai_task_status', handleProgress);
+
+    return () => {
+      socket.off('transcription_progress', handleProgress);
+      socket.off('ai_task_status', handleProgress);
+    };
+  }, [submittedConsultationId]);
+
+  useEffect(() => {
+    const restoreConsultationId = localStorage.getItem(PENDING_CONSULTATION_STORAGE_KEY);
+    if (!restoreConsultationId) return;
+
+    setSubmittedConsultationId(restoreConsultationId);
+    joinConsultationRoom(restoreConsultationId);
+
+    const fetchTask = async () => {
+      try {
+        const response = await axios.get(
+          `${apiRoot}/consultations/${restoreConsultationId}/ai-task`,
+          { headers: api.getAuthHeaders() }
+        );
+        const payload = (response.data as any)?.data || response.data;
+        const task = payload?.task;
+        if (!task) {
+          setSubmittedConsultationId(null);
+          localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+          return;
+        }
+
+        setTaskProgress(Number(task.progress || 0));
+        setTaskCurrentStep(task.currentStep || 'queued');
+        setTaskStatus(task.status || 'queued');
+        if (task.status === 'queued' || task.status === 'processing') {
+          setShowLoadingModal(true);
+          setLoadingStage('processing');
+          setLoadingMessage('Restoring AI processing state...');
+        }
+        if (task.status === 'completed' || task.status === 'partial') {
+          setSubmitSuccess('AI processing completed. Your consultation is ready.');
+          setAutoRedirectCountdown(10);
+          setShowLoadingModal(false);
+          localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+        }
+        if (task.status === 'failed') {
+          setSubmitError('AI processing failed. Please check the consultation details and try again.');
+          setShowLoadingModal(false);
+          localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.warn('Failed to restore AI task state:', error);
+      }
+    };
+
+    fetchTask();
   }, []);
 
   // Preload patient if patientId is provided in URL
@@ -243,20 +332,16 @@ const NewConsultation = () => {
     setPatientsLoading(true);
     setPatientsError(null);
     try {
-      const response = await axios.get<PatientsResponse>(
-        `${apiRoot}/patients`,
-        { headers: api.getAuthHeaders() }
-      );
-      const payload = (response.data as any)?.data || response.data;
+      const payload = await listPatients({ page: 1, limit: 100 });
 
       setPatients(
-        (payload.patients || []).map((p: any) => ({
+        (payload.patients || []).map((p) => ({
           id: p.id,
           name: `${p.first_name} ${p.last_name}`,
           dob: p.date_of_birth,
           gender: p.gender,
           lastVisit: p.last_visit || '',
-          currentMedications: p.currentMedications || p.current_medications || []
+          currentMedications: p.current_medications || []
         }))
       );
     } catch (error) {
@@ -267,35 +352,9 @@ const NewConsultation = () => {
     }
   };
 
-  const checkDrugSafety = async (medications: string[]) => {
-    if (!medications.length) return;
-
-    setDrugCheckLoading(true);
-    setDrugCheckError(null);
-    try {
-      const patientInfo = selectedPatient ? {
-        age: new Date().getFullYear() - new Date(selectedPatient.dob).getFullYear(),
-        conditions: [], // Could be expanded to include patient conditions
-        allergies: [] // Could be expanded to include allergies
-      } : {};
-
-      const response = await axios.post<DrugCheckResponse>(
-        `${apiRoot}/agents/drug-check`,
-        {
-          new_drugs: medications,
-          existing_drugs: patientMedications
-        },
-        { headers: api.getAuthHeaders() }
-      );
-
-      setDrugCheck(response.data);
-    } catch (error) {
-      const err = handleError(error);
-      setDrugCheckError(err.message);
-    } finally {
-      setDrugCheckLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchPatients();
+  }, []);
 
   // Patient search and select
   const filteredPatients = patients.filter(p =>
@@ -326,14 +385,7 @@ const NewConsultation = () => {
     setAddPatientError(null);
 
     try {
-      const response = await axios.post<PatientResponse>(
-        `${apiRoot}/patients`,
-        addPatientData,
-        { headers: api.getAuthHeaders() }
-      );
-
-      const payload = (response.data as any)?.data || response.data;
-      const { patient } = payload;
+      const patient = await createPatient(addPatientData);
 
       // Reset form and update state
       setShowAddPatient(false);
@@ -354,7 +406,7 @@ const NewConsultation = () => {
         lastVisit: patient.last_visit || ''
       });
     } catch (error) {
-              setAddPatientError(handleError(error).message);
+      setAddPatientError(handleError(error).message);
     } finally {
       setAddPatientLoading(false);
     }
@@ -616,101 +668,48 @@ const NewConsultation = () => {
       const audioResponse = await axios.post<AudioUploadResponse>(
         `${apiRoot}/consultations/${consultation.id}/upload-audio`,
         formData,
-        { headers, timeout: 600000 } // 10 minute timeout for long audio transcription
+        { headers, timeout: 600000 }
       );
 
       if (!audioResponse.data.success) {
-        throw new Error(audioResponse.data.message || t('common.failedToUploadAudio'));
+        throw new Error(audioResponse.data.error || audioResponse.data.message || t('common.failedToUploadAudio'));
       }
 
-      // Wait for transcription to complete and get the result
-      let transcriptionResult = null;
-      let attempts = 0;
-      const maxAttempts = 600; // 10 minutes max wait
-
-      while (attempts < maxAttempts) {
-        try {
-          const transcriptionResponse = await axios.get(
-            `${apiRoot}/consultations/transcriptions/${consultation.id}`,
-            { headers: api.getAuthHeaders() }
-          );
-          const payload = (transcriptionResponse.data as any)?.data || transcriptionResponse.data;
-          if (payload.transcription && payload.transcription.status === 'completed') {
-            transcriptionResult = payload.transcription;
-            break;
-          }
-        } catch (error) {
-          // Transcription not ready yet
-        }
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-      }
-
-      // Auto-trigger drug check if transcription completed
-      if (transcriptionResult && transcriptionResult.analysis) {
-        const soapAnalysis = transcriptionResult.analysis;
-        const newMeds = soapAnalysis?.medications_mentioned || [];
-        const existingMeds = patientMedications || [];
-
-        if (newMeds.length > 0) {
-          setDrugCheckLoading(true);
-          checkDrugSafety(newMeds, existingMeds)
-            .then(result => setDrugCheck(result.data))
-            .catch(err => setDrugCheckError(err.message))
-            .finally(() => setDrugCheckLoading(false));
-        }
-
-        // Auto-schedule follow-up
-        try {
-          await axios.post(
-            `${apiRoot}/followups`,
-            { consultation_id: consultation.id },
-            { headers: api.getAuthHeaders() }
-          );
-          console.log('Follow-up auto-scheduled');
-        } catch (error) {
-          console.error('Failed to auto-schedule follow-up:', error);
-        }
-      }
-
-      // Simulate progress for transcription initiation
-      setLoadingProgress(80);
-      setLoadingStage('transcribing');
-      setLoadingMessage('Initiating transcription...');
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // Final progress
-      setLoadingProgress(100);
-      setLoadingStage('completed');
-      setLoadingMessage('Upload and transcription initiated successfully!');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Store the consultation ID for the success message
       setSubmittedConsultationId(consultation.id);
-      setSubmitSuccess(t('common.consultationSubmittedForTranscription'));
+      localStorage.setItem(PENDING_CONSULTATION_STORAGE_KEY, consultation.id);
+      setSubmitSuccess('Consultation uploaded. AI processing will continue in the background.');
+      setTaskStatus('queued');
+      setTaskProgress(10);
+      setTaskCurrentStep('queued');
+      setShowLoadingModal(false);
+      setLoadingProgress(0);
+      setLoadingStage('processing');
+      setLoadingMessage('AI processing started. You will receive realtime updates.');
+      joinConsultationRoom(consultation.id);
+
+      // Keep submit flow non-blocking. Background AI updates will arrive over socket events.
       setAudioBlob(null);
       setAudioURL(null);
       setSelectedFile(null);
       setRecordingTime(0);
 
-      // Update state after success - keep completed state for modal
-      setTimeout(() => {
-        // Don't reset these until modal is closed
-        // setLoadingProgress(0);
-        // setLoadingStage('');
-        // setLoadingMessage('');
-        
-        // Show success message below the form
-        setSubmitSuccess(t('common.consultationSubmittedForTranscription'));
-        
-        // Don't start auto-redirect when modal is showing - user should click buttons
-        // setAutoRedirectCountdown(10);
-      }, 1500);
-
     } catch (error) {
       const err = handleError(error);
       setSubmitError(err.message);
+      setCanRetry(true);
+
+      // If it's a network error, offer retry
+      if (err.isNetworkError) {
+        setSubmitError(`${err.message}. Please check your connection and try again.`);
+      }
+
       setShowLoadingModal(false);
+
+      // Clean up any partial state
+      if (submittedConsultationId) {
+        localStorage.removeItem(PENDING_CONSULTATION_STORAGE_KEY);
+        setSubmittedConsultationId(null);
+      }
     } finally {
       setSubmitLoading(false);
     }
@@ -1024,32 +1023,6 @@ const NewConsultation = () => {
         </div>
       </div>
 
-      {/* 5. Drug Safety Check */}
-      <div className="p-4 md:p-6 mb-4 md:mb-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-        <h2 className="mb-3 md:mb-4 text-base md:text-lg font-semibold text-gray-800">Drug Safety Check</h2>
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Enter medications separated by commas"
-            value={medicationsInput}
-            onChange={(e) => setMedicationsInput(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-          />
-          <button
-            onClick={() => checkDrugSafety(medicationsInput.split(',').map(m => m.trim()).filter(Boolean))}
-            disabled={drugCheckLoading}
-            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:bg-gray-400"
-          >
-            {drugCheckLoading ? 'Checking...' : 'Check Safety'}
-          </button>
-          <DrugWarningCard
-            drugCheck={drugCheck}
-            loading={drugCheckLoading}
-            error={drugCheckError}
-          />
-        </div>
-      </div>
-
       {/* 6. Record or Upload Consultation */}
       <div className="p-4 md:p-6 mb-4 md:mb-6 bg-white border border-gray-200 rounded-lg shadow-sm">
         <h2 className="mb-3 md:mb-4 text-base md:text-lg font-semibold text-gray-800">{t('consultation.recordOrUpload')}</h2>
@@ -1224,9 +1197,23 @@ const NewConsultation = () => {
                 {/* Error Message */}
                 {submitError && (
                   <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center text-red-700">
-                      <AlertTriangle size={16} className="mr-2" />
-                      <span className="text-sm">{submitError}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-red-700">
+                        <AlertTriangle size={16} className="mr-2" />
+                        <span className="text-sm">{submitError}</span>
+                      </div>
+                      {canRetry && (
+                        <button
+                          onClick={() => {
+                            setSubmitError(null);
+                            setCanRetry(false);
+                            handleSubmit();
+                          }}
+                          className="ml-3 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                        >
+                          {t('common.retry')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1248,9 +1235,19 @@ const NewConsultation = () => {
                         </div>
                         
                         <div className="mb-4 text-sm text-gray-700">
-                          Your consultation has been uploaded and transcription is in progress. 
-                          You can now view it in your past consultations or start a new one.
+                          Your consultation has been uploaded and AI processing is running in the background.
+                          Realtime progress will update on this screen while the task completes.
                         </div>
+                        {taskStatus !== 'idle' && (
+                          <div className="mb-4 p-4 bg-white/90 rounded-lg border border-gray-200">
+                            <div className="text-sm font-semibold text-gray-800 mb-2">Processing status</div>
+                            <div className="mb-2 text-sm text-gray-600">Step: {taskCurrentStep || 'processing'}</div>
+                            <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                              <div className="h-2 rounded-full bg-green-500" style={{ width: `${Math.min(100, taskProgress)}%` }} />
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500">{Math.min(100, taskProgress)}% complete</div>
+                          </div>
+                        )}
                         
                         {autoRedirectCountdown !== null && (
                           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getSocket } from '../services/socket';
 import { getAppointments, updateAppointment } from '../services/appointmentService';
 
 interface Appointment {
@@ -22,13 +23,21 @@ const Appointments = () => {
 
   useEffect(() => {
     fetchAppointments();
+
+    const socket = getSocket();
+    const handleAppointmentCreated = () => fetchAppointments();
+    socket.on('appointment_created', handleAppointmentCreated);
+
+    return () => {
+      socket.off('appointment_created', handleAppointmentCreated);
+    };
   }, []);
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       const response = await getAppointments();
-      const payload = response?.data?.data ?? response?.data;
+      const payload = response?.data ?? response;
       setAppointments(Array.isArray(payload) ? payload : []);
     } catch (err) {
       setError('Failed to load appointments');

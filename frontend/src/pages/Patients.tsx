@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, UserPlus, Filter, X, Save, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { listPatients, createPatient } from '../services/patientService';
 
 interface Patient {
   id: string;
@@ -82,17 +82,7 @@ const Patients = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get<{ success?: boolean; data?: PaginatedResponse } & PaginatedResponse>(`${apiRoot}/patients`, {
-        params: {
-          search: searchTerm,
-          page: currentPage,
-          limit
-        },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-      const payload = response.data?.data || response.data;
+      const payload = await listPatients({ page: currentPage, limit, search: searchTerm });
       setPatients(payload.patients || []);
       setTotalPages(payload.pages || 1);
       setTotalPatients(payload.total || 0);
@@ -161,11 +151,7 @@ const Patients = () => {
 
       console.log('processed data', processedPatient);
 
-      await axios.post(`${apiRoot}/patients`, processedPatient, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
+      await createPatient(processedPatient);
 
       // Reset form and close modal
       setNewPatient({
@@ -327,8 +313,8 @@ const Patients = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {patient.gender === 'Male' ? t('patients.male') : 
-                             patient.gender === 'Female' ? t('patients.female') : 
+                            {patient.gender?.toLowerCase() === 'male' ? t('patients.male') : 
+                             patient.gender?.toLowerCase() === 'female' ? t('patients.female') : 
                              t('patients.other')}
                           </div>
                         </td>
@@ -386,8 +372,8 @@ const Patients = () => {
                             {patient.first_name} {patient.last_name}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {patient.gender === 'Male' ? t('patients.male') : 
-                             patient.gender === 'Female' ? t('patients.female') : 
+                            {patient.gender?.toLowerCase() === 'male' ? t('patients.male') : 
+                             patient.gender?.toLowerCase() === 'female' ? t('patients.female') : 
                              t('patients.other')}
                           </div>
                         </td>
@@ -446,8 +432,8 @@ const Patients = () => {
                         <div className="flex items-center space-x-2">
                           <span>👤</span>
                           <span>
-                            {patient.gender === 'Male' ? t('patients.male') : 
-                             patient.gender === 'Female' ? t('patients.female') : 
+                            {patient.gender?.toLowerCase() === 'male' ? t('patients.male') : 
+                             patient.gender?.toLowerCase() === 'female' ? t('patients.female') : 
                              t('patients.other')}
                           </span>
                           <span className="text-gray-400">•</span>
@@ -616,9 +602,9 @@ const Patients = () => {
                       required
                     >
                       <option value="">{t('common.select')}</option>
-                      <option value="Male">{t('patients.male')}</option>
-                      <option value="Female">{t('patients.female')}</option>
-                      <option value="Other">{t('patients.other')}</option>
+                      <option value="male">{t('patients.male')}</option>
+                      <option value="female">{t('patients.female')}</option>
+                      <option value="other">{t('patients.other')}</option>
                     </select>
                   </div>
                   <div>
