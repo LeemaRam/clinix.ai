@@ -1134,6 +1134,11 @@ const NewConsultation = () => {
                     <p className="text-base md:text-lg font-semibold text-gray-800">
                       {selectedFile ? selectedFile.name : t('common.selectAudioFile')}
                     </p>
+                    {!selectedFile && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t('common.supportedAudioFormats')} · {t('common.maxFileSize')}
+                      </p>
+                    )}
                     {selectedFile && (
                       <button
                         onClick={() => {

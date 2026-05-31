@@ -59,14 +59,14 @@ const Login = () => {
 
     if (isForgotMode) {
       if (!forgotEmail.trim()) {
-        setError(t('auth.enterEmailToReset') || 'Please enter your email address to reset your password.');
+        setError(t('auth.enterEmailToReset'));
         setIsLoading(false);
         return;
       }
 
       // Placeholder reset behavior: the backend does not currently support email delivery.
       // This flow can be extended later with a POST /auth/forgot-password endpoint.
-      setForgotMessage(t('auth.forgotPasswordSent') || 'If an account exists for that email, a password reset link has been sent.');
+      setForgotMessage(t('auth.forgotPasswordSent'));
       setIsForgotMode(false);
       setIsLoading(false);
       return;
@@ -108,17 +108,17 @@ const Login = () => {
                 {t('auth.welcomeBack')}
               </h2>
               <p className="mt-4 max-w-lg text-lg leading-8 text-white/90">
-                Centralized consultation workflows, transcription review, and report generation in one calm workspace.
+                {t('auth.loginTagline')}
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                <p className="text-sm text-white/80">Faster reporting</p>
-                <p className="mt-2 text-2xl font-bold">AI-assisted</p>
+                <p className="text-sm text-white/80">{t('auth.featureFasterReporting')}</p>
+                <p className="mt-2 text-2xl font-bold">{t('auth.featureFasterReportingValue')}</p>
               </div>
               <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                <p className="text-sm text-white/80">Secure access</p>
-                <p className="mt-2 text-2xl font-bold">Role aware</p>
+                <p className="text-sm text-white/80">{t('auth.featureSecureAccess')}</p>
+                <p className="mt-2 text-2xl font-bold">{t('auth.featureSecureAccessValue')}</p>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@ const Login = () => {
               {isForgotMode && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mb-3 text-sm text-slate-700">
-                    {t('auth.forgotPasswordHelp') || 'Enter your email and we will send you password reset instructions.'}
+                    {t('auth.forgotPasswordHelp')}
                   </p>
                   <label htmlFor="forgotEmail" className="mb-2 block text-sm font-semibold text-slate-700">
                     {t('auth.email')}
@@ -200,7 +200,7 @@ const Login = () => {
                       onClick={handleForgotPassword}
                       className="text-sm font-medium text-primary-600 hover:text-primary-700"
                     >
-                      Forgot password?
+                      {t('auth.forgotPassword')}
                     </button>
                   </div>
                   <input
@@ -227,7 +227,7 @@ const Login = () => {
                     onClick={handleForgotCancel}
                     className="text-sm font-medium text-primary-600 hover:text-primary-700"
                   >
-                    {t('auth.backToSignIn') || 'Back to sign in'}
+                    {t('auth.backToSignIn')}
                   </button>
                 </div>
               )}
@@ -240,19 +240,19 @@ const Login = () => {
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
-                    Signing in...
+                    {t('auth.signingIn')}
                   </span>
                 ) : (
-                  'Sign in'
+                  t('auth.login')
                 )}
               </button>
             </form>
 
             <div className="mt-6 text-center text-sm text-slate-600">
               <p>
-                If you don't have an account, please register{' '}
+                {t('auth.dontHaveAccountPrompt')}{' '}
                 <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
-                  Register
+                  {t('auth.register')}
                 </Link>
               </p>
             </div>

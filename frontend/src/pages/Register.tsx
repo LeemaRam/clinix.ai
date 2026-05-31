@@ -61,17 +61,17 @@ const Register = () => {
                             </div>
                             <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-tight text-white">{t('auth.createAccount')}</h1>
                             <p className="mt-4 max-w-lg text-lg leading-8 text-white/90">
-                                Join a structured clinical workspace built for transcription review, reporting, and subscription management.
+                                {t('auth.registerTagline')}
                             </p>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                                <p className="text-sm text-white/80">Centralized workflow</p>
-                                <p className="mt-2 text-2xl font-bold">One platform</p>
+                                <p className="text-sm text-white/80">{t('auth.featureCentralizedWorkflow')}</p>
+                                <p className="mt-2 text-2xl font-bold">{t('auth.featureCentralizedWorkflowValue')}</p>
                             </div>
                             <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                                <p className="text-sm text-white/80">Built for clinicians</p>
-                                <p className="mt-2 text-2xl font-bold">Role aware</p>
+                                <p className="text-sm text-white/80">{t('auth.featureBuiltForClinicians')}</p>
+                                <p className="mt-2 text-2xl font-bold">{t('auth.featureSecureAccessValue')}</p>
                             </div>
                         </div>
                     </div>
