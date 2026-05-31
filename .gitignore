@@ -15,5 +15,15 @@ backend-node/secrets/*.json
 uploads/
 backend-node/uploads/
 
+# Local QA / scratch artifacts
+qa-screenshots/
+temp_diff.txt
+
+# Generated frontend build output
+frontend/dist/
+
+# Test / scratch audio in ai-service (runtime uploads use backend-node/uploads/)
+ai-service/temp_*.wav
+
 # OS files
 .DS_Store

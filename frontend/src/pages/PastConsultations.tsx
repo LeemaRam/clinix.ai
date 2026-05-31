@@ -442,7 +442,7 @@ const PastConsultations: React.FC = () => {
                   </div>
                   <div className="text-sm">
                     <span className="font-medium text-gray-700">{t('consultation.type')}:</span>
-                    <span className="ml-2">{selectedConsultation?.consultation_type}</span>
+                    <span className="ml-2">{getConsultationTypeLabel(selectedConsultation?.consultation_type)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -558,7 +558,7 @@ const PastConsultations: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-gray-500">{t('transcription.status')}:</span>
-                    <span className="ml-2 font-medium">{transcription.status}</span>
+                    <span className="ml-2 font-medium">{getStatusLabel(transcription.status)}</span>
                   </div>
                 </div>
               </div>
@@ -877,6 +877,26 @@ const PastConsultations: React.FC = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const getConsultationTypeLabel = (type?: string) => {
+    switch (type) {
+      case 'general': return t('consultation.typeGeneral');
+      case 'initial': return t('consultation.typeInitial');
+      case 'follow_up': return t('consultation.typeFollowUp');
+      default: return type || '—';
+    }
+  };
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'completed': return t('consultation.statusCompleted');
+      case 'transcribed': return t('consultation.statusTranscribed');
+      case 'failed': return t('consultation.statusFailed');
+      case 'pending': return t('consultation.statusPending');
+      case 'recorded': return t('consultation.statusRecorded');
+      case 'in_progress': return t('consultation.statusInProgress');
+      default: return status || '—';
+    }
+  };
 
 
 
@@ -952,22 +972,22 @@ const PastConsultations: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('patients.patient')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('consultation.type')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('consultation.recordingType')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('patients.date')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('transcription.duration')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {t('common.actions')}
                       </th>
                     </tr>
@@ -982,7 +1002,7 @@ const PastConsultations: React.FC = () => {
                         </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {consultation.consultation_type}
+                            {getConsultationTypeLabel(consultation.consultation_type)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1072,7 +1092,7 @@ const PastConsultations: React.FC = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="font-medium text-gray-900">{consultation.patientName}</div>
-                        <div className="text-sm text-gray-600">{consultation.consultation_type}</div>
+                        <div className="text-sm text-gray-600">{getConsultationTypeLabel(consultation.consultation_type)}</div>
                         <div className="text-sm text-gray-600">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             consultation.recording_type === 'doctor_patient' ? 'bg-blue-100 text-blue-800' :

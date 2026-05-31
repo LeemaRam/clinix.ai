@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "start:prod": "node src/server.js",
-    "seed:stripe": "node seed-stripe-plans.js"
+    "seed:stripe": "node seed-stripe-plans.js",
+    "seed:demo": "node scripts/seed-demo.js"
   },
   "dependencies": {
     "@google-cloud/speech": "^7.3.0",

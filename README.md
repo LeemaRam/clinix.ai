@@ -9,7 +9,7 @@ Clinix.ai is organized as a three-service application:
 - `frontend/` is the React application built with Vite and TypeScript. It provides the clinician-facing UI for patients, consultations, reports, subscriptions, and settings.
 - `backend-node/` is the main Node.js + Express API layer. It handles authentication, patient and consultation data, subscriptions, uploads, PDFs, dashboards, and Socket.IO events.
 - `ai-service/` is the FastAPI service that performs AI-heavy processing such as transcription and report generation.
-- `backend-legacy/` contains the deprecated Flask backend and is kept only as reference material.
+- `docs/` holds project reports, plans, and legacy reference material (not part of the runtime).
 
 ## Why a Hybrid Architecture
 
@@ -123,9 +123,17 @@ This setup is ideal for an FYP project on Azure free tier, because it keeps serv
 
 ## Project Structure
 
+- `frontend/` = React/Vite frontend
+- `backend-node/` = active Express/Mongo backend
+- `ai-service/` = active FastAPI AI service
+- `docs/` = reports / plans / legacy reference
+- `docs/legacy/backend-legacy/` = deprecated, not active
+
+> **Do not start `backend-legacy`. Use `backend-node` as the active backend.**
+
 ```text
 clinix.ai/
-  backend-node/            # Main Express API layer
+  backend-node/            # Main Express API layer (active backend)
     src/
       app.js
       server.js
@@ -138,14 +146,14 @@ clinix.ai/
       utils/
     .env.example
     package.json
-  ai-service/              # FastAPI AI processing service
+  ai-service/              # FastAPI AI processing service (active)
     app/
       main.py
       schemas.py
       services/
     .env.example
     requirements.txt
-  frontend/                # React + Vite frontend
+  frontend/                # React + Vite frontend (active)
     src/
       components/
       context/
@@ -156,7 +164,13 @@ clinix.ai/
       utils/
     vite.config.ts
     package.json
-  backend-legacy/          # Deprecated Flask backend retained for reference
+  docs/                    # Reports, plans, and legacy reference material
+    reports/
+    planning/
+    legacy/                # Deprecated material; backend-legacy not part of runtime
+  docker-compose.yml
+  start-local.ps1
+  README.md
 ```
 
 ## Prerequisites
@@ -569,11 +583,12 @@ Before deploying to production:
 See **[STRIPE_SETUP.md](STRIPE_SETUP.md)** for detailed Azure deployment steps.
 ## Deprecated Legacy Backend
 
-The old Flask backend is preserved in `backend-legacy/` for reference only.
+The old Flask backend (`backend-legacy/`) is deprecated and not part of the active runtime. Any legacy reference material lives under `docs/legacy/`.
 
 - It is not the active runtime path.
 - New development should target `frontend/`, `backend-node/`, and `ai-service/`.
 - Do not rely on legacy Flask instructions when setting up or running the project.
+- **Do not start `backend-legacy`. Use `backend-node` as the active backend.**
 
 ## Notes
 

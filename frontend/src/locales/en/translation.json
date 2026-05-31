@@ -1,4 +1,25 @@
 ﻿{
+    "analytics":  {
+                      "analyticsDashboard":  "Analytics Dashboard",
+                      "totalPatients":  "Total Patients",
+                      "totalConsultations":  "Total Consultations",
+                      "totalReports":  "Total Reports",
+                      "pendingFollowUps":  "Pending Follow-ups",
+                      "consultationTrends":  "Consultation Trends",
+                      "topDiagnoses":  "Top Diagnoses",
+                      "diagnosisDistribution":  "Diagnosis Distribution",
+                      "noDataTitle":  "No analytics yet",
+                      "noDataDescription":  "Create consultations and reports to see trends here.",
+                      "noTrendsDescription":  "Consultation trends will appear here once you record consultations.",
+                      "noDiagnosesDescription":  "Diagnosis insights will appear here once reports are generated."
+                  },
+    "appointments":  {
+                         "noAppointmentsTitle":  "No appointments yet",
+                         "noAppointmentsDescription":  "Appointments will appear here when patients book them.",
+                         "statusPending":  "Pending",
+                         "statusConfirmed":  "Confirmed",
+                         "statusCancelled":  "Cancelled"
+                     },
     "auth":  {
                  "alreadyHaveAccount":  "Already have an account?",
                  "backToSignIn":  "Back to sign in",
@@ -71,6 +92,7 @@
                    "next":  "Next",
                    "noAudioFileAvailable":  "No audio file available.",
                    "of":  "of",
+                   "noResultsForFilter":  "No items match the selected filter.",
                    "openNavigation":  "Open navigation",
                    "patientIdMissing":  "Patient ID is missing.",
                    "patientNotFound":  "Patient not found.",
@@ -85,6 +107,8 @@
                    "save":  "Save",
                    "saving":  "Saving…",
                    "search":  "Search",
+                   "all":  "All",
+                   "filterByStatus":  "Filter by status",
                    "select":  "Select…",
                    "selectAudioFile":  "Select audio file",
                    "selectPatientAndObtainConsent":  "Select a patient and obtain consent to continue.",
@@ -107,6 +131,15 @@
                          "consentObtained":  "Consent obtained",
                          "consultationDeleted":  "Consultation deleted.",
                          "consultationDetails":  "Consultation details",
+                         "typeGeneral":  "General",
+                         "typeInitial":  "Initial",
+                         "typeFollowUp":  "Follow-up",
+                         "statusCompleted":  "Completed",
+                         "statusTranscribed":  "Transcribed",
+                         "statusFailed":  "Failed",
+                         "statusPending":  "Pending",
+                         "statusRecorded":  "Recorded",
+                         "statusInProgress":  "In progress",
                          "doctorOnly":  "Doctor only",
                          "doctorOnlyDesc":  "Only the doctor\u0027s voice is recorded.",
                          "doctorPatient":  "Doctor and patient",
@@ -141,6 +174,14 @@
                    "notFound":  "Not found.",
                    "somethingWentWrong":  "Something went wrong. Please try again."
                },
+    "followUps":  {
+                      "noFollowUpsTitle":  "No follow-ups scheduled",
+                      "noFollowUpsDescription":  "Follow-ups will appear here when consultations require them.",
+                      "statusPending":  "Pending",
+                      "statusSent":  "Sent",
+                      "statusCompleted":  "Completed",
+                      "statusMissed":  "Missed"
+                  },
     "navigation":  {
                        "analytics":  "Analytics",
                        "analyticsSubtitle":  "Track usage, diagnoses, and clinic performance",
@@ -300,6 +341,7 @@
                     "vitalSigns":  "Vital signs"
                 },
     "settings":  {
+                     "comingSoon":  "(coming soon)",
                      "changePassword":  "Change password",
                      "changing":  "Changing…",
                      "confirmNewPassword":  "Confirm new password",
@@ -328,7 +370,8 @@
                      "security":  "Security",
                      "selectLanguage":  "Select language",
                      "settings":  "Settings",
-                     "urdu":  "Urdu"
+                     "urdu":  "Urdu",
+                     "urduComingSoon":  "Urdu (coming soon)"
                  },
     "subscription":  {
                          "accessPrioritySupport":  "Access priority support",
