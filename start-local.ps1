@@ -114,9 +114,9 @@ function Get-PIDsByPort {
             $text = $line.ToString().Trim()
             $parts = ($text -split '\s+') -ne ''
             if ($parts.Length -gt 0) {
-                $pid = $parts[-1]
-                if ($pid -and ($pid -match '^[0-9]+$')) {
-                    $pids += [int]$pid
+                $processId = $parts[-1]
+                if ($processId -and ($processId -match '^[0-9]+$')) {
+                    $pids += [int]$processId
                 }
             }
         }
@@ -189,26 +189,26 @@ function Ensure-PortAvailable {
         Write-Host "Port appears still in use after attempting cleanup; attempting fallback PID lookup (netstat)."
         $fallbackPids = Get-PIDsByPort -Port $Port
         if ($fallbackPids) {
-            foreach ($pid in $fallbackPids) {
+            foreach ($fallbackProcessId in $fallbackPids) {
                 try {
-                    $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+                    $proc = Get-Process -Id $fallbackProcessId -ErrorAction SilentlyContinue
                     if ($null -ne $proc) {
-                        Write-Host "Stopping PID $pid ($($proc.ProcessName)) found via netstat..."
-                        Stop-Process -Id $pid -Force -ErrorAction Stop
-                        Write-Host "Stopped PID $pid."
+                        Write-Host "Stopping PID $fallbackProcessId ($($proc.ProcessName)) found via netstat..."
+                        Stop-Process -Id $fallbackProcessId -Force -ErrorAction Stop
+                        Write-Host "Stopped PID $fallbackProcessId."
                     }
                     else {
-                        Write-Host "No process object for PID $pid; attempting taskkill fallback..."
+                        Write-Host "No process object for PID $fallbackProcessId; attempting taskkill fallback..."
                         try {
-                            & cmd /c "taskkill /PID $pid /F" | Write-Host
+                            & cmd /c "taskkill /PID $fallbackProcessId /F" | Write-Host
                         }
                         catch {
-                            Write-Warning ("taskkill fallback failed for PID {0}: {1}" -f $pid, $_.Exception.Message)
+                            Write-Warning ("taskkill fallback failed for PID {0}: {1}" -f $fallbackProcessId, $_.Exception.Message)
                         }
                     }
                 }
                 catch {
-                    Write-Warning ("Fallback unable to stop PID {0}: {1}" -f $pid, $_.Exception.Message)
+                    Write-Warning ("Fallback unable to stop PID {0}: {1}" -f $fallbackProcessId, $_.Exception.Message)
                 }
             }
 
@@ -233,6 +233,42 @@ function Ensure-PortAvailable {
 
         throw "Port ${Port} is still in use after attempting cleanup. Please stop the process manually and rerun the script."
     }
+}
+
+function Resolve-FFmpegBinPath {
+    $candidates = @(
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Links",
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin",
+        'C:\ffmpeg\bin',
+        'C:\Program Files\ffmpeg\bin',
+        'C:\ProgramData\chocolatey\bin',
+        "$env:USERPROFILE\scoop\shims"
+    ) | Where-Object { $_ -and (Test-Path $_) }
+
+    foreach ($candidate in $candidates) {
+        $ffmpegPath = Join-Path $candidate 'ffmpeg.exe'
+        $ffprobePath = Join-Path $candidate 'ffprobe.exe'
+        if ((Test-Path $ffmpegPath) -and (Test-Path $ffprobePath)) {
+            return $candidate
+        }
+    }
+
+    try {
+        $ffmpegCommand = Get-Command ffmpeg -ErrorAction Stop
+        $ffprobeCommand = Get-Command ffprobe -ErrorAction Stop
+        if ($ffmpegCommand.Path -and $ffprobeCommand.Path) {
+            $ffmpegDir = Split-Path -Parent $ffmpegCommand.Path
+            $ffprobeDir = Split-Path -Parent $ffprobeCommand.Path
+            if ($ffmpegDir -eq $ffprobeDir) {
+                return $ffmpegDir
+            }
+        }
+    }
+    catch {
+        # Leave unresolved if ffmpeg is not available in current shell.
+    }
+
+    return $null
 }
 
 Write-Host ""
@@ -283,16 +319,30 @@ Write-Host ""
 Write-Host "All required ports are available."
 Write-Host ""
 
+$ffmpegBinPath = Resolve-FFmpegBinPath
+if ($ffmpegBinPath) {
+    Write-Host "FFmpeg detected at: $ffmpegBinPath"
+}
+else {
+    Write-Warning "FFmpeg/ffprobe were not auto-detected. AI service startup may fail if PATH is incomplete in background jobs."
+}
+
 # Start AI Service
 $aiHealthUrl = 'http://localhost:8001/health'
 if (Test-HealthEndpoint -Url $aiHealthUrl) {
     Write-Host "AI service already running, skipping startup."
 }
 else {
+    $aiCommand = "& `"$venvPython`" -m uvicorn app.main:app --host 0.0.0.0 --port 8001"
+    if ($ffmpegBinPath) {
+        $escapedBinPath = $ffmpegBinPath.Replace("'", "''")
+        $aiCommand = "`$env:Path = '$escapedBinPath;' + `$env:Path; $aiCommand"
+    }
+
     Start-ServiceJob `
         -Name 'ClinixAI-AIService' `
         -WorkingDirectory $aiServicePath `
-        -Command "& `"$venvPython`" -m uvicorn app.main:app --host 0.0.0.0 --port 8001"
+        -Command $aiCommand
 }
 
 # Start Backend
