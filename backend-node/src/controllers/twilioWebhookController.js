@@ -1,20 +1,48 @@
+import twilio from 'twilio';
 import { FollowUp } from '../models/FollowUp.js';
 import { Patient } from '../models/Patient.js';
 import { Appointment } from '../models/Appointment.js';
+import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-// SECURITY TODO: Twilio webhook signature verification is NOT implemented yet.
-// This endpoint will currently accept any POST as if it came from Twilio, which
-// means an attacker who knows the URL can forge appointment confirm/decline
-// events. Before this webhook is exposed publicly:
-//   1. Capture the public webhook URL (e.g. https://api.example.com/api/webhooks/twilio/whatsapp).
-//   2. Use Twilio's `validateRequest` (from the `twilio` npm package) with
-//      process.env.TWILIO_AUTH_TOKEN, the full public URL, and the form-encoded
-//      body to verify the `X-Twilio-Signature` header on every request.
-//   3. Reject with HTTP 403 when validation fails.
-// Intentionally left as a TODO until the production webhook URL is known so
-// signature validation is not silently misconfigured against the wrong URL.
+const rejectInvalidTwilioWebhook = (res, reason) => {
+  console.warn(`[Twilio Webhook] Rejected request: ${reason}`);
+  return res.status(403).json({ success: false, error: 'Forbidden' });
+};
+
+export const verifyTwilioWebhookSignature = (req, res, next) => {
+  if (!env.TWILIO_WEBHOOK_VALIDATE) {
+    console.warn('[Twilio Webhook] Signature validation is disabled (TWILIO_WEBHOOK_VALIDATE=false). Do not use this in production.');
+    return next();
+  }
+
+  if (!env.TWILIO_AUTH_TOKEN) {
+    return rejectInvalidTwilioWebhook(res, 'TWILIO_AUTH_TOKEN is not configured');
+  }
+
+  if (!env.TWILIO_WEBHOOK_URL) {
+    return rejectInvalidTwilioWebhook(res, 'TWILIO_WEBHOOK_URL is not configured');
+  }
+
+  const signature = req.get('X-Twilio-Signature');
+  if (!signature) {
+    return rejectInvalidTwilioWebhook(res, 'missing X-Twilio-Signature header');
+  }
+
+  const isValid = twilio.validateRequest(
+    env.TWILIO_AUTH_TOKEN,
+    signature,
+    env.TWILIO_WEBHOOK_URL,
+    req.body || {}
+  );
+
+  if (!isValid) {
+    return rejectInvalidTwilioWebhook(res, 'invalid Twilio signature');
+  }
+
+  return next();
+};
 
 const normalizeWhatsAppSender = (value) => {
   if (!value) return '';
