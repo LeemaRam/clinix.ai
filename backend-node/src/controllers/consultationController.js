@@ -283,6 +283,7 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
   const patientPhone = patient?.phone || consultation.patientPhone || '';
   const patientName = `${patient?.firstName || ''} ${patient?.lastName || ''}`.trim() || 'Patient';
   const preferredDate = appointmentDate.toISOString().slice(0, 10);
+  const doctorId = consultation.doctorId?._id || consultation.doctorId;
 
   let appointment = await Appointment.findOne({ consultationId: consultation._id });
   if (appointment) {
@@ -314,6 +315,13 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
       await appointment.save();
     }
   } else {
+    if (!patientPhone) {
+      console.warn('[consultationController] Skipping appointment creation: patient phone is missing', {
+        consultationId: consultation._id.toString()
+      });
+      return null;
+    }
+
     appointment = new Appointment({
       consultationId: consultation._id,
       patientId: consultation.patientId?._id || consultation.patientId,
@@ -321,7 +329,7 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
       patientPhone,
       preferredDate,
       reason: appointmentReason,
-      doctorId: consultation.doctorId
+      doctorId
     });
     await appointment.save();
   }
@@ -674,7 +682,12 @@ export const saveReportPreview = asyncHandler(async (req, res) => {
     generatedBy: req.body.generatedBy || req.user.email || 'System'
   });
 
-  await createOrUpdateAppointmentForReport({ consultation, patient: consultation.patientId, structuredContent });
+  try {
+    await createOrUpdateAppointmentForReport({ consultation, patient: consultation.patientId, structuredContent });
+  } catch (error) {
+    // Saving report is primary; appointment invitation should not block this action.
+    console.error('[consultationController] Non-blocking appointment sync failed during saveReportPreview:', error);
+  }
 
   const data = { report };
   res.status(201).json({ success: true, data, ...data });

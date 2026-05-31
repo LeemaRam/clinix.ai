@@ -4,6 +4,18 @@ import { Appointment } from '../models/Appointment.js';
 import { getSocketServer } from '../socket.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
+// SECURITY TODO: Twilio webhook signature verification is NOT implemented yet.
+// This endpoint will currently accept any POST as if it came from Twilio, which
+// means an attacker who knows the URL can forge appointment confirm/decline
+// events. Before this webhook is exposed publicly:
+//   1. Capture the public webhook URL (e.g. https://api.example.com/api/webhooks/twilio/whatsapp).
+//   2. Use Twilio's `validateRequest` (from the `twilio` npm package) with
+//      process.env.TWILIO_AUTH_TOKEN, the full public URL, and the form-encoded
+//      body to verify the `X-Twilio-Signature` header on every request.
+//   3. Reject with HTTP 403 when validation fails.
+// Intentionally left as a TODO until the production webhook URL is known so
+// signature validation is not silently misconfigured against the wrong URL.
+
 const normalizeWhatsAppSender = (value) => {
   if (!value) return '';
   const trimmed = String(value).trim();
