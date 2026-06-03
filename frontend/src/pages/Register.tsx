@@ -4,6 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import Logo from '../components/common/Logo';
 import { useTranslation } from 'react-i18next';
+import {
+    validateName,
+    validateEmail,
+    validatePassword,
+    validatePasswordConfirm,
+    normalizeEmail
+} from '../utils/validation';
 
 const Register = () => {
     const { t } = useTranslation();
@@ -29,17 +36,21 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        if (formData.password !== formData.confirmPassword) {
-            return setError(t('auth.passwordsDoNotMatch'));
-        }
+        const nameError = validateName(formData.full_name, { label: t('auth.fullName') });
+        if (nameError) return setError(nameError);
 
-        if (!formData.full_name) {
-            return setError(t('auth.fullNameRequired'));
-        }
+        const emailError = validateEmail(formData.email);
+        if (emailError) return setError(emailError);
+
+        const passwordError = validatePassword(formData.password);
+        if (passwordError) return setError(passwordError);
+
+        const confirmError = validatePasswordConfirm(formData.password, formData.confirmPassword);
+        if (confirmError) return setError(t('auth.passwordsDoNotMatch'));
 
         try {
             await register({
-                email: formData.email.trim().toLowerCase(),
+                email: normalizeEmail(formData.email),
                 password: formData.password,
                 full_name: formData.full_name.trim()
             });

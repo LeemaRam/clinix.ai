@@ -599,3 +599,126 @@ The old Flask backend (`backend-legacy/`) is deprecated and not part of the acti
 ## License
 
 This project is licensed under the MIT License.
+
+
+## Production Deployment (Azure Ubuntu VM)
+
+This section describes the supported demo deployment: a single Azure Ubuntu VM running Docker Compose, with MongoDB Atlas as the database and Caddy as the public reverse proxy. No Kubernetes, no CI/CD pipeline, no custom domain required.
+
+### Architecture
+
+```
+Internet
+  |
+  v
+Caddy (reverse-proxy, ports 80/443)
+  |-- /            -> frontend  (nginx, container port 80)
+  |-- /api/*       -> backend-node (Express, container port 5000)
+  |-- /socket.io/* -> backend-node (Socket.IO)
+  |-- /ai/*        -> ai-service (FastAPI, container port 8001, prefix stripped)
+```
+
+Only the Caddy container publishes ports to the host. Backend, AI service, and frontend are reachable only on the internal Docker network.
+
+### 1. Provision the Azure VM
+
+- Image: **Ubuntu Server 22.04 LTS** (or 24.04)
+- Size: B2s or larger (2 vCPU / 4 GB RAM minimum for whisper + Node + Caddy)
+- Networking / NSG inbound rules: open **22 (SSH)**, **80 (HTTP)**, **443 (HTTPS)**
+- Optional: assign an **Azure DNS name label** (Public IP -> Configuration) so you get `clinixai-demo.<region>.cloudapp.azure.com` for free TLS
+
+### 2. Install Docker on the VM
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg git
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### 3. Clone the repository and create env file
+
+```bash
+git clone https://github.com/LeemaRam/clinix.ai.git
+cd clinix.ai
+cp .env.production.example .env.production
+nano .env.production   # fill in MONGODB_URI, OPENAI_API_KEY, JWT_SECRET, FRONTEND_URL, CORS_ORIGIN, Twilio, etc.
+```
+
+Set ``SITE_ADDRESS`` in ``.env.production``:
+
+- ``SITE_ADDRESS=:80`` for IP-only demo (HTTP)
+- ``SITE_ADDRESS=clinixai-demo.<region>.cloudapp.azure.com`` to enable automatic HTTPS via Let's Encrypt
+
+Set ``FRONTEND_URL`` and ``CORS_ORIGIN`` to the same public URL (for example ``http://20.10.20.30`` or ``https://clinixai-demo.eastus.cloudapp.azure.com``). Both are required in production or the backend will refuse to start.
+
+### 4. Allow the VM IP in MongoDB Atlas
+
+Atlas -> **Network Access** -> *Add IP Address* -> add the VM's **public IP** (or temporarily ``0.0.0.0/0`` for the demo if your supervisor accepts it). Cluster must be in the same region for best latency.
+
+### 5. Build and start the stack
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production config        # validate
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+docker ps
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+### 6. Verify
+
+From the VM:
+
+```bash
+curl -i http://localhost/api/health    # -> { "status": "ok", "service": "backend-node", ... }
+curl -i http://localhost/ai/health     # -> { "status": "ok", "service": "clinix-ai-fastapi", ... }
+curl -I http://localhost/              # -> 200 OK (React app index.html)
+```
+
+From a browser (replace with your VM public IP or DNS label):
+
+- ``http://VM_PUBLIC_IP/``                — frontend SPA
+- ``http://VM_PUBLIC_IP/api/health``      — backend health JSON
+- ``http://VM_PUBLIC_IP/ai/health``       — AI service health JSON
+
+### 7. Twilio WhatsApp webhook
+
+In the Twilio console (WhatsApp sandbox or sender) set the inbound webhook URL to:
+
+```
+http://VM_PUBLIC_IP_OR_DOMAIN/api/webhooks/twilio/whatsapp
+```
+
+The exact same URL must be set as ``TWILIO_WEBHOOK_URL`` in ``.env.production`` — the backend uses it to validate the ``X-Twilio-Signature`` header and will reject mismatches. ``TWILIO_ACCOUNT_SID`` / ``TWILIO_AUTH_TOKEN`` live only in ``.env.production`` and are never baked into images.
+
+### 8. Updating after a code change
+
+```bash
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+### 9. Local fallback / demo backup
+
+If something goes wrong with the cloud demo, you can fall back to the local stack at any time:
+
+```powershell
+# Windows dev machine
+./start-local.ps1
+# or
+docker compose up --build
+```
+
+The local ``docker-compose.yml`` and ``start-local.ps1`` are unchanged and still target ``http://localhost:3000`` (frontend), ``http://localhost:5000`` (backend), ``http://localhost:8001`` (AI).
+
+### Security notes
+
+- ``.env.production`` is gitignored. Only ``.env.production.example`` (placeholders) is committed.
+- ``MONGODB_URI``, ``JWT_SECRET``, ``OPENAI_API_KEY``, ``TWILIO_AUTH_TOKEN``, ``STRIPE_SECRET_KEY`` and ``REMINDER_RUN_SECRET`` must be set via env only.
+- Backend ``CORS_ORIGIN`` is an explicit allow-list — do not use ``*`` in production.
+- Caddy automatically obtains and renews Let's Encrypt certificates when ``SITE_ADDRESS`` is a real DNS name and ports 80/443 are reachable.

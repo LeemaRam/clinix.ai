@@ -1,0 +1,109 @@
+# Production stack for Clinix.ai – Azure Ubuntu VM + Docker Compose + MongoDB Atlas.
+#
+# Usage:
+#   cp .env.production.example .env.production
+#   # edit .env.production with real secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Only the reverse proxy publishes ports to the host. The frontend, backend, and
+# AI service are reachable only on the internal `clinix_net` bridge network.
+
+services:
+  ai-service:
+    build:
+      context: ./ai-service
+    env_file:
+      - .env.production
+    environment:
+      AI_SERVICE_PORT: 8001
+      AI_SERVICE_HOST: 0.0.0.0
+    expose:
+      - "8001"
+    networks:
+      - clinix_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend-node:
+    build:
+      context: ./backend-node
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      # Force backend to reach the AI service via the docker network, not localhost.
+      PYTHON_AI_SERVICE_URL: http://ai-service:8001
+    depends_on:
+      ai-service:
+        condition: service_healthy
+    expose:
+      - "5000"
+    networks:
+      - clinix_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # Persist uploaded audio / generated reports across container rebuilds.
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Empty -> apiFetch.ts falls back to relative '/api', which is what we want
+        # when the React app is served behind the same Caddy reverse proxy.
+        VITE_API_URL: ""
+    environment:
+      # nginx.conf in the frontend image only uses ${API_URL} for /api and
+      # /socket.io fallbacks. Caddy handles those routes in production, but we
+      # still set it for safety so the embedded nginx can also proxy if hit
+      # directly from another container.
+      API_URL: http://backend-node:5000
+    depends_on:
+      backend-node:
+        condition: service_healthy
+    expose:
+      - "80"
+    networks:
+      - clinix_net
+    restart: unless-stopped
+
+  reverse-proxy:
+    image: caddy:2-alpine
+    env_file:
+      - .env.production
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend-node
+      - ai-service
+    networks:
+      - clinix_net
+    restart: unless-stopped
+
+networks:
+  clinix_net:
+    driver: bridge
+
+volumes:
+  backend_uploads:
+  caddy_data:
+  caddy_config:

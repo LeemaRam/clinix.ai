@@ -1,4 +1,10 @@
 ﻿{
+    "validation":  {
+                       "passwordRequired":  "Password is required.",
+                       "currentPasswordRequired":  "Current password is required.",
+                       "genderRequired":  "Gender is required.",
+                       "consentRequired":  "Patient consent is required before submitting the consultation."
+                   },
     "analytics":  {
                       "analyticsDashboard":  "Analytics Dashboard",
                       "totalPatients":  "Total Patients",

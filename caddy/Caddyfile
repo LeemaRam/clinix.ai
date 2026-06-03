@@ -1,0 +1,65 @@
+# Clinix.ai – edge reverse proxy
+#
+# {$SITE_ADDRESS} resolves from the env var SITE_ADDRESS in .env.production.
+#   - For a bare Azure VM demo without a domain, set SITE_ADDRESS=:80
+#     (Caddy will listen on HTTP only, no automatic TLS).
+#   - For an Azure DNS label or custom domain, set
+#     SITE_ADDRESS=clinixai-demo.eastus.cloudapp.azure.com
+#     and Caddy will obtain a Let's Encrypt cert automatically (ports 80+443).
+#
+# Routing:
+#   /api/*       -> backend-node:5000
+#   /socket.io/* -> backend-node:5000 (websocket upgrade preserved)
+#   /ai/*        -> ai-service:8001  (prefix stripped)
+#   /            -> frontend:80      (React SPA)
+
+{
+	# Disable the admin API on the public network
+	admin off
+	# email {$ACME_EMAIL}  # uncomment and set in .env.production for Let's Encrypt
+}
+
+{$SITE_ADDRESS} {
+	encode gzip zstd
+
+	# ---- Backend API ----
+	handle /api/* {
+		reverse_proxy backend-node:5000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# ---- Socket.IO (websockets) ----
+	handle /socket.io/* {
+		reverse_proxy backend-node:5000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# ---- AI service (optional public exposure) ----
+	# Strip /ai prefix before forwarding so /ai/health -> /health on the FastAPI app.
+	handle_path /ai/* {
+		reverse_proxy ai-service:8001 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# ---- Frontend SPA (catch-all) ----
+	handle {
+		reverse_proxy frontend:80 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+}

@@ -14,6 +14,7 @@ import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 import { createAiTask, processConsultationAiTask } from '../services/aiTaskService.js';
 import { sendAppointmentInvitation, getDoctorName } from '../services/followupInvitationService.js';
+import { validateEnum, collectErrors, throwIfErrors } from '../utils/validation.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -446,7 +447,14 @@ export const approveSoapNote = asyncHandler(async (req, res) => {
 });
 
 export const createConsultation = asyncHandler(async (req, res) => {
-  const { patient_id, consultation_type, recording_type, consent_obtained } = req.body;
+  const { patient_id, consultation_type, recording_type, consent_obtained } = req.body || {};
+
+  const errors = collectErrors([
+    ['patient_id', patient_id ? null : 'Patient is required'],
+    ['recording_type', recording_type ? validateEnum(recording_type, ['doctor_only', 'doctor_patient', 'upload'], { label: 'Recording type' }) : null],
+    ['consent_obtained', consent_obtained === true || consent_obtained === 'true' ? null : 'Patient consent is required']
+  ]);
+  throwIfErrors(errors);
 
   const patient = await Patient.findOne({ _id: patient_id, doctorId: req.user.id });
   if (!patient) return res.status(404).json({ success: false, error: 'Patient not found' });
@@ -456,8 +464,8 @@ export const createConsultation = asyncHandler(async (req, res) => {
     doctorId: req.user.id,
     consultationType: consultation_type || 'general',
     recordingType: recording_type || 'upload',
-    consentObtained: Boolean(consent_obtained),
-    consentTimestamp: consent_obtained ? new Date() : null,
+    consentObtained: true,
+    consentTimestamp: new Date(),
     status: 'scheduled',
     scheduledAt: new Date()
   });

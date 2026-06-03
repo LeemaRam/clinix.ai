@@ -108,13 +108,13 @@ export const createApp = () => {
     });
   });
 
-  app.get('/health', (_req, res) => {
+  const healthHandler = (_req, res) => {
     const dbStatus = mongoose.connection.readyState;
     const dbConnected = dbStatus === 1; // 1 = connected
 
     res.status(dbConnected ? 200 : 503).json({
       status: dbConnected ? 'ok' : 'error',
-      service: 'clinix-ai-api',
+      service: 'backend-node',
       environment: env.NODE_ENV,
       database: {
         connected: dbConnected,
@@ -124,7 +124,12 @@ export const createApp = () => {
                 dbStatus === 3 ? 'disconnecting' : 'unknown'
       }
     });
-  });
+  };
+
+  // /health is used by the in-container docker healthcheck.
+  // /api/health is the public health route exposed through the reverse proxy.
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
 
   app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/patients', patientRoutes);

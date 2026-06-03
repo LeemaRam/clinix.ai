@@ -6,6 +6,13 @@ import {
   Settings as SettingsIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validatePasswordConfirm
+} from '../utils/validation';
 
 const Settings = () => {
   const apiRoot = '/api';
@@ -133,6 +140,17 @@ const Settings = () => {
     setProfileLoading(true);
     setProfileError('');
     setProfileSuccess('');
+
+    const validationError =
+      validateName(profile.fullName, { label: t('settings.fullName') })
+      || validateEmail(profile.email, { required: false })
+      || validatePhone(profile.phone, { required: false });
+    if (validationError) {
+      setProfileError(validationError);
+      setProfileLoading(false);
+      return;
+    }
+
     try {
       await axios.put(`${apiRoot}/user/profile`, profile, {
         headers: {
@@ -140,8 +158,12 @@ const Settings = () => {
         }
       });
       setProfileSuccess(t('settings.profileUpdated'));
-    } catch (err) {
-      setProfileError(t('settings.failedToUpdateProfile'));
+    } catch (err: any) {
+      const backendMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(' ')
+          : err?.response?.data?.message;
+      setProfileError(backendMsg || t('settings.failedToUpdateProfile'));
     }
     setProfileLoading(false);
   };
@@ -152,11 +174,24 @@ const Settings = () => {
     setPasswordLoading(true);
     setPasswordError('');
     setPasswordSuccess('');
-    if (passwords.new !== passwords.confirm) {
+
+    if (!passwords.current) {
+      setPasswordError(t('validation.currentPasswordRequired'));
+      setPasswordLoading(false);
+      return;
+    }
+    const newPwError = validatePassword(passwords.new);
+    if (newPwError) {
+      setPasswordError(newPwError);
+      setPasswordLoading(false);
+      return;
+    }
+    if (validatePasswordConfirm(passwords.new, passwords.confirm)) {
       setPasswordError(t('settings.passwordsDoNotMatch'));
       setPasswordLoading(false);
       return;
     }
+
     try {
       await axios.post(`${apiRoot}/user/change-password`, {
         currentPassword: passwords.current,
@@ -170,8 +205,12 @@ const Settings = () => {
       );
       setPasswordSuccess(t('settings.passwordChanged'));
       setPasswords({ current: '', new: '', confirm: '' });
-    } catch (err) {
-      setPasswordError(t('settings.failedToChangePassword'));
+    } catch (err: any) {
+      const backendMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(' ')
+          : err?.response?.data?.message;
+      setPasswordError(backendMsg || t('settings.failedToChangePassword'));
     }
     setPasswordLoading(false);
   };

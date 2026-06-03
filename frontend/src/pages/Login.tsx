@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import Logo from '../components/common/Logo';
+import { validateEmail, normalizeEmail } from '../utils/validation';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -58,8 +59,9 @@ const Login = () => {
     setIsLoading(true);
 
     if (isForgotMode) {
-      if (!forgotEmail.trim()) {
-        setError(t('auth.enterEmailToReset'));
+      const emailError = validateEmail(forgotEmail);
+      if (emailError) {
+        setError(emailError);
         setIsLoading(false);
         return;
       }
@@ -72,8 +74,20 @@ const Login = () => {
       return;
     }
 
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      setIsLoading(false);
+      return;
+    }
+    if (!password) {
+      setError(t('validation.passwordRequired'));
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { redirectTo } = await login(email, password);
+      const { redirectTo } = await login(normalizeEmail(email), password);
       navigate(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.invalidCredentials'));
