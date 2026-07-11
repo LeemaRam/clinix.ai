@@ -79,6 +79,14 @@ export const env = {
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER || '',
+  // Public URL Twilio calls for WhatsApp webhook signature validation (must match exactly).
+  TWILIO_WEBHOOK_URL: process.env.TWILIO_WEBHOOK_URL || '',
+  // When true, reject unsigned/invalid webhook requests. Production always validates.
+  // In development, set TWILIO_WEBHOOK_VALIDATE=false to allow local simulated requests.
+  TWILIO_WEBHOOK_VALIDATE:
+    (process.env.NODE_ENV || 'development') === 'production'
+      ? true
+      : process.env.TWILIO_WEBHOOK_VALIDATE !== 'false',
 
   // Demo Mode
   DEMO_MODE: process.env.DEMO_MODE === 'true',

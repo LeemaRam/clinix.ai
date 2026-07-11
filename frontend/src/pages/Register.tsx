@@ -4,6 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import Logo from '../components/common/Logo';
 import { useTranslation } from 'react-i18next';
+import {
+    validateName,
+    validateEmail,
+    validatePassword,
+    validatePasswordConfirm,
+    normalizeEmail
+} from '../utils/validation';
 
 const Register = () => {
     const { t } = useTranslation();
@@ -29,17 +36,21 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        if (formData.password !== formData.confirmPassword) {
-            return setError(t('auth.passwordsDoNotMatch'));
-        }
+        const nameError = validateName(formData.full_name, { label: t('auth.fullName') });
+        if (nameError) return setError(nameError);
 
-        if (!formData.full_name) {
-            return setError(t('auth.fullNameRequired'));
-        }
+        const emailError = validateEmail(formData.email);
+        if (emailError) return setError(emailError);
+
+        const passwordError = validatePassword(formData.password);
+        if (passwordError) return setError(passwordError);
+
+        const confirmError = validatePasswordConfirm(formData.password, formData.confirmPassword);
+        if (confirmError) return setError(t('auth.passwordsDoNotMatch'));
 
         try {
             await register({
-                email: formData.email.trim().toLowerCase(),
+                email: normalizeEmail(formData.email),
                 password: formData.password,
                 full_name: formData.full_name.trim()
             });
@@ -61,17 +72,17 @@ const Register = () => {
                             </div>
                             <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-tight text-white">{t('auth.createAccount')}</h1>
                             <p className="mt-4 max-w-lg text-lg leading-8 text-white/90">
-                                Join a structured clinical workspace built for transcription review, reporting, and subscription management.
+                                {t('auth.registerTagline')}
                             </p>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                                <p className="text-sm text-white/80">Centralized workflow</p>
-                                <p className="mt-2 text-2xl font-bold">One platform</p>
+                                <p className="text-sm text-white/80">{t('auth.featureCentralizedWorkflow')}</p>
+                                <p className="mt-2 text-2xl font-bold">{t('auth.featureCentralizedWorkflowValue')}</p>
                             </div>
                             <div className="rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
-                                <p className="text-sm text-white/80">Built for clinicians</p>
-                                <p className="mt-2 text-2xl font-bold">Role aware</p>
+                                <p className="text-sm text-white/80">{t('auth.featureBuiltForClinicians')}</p>
+                                <p className="mt-2 text-2xl font-bold">{t('auth.featureSecureAccessValue')}</p>
                             </div>
                         </div>
                     </div>

@@ -12,8 +12,9 @@ COPY . .
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# dumb-init: proper signal handling for PID 1
+# curl:     used by the docker-compose healthcheck
+RUN apk add --no-cache dumb-init curl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \

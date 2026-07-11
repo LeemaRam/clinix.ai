@@ -15,6 +15,7 @@ import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 import { createAiTask, processConsultationAiTask } from '../services/aiTaskService.js';
 import { sendAppointmentInvitation, getDoctorName } from '../services/followupInvitationService.js';
+<<<<<<< HEAD
 =======
 import { FollowUp } from '../models/FollowUp.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -28,6 +29,9 @@ import { scheduleFollowUpReminders } from '../services/reminderScheduleService.j
 import { analyzePatientFiles } from '../services/patientFileAnalysisService.js';
 import { runAgentLeaderWorkflow } from '../services/agentLeaderService.js';
 >>>>>>> e9d40771003615655a40fd8a081945f378b3b280
+=======
+import { validateEnum, collectErrors, throwIfErrors } from '../utils/validation.js';
+>>>>>>> my-working-code
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -297,6 +301,7 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
   const patientPhone = patient?.phone || consultation.patientPhone || '';
   const patientName = `${patient?.firstName || ''} ${patient?.lastName || ''}`.trim() || 'Patient';
   const preferredDate = appointmentDate.toISOString().slice(0, 10);
+  const doctorId = consultation.doctorId?._id || consultation.doctorId;
 
   let appointment = await Appointment.findOne({ consultationId: consultation._id });
   if (appointment) {
@@ -328,6 +333,13 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
       await appointment.save();
     }
   } else {
+    if (!patientPhone) {
+      console.warn('[consultationController] Skipping appointment creation: patient phone is missing', {
+        consultationId: consultation._id.toString()
+      });
+      return null;
+    }
+
     appointment = new Appointment({
       consultationId: consultation._id,
       patientId: consultation.patientId?._id || consultation.patientId,
@@ -335,7 +347,7 @@ const createOrUpdateAppointmentForReport = async ({ consultation, patient, struc
       patientPhone,
       preferredDate,
       reason: appointmentReason,
-      doctorId: consultation.doctorId
+      doctorId
     });
     await appointment.save();
   }
@@ -452,7 +464,14 @@ export const approveSoapNote = asyncHandler(async (req, res) => {
 });
 
 export const createConsultation = asyncHandler(async (req, res) => {
-  const { patient_id, consultation_type, recording_type, consent_obtained } = req.body;
+  const { patient_id, consultation_type, recording_type, consent_obtained } = req.body || {};
+
+  const errors = collectErrors([
+    ['patient_id', patient_id ? null : 'Patient is required'],
+    ['recording_type', recording_type ? validateEnum(recording_type, ['doctor_only', 'doctor_patient', 'upload'], { label: 'Recording type' }) : null],
+    ['consent_obtained', consent_obtained === true || consent_obtained === 'true' ? null : 'Patient consent is required']
+  ]);
+  throwIfErrors(errors);
 
   const patient = await Patient.findOne({ _id: patient_id, doctorId: req.user.id });
   if (!patient) return res.status(404).json({ success: false, error: 'Patient not found' });
@@ -462,8 +481,8 @@ export const createConsultation = asyncHandler(async (req, res) => {
     doctorId: req.user.id,
     consultationType: consultation_type || 'general',
     recordingType: recording_type || 'upload',
-    consentObtained: Boolean(consent_obtained),
-    consentTimestamp: consent_obtained ? new Date() : null,
+    consentObtained: true,
+    consentTimestamp: new Date(),
     status: 'scheduled',
     scheduledAt: new Date()
   });
@@ -815,7 +834,12 @@ export const saveReportPreview = asyncHandler(async (req, res) => {
     generatedBy: req.body.generatedBy || req.user.email || 'System'
   });
 
-  await createOrUpdateAppointmentForReport({ consultation, patient: consultation.patientId, structuredContent });
+  try {
+    await createOrUpdateAppointmentForReport({ consultation, patient: consultation.patientId, structuredContent });
+  } catch (error) {
+    // Saving report is primary; appointment invitation should not block this action.
+    console.error('[consultationController] Non-blocking appointment sync failed during saveReportPreview:', error);
+  }
 
   const data = { report };
   res.status(201).json({ success: true, data, ...data });

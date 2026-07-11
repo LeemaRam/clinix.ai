@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Users, FileText, Activity, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, FileText, Activity, TrendingUp, Loader2, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import EmptyState from '../components/EmptyState';
 
 const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
 const shouldUseProxy = (() => {
@@ -88,107 +89,156 @@ const Analytics = () => {
     );
   }
 
+  const hasTrends = trends.length > 0;
+  const hasDiagnoses = diagnoses.length > 0;
+  const hasAnyData =
+    hasTrends ||
+    hasDiagnoses ||
+    Boolean(
+      analytics &&
+        (analytics.total_patients ||
+          analytics.total_consultations ||
+          analytics.total_reports ||
+          analytics.pending_followups)
+    );
+
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-800">{t('analytics.analyticsDashboard')}</h1>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Users className="w-8 h-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Patients</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics?.total_patients || 0}</p>
+      {!hasAnyData ? (
+        <div className="bg-white rounded-lg shadow-sm border">
+          <EmptyState
+            icon={<BarChart3 size={24} />}
+            title={t('analytics.noDataTitle')}
+            description={t('analytics.noDataDescription')}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <Users className="w-8 h-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{t('analytics.totalPatients')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics?.total_patients || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <Activity className="w-8 h-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{t('analytics.totalConsultations')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics?.total_consultations || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <FileText className="w-8 h-8 text-purple-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{t('analytics.totalReports')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics?.total_reports || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <TrendingUp className="w-8 h-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{t('analytics.pendingFollowUps')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics?.pending_followups || 0}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Activity className="w-8 h-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Consultations</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics?.total_consultations || 0}</p>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Consultation Trends */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h2 className="text-lg font-semibold mb-4">{t('analytics.consultationTrends')}</h2>
+              {hasTrends ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="_id" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState
+                  icon={<TrendingUp size={24} />}
+                  title={t('analytics.noDataTitle')}
+                  description={t('analytics.noTrendsDescription')}
+                />
+              )}
+            </div>
+
+            {/* Top Diagnoses */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h2 className="text-lg font-semibold mb-4">{t('analytics.topDiagnoses')}</h2>
+              {hasDiagnoses ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={diagnoses.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="_id" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState
+                  icon={<BarChart3 size={24} />}
+                  title={t('analytics.noDataTitle')}
+                  description={t('analytics.noDiagnosesDescription')}
+                />
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <FileText className="w-8 h-8 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Reports</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics?.total_reports || 0}</p>
-            </div>
+          {/* Diagnosis Distribution */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <h2 className="text-lg font-semibold mb-4">{t('analytics.diagnosisDistribution')}</h2>
+            {hasDiagnoses ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={diagnoses.slice(0, 5)}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ _id, percent }) => `${_id}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {diagnoses.slice(0, 5).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                icon={<BarChart3 size={24} />}
+                title={t('analytics.noDataTitle')}
+                description={t('analytics.noDiagnosesDescription')}
+              />
+            )}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <TrendingUp className="w-8 h-8 text-orange-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending Follow-ups</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics?.pending_followups || 0}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Consultation Trends */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-4">Consultation Trends</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="_id" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Top Diagnoses */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-4">Top Diagnoses</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={diagnoses.slice(0, 10)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="_id" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#82ca9d" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Diagnosis Distribution */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold mb-4">Diagnosis Distribution</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={diagnoses.slice(0, 5)}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ _id, percent }) => `${_id}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="count"
-            >
-              {diagnoses.slice(0, 5).map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+        </>
+      )}
     </div>
   );
 };

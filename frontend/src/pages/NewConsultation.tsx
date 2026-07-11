@@ -7,6 +7,13 @@ import RecordingTypeSelector from '../components/consultation/RecordingTypeSelec
 import { listPatients, createPatient } from '../services/patientService';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../services/socket';
 import axios from 'axios';
+import {
+  validateName,
+  validateDateOfBirth,
+  validateFileUpload,
+  AUDIO_EXTENSIONS,
+  AUDIO_MIME_TYPES
+} from '../utils/validation';
 
 // Patient type matching backend
 interface Patient {
@@ -366,18 +373,13 @@ const NewConsultation = () => {
     e.preventDefault();
 
     // Input validation
-    if (!addPatientData.first_name.trim() || !addPatientData.last_name.trim()) {
-              setAddPatientError(t('common.firstNameAndLastNameRequired'));
-      return;
-    }
-
-    if (!addPatientData.date_of_birth) {
-              setAddPatientError(t('common.dateOfBirthRequired'));
-      return;
-    }
-
-    if (!addPatientData.gender) {
-      setAddPatientError('Gender is required');
+    const validationError =
+      validateName(addPatientData.first_name, { label: t('patients.firstName') })
+      || validateName(addPatientData.last_name, { label: t('patients.lastName') })
+      || validateDateOfBirth(addPatientData.date_of_birth)
+      || (!addPatientData.gender ? t('validation.genderRequired') : null);
+    if (validationError) {
+      setAddPatientError(validationError);
       return;
     }
 
@@ -554,28 +556,14 @@ const NewConsultation = () => {
       return;
     }
 
-    // Validate file type
-    const validTypes = [
-      'audio/wav',
-      'audio/mp3',
-      'audio/mpeg',
-      'audio/webm',
-      'audio/ogg',
-      'audio/m4a',
-      'audio/x-m4a',
-      'audio/mp4',
-      'audio/aac'
-    ];
-    if (!validTypes.includes(file.type)) {
-      console.log('Detected file type:', file.type); // For debugging
-              setUploadError(t('common.invalidFileType'));
-      return;
-    }
-
-    // Validate file size (100MB max)
-    const maxSize = 1024 * 1024 * 1024; // 1GB in bytes
-    if (file.size > maxSize) {
-              setUploadError(t('common.fileSizeTooLarge'));
+    // Validate file type and size using shared helper
+    const fileError = validateFileUpload(file, {
+      maxSizeMB: 50,
+      extensions: AUDIO_EXTENSIONS,
+      mimes: AUDIO_MIME_TYPES
+    });
+    if (fileError) {
+      setUploadError(fileError);
       return;
     }
 
@@ -588,6 +576,10 @@ const NewConsultation = () => {
   const handleSubmit = async () => {
     if (!selectedPatient || (!audioBlob && !selectedFile)) {
       setSubmitError(t('common.missingPatientOrAudio'));
+      return;
+    }
+    if (!consentObtained) {
+      setSubmitError(t('validation.consentRequired'));
       return;
     }
 
@@ -1134,6 +1126,11 @@ const NewConsultation = () => {
                     <p className="text-base md:text-lg font-semibold text-gray-800">
                       {selectedFile ? selectedFile.name : t('common.selectAudioFile')}
                     </p>
+                    {!selectedFile && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t('common.supportedAudioFormats')} · {t('common.maxFileSize')}
+                      </p>
+                    )}
                     {selectedFile && (
                       <button
                         onClick={() => {

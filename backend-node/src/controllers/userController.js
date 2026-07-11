@@ -2,6 +2,13 @@ import bcrypt from 'bcryptjs';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { User } from '../models/User.js';
+import {
+  validateName,
+  validatePassword,
+  validateEnum,
+  collectErrors,
+  throwIfErrors
+} from '../utils/validation.js';
 
 export const getProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id);
@@ -28,8 +35,15 @@ export const updateProfile = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiResponse(404, null, 'User not found'));
   }
 
-  user.fullName = req.body.fullName ?? user.fullName;
-  user.language = req.body.language ?? user.language;
+  const body = req.body || {};
+  const errors = collectErrors([
+    body.fullName !== undefined ? ['fullName', validateName(body.fullName, { label: 'Full name' })] : [null, null],
+    body.language !== undefined ? ['language', validateEnum(body.language, ['en', 'ur'], { label: 'Language' })] : [null, null]
+  ].filter(([field]) => field));
+  throwIfErrors(errors);
+
+  if (body.fullName !== undefined) user.fullName = String(body.fullName).trim();
+  if (body.language !== undefined) user.language = body.language;
   await user.save();
 
   const data = {
@@ -45,12 +59,18 @@ export const updateProfile = asyncHandler(async (req, res) => {
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+  const { currentPassword, newPassword } = req.body || {};
   const user = await User.findById(req.user.id);
 
   if (!user) {
     return res.status(404).json(new ApiResponse(404, null, 'User not found'));
   }
+
+  const errors = collectErrors([
+    ['currentPassword', currentPassword ? null : 'Current password is required'],
+    ['newPassword', validatePassword(newPassword)]
+  ]);
+  throwIfErrors(errors);
 
   const isValidPassword = await bcrypt.compare(currentPassword || '', user.passwordHash);
   if (!isValidPassword) {
@@ -74,6 +94,9 @@ export const setLanguage = asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(404).json(new ApiResponse(404, null, 'User not found'));
   }
+
+  const langError = validateEnum(req.body?.language || 'en', ['en', 'ur'], { label: 'Language' });
+  throwIfErrors(collectErrors([['language', langError]]));
 
   user.language = req.body.language || 'en';
   await user.save();

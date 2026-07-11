@@ -1,8 +1,48 @@
+import twilio from 'twilio';
 import { FollowUp } from '../models/FollowUp.js';
 import { Patient } from '../models/Patient.js';
 import { Appointment } from '../models/Appointment.js';
+import { env } from '../config/env.js';
 import { getSocketServer } from '../socket.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+
+const rejectInvalidTwilioWebhook = (res, reason) => {
+  console.warn(`[Twilio Webhook] Rejected request: ${reason}`);
+  return res.status(403).json({ success: false, error: 'Forbidden' });
+};
+
+export const verifyTwilioWebhookSignature = (req, res, next) => {
+  if (!env.TWILIO_WEBHOOK_VALIDATE) {
+    console.warn('[Twilio Webhook] Signature validation is disabled (TWILIO_WEBHOOK_VALIDATE=false). Do not use this in production.');
+    return next();
+  }
+
+  if (!env.TWILIO_AUTH_TOKEN) {
+    return rejectInvalidTwilioWebhook(res, 'TWILIO_AUTH_TOKEN is not configured');
+  }
+
+  if (!env.TWILIO_WEBHOOK_URL) {
+    return rejectInvalidTwilioWebhook(res, 'TWILIO_WEBHOOK_URL is not configured');
+  }
+
+  const signature = req.get('X-Twilio-Signature');
+  if (!signature) {
+    return rejectInvalidTwilioWebhook(res, 'missing X-Twilio-Signature header');
+  }
+
+  const isValid = twilio.validateRequest(
+    env.TWILIO_AUTH_TOKEN,
+    signature,
+    env.TWILIO_WEBHOOK_URL,
+    req.body || {}
+  );
+
+  if (!isValid) {
+    return rejectInvalidTwilioWebhook(res, 'invalid Twilio signature');
+  }
+
+  return next();
+};
 
 const normalizeWhatsAppSender = (value) => {
   if (!value) return '';

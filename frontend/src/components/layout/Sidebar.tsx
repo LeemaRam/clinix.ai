@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, isCollapsed = false
       {!isCollapsed && (
         <div className="border-t border-white/10 p-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            <p className="font-semibold text-white">Clinix AI Workspace</p>
+            <p className="font-semibold text-white">{t('common.clinixAi')} {t('common.workspace')}</p>
             <p className="mt-1 leading-relaxed text-slate-400">
               {t('common.audioToMedicalReports')}
             </p>

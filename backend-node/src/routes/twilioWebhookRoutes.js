@@ -1,7 +1,10 @@
 import { Router } from 'express';
-import { handleTwilioWhatsAppWebhook } from '../controllers/twilioWebhookController.js';
+import {
+  handleTwilioWhatsAppWebhook,
+  verifyTwilioWebhookSignature
+} from '../controllers/twilioWebhookController.js';
 
 const router = Router();
-router.post('/twilio/whatsapp', handleTwilioWhatsAppWebhook);
+router.post('/twilio/whatsapp', verifyTwilioWebhookSignature, handleTwilioWhatsAppWebhook);
 
 export default router;

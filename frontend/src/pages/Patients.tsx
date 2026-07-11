@@ -3,6 +3,14 @@ import { Search, Plus, UserPlus, Filter, X, Save, Menu, ChevronLeft, ChevronRigh
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listPatients, createPatient } from '../services/patientService';
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validateDateOfBirth,
+  normalizeEmail,
+  normalizePhone
+} from '../utils/validation';
 
 interface Patient {
   id: string;
@@ -131,10 +139,34 @@ const Patients = () => {
     setIsSubmitting(true);
     setModalError(null);
 
+    // Frontend validation
+    const validationError =
+      validateName(newPatient.first_name, { label: t('patients.firstName') })
+      || validateName(newPatient.last_name, { label: t('patients.lastName') })
+      || validateDateOfBirth(newPatient.date_of_birth)
+      || (!newPatient.gender ? t('validation.genderRequired') : null)
+      || validateEmail(newPatient.email, { required: false })
+      || validatePhone(newPatient.phone, { required: false })
+      || validateName(newPatient.emergency_contact_name, { required: false, label: t('patients.emergencyContact') })
+      || validatePhone(newPatient.emergency_contact_phone, { required: false });
+    if (validationError) {
+      setModalError(validationError);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Process any remaining text in tempArrayInputs and add to existing arrays
       const processedPatient = {
         ...newPatient,
+        first_name: newPatient.first_name.trim(),
+        last_name: newPatient.last_name.trim(),
+        email: newPatient.email ? normalizeEmail(newPatient.email) : '',
+        phone: newPatient.phone ? normalizePhone(newPatient.phone) : '',
+        emergency_contact_name: newPatient.emergency_contact_name.trim(),
+        emergency_contact_phone: newPatient.emergency_contact_phone
+          ? normalizePhone(newPatient.emergency_contact_phone)
+          : '',
         medical_conditions: [
           ...newPatient.medical_conditions,
           ...tempArrayInputs.medical_conditions.split(',').map(s => s.trim()).filter(s => s)
@@ -148,8 +180,6 @@ const Patients = () => {
           ...tempArrayInputs.current_medications.split(',').map(s => s.trim()).filter(s => s)
         ]
       };
-
-      console.log('processed data', processedPatient);
 
       await createPatient(processedPatient);
 
@@ -178,8 +208,12 @@ const Patients = () => {
       
       // Refresh patients list
       fetchPatients();
-    } catch (err) {
-      setModalError(t('errors.somethingWentWrong'));
+    } catch (err: any) {
+      const backendMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(' ')
+          : err?.response?.data?.message || err?.response?.data?.error;
+      setModalError(backendMsg || t('errors.somethingWentWrong'));
       console.error('Error creating patient:', err);
     } finally {
       setIsSubmitting(false);
@@ -586,6 +620,7 @@ const Patients = () => {
                       name="date_of_birth"
                       value={newPatient.date_of_birth}
                       onChange={handleInputChange}
+                      max={new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                       required
                     />

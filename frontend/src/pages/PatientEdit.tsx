@@ -3,6 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Save, X, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch, getAuthHeaders, unwrapApiData } from '../services/apiFetch';
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validateDateOfBirth,
+  normalizeEmail,
+  normalizePhone
+} from '../utils/validation';
 
 interface Patient {
   _id: string;
@@ -146,6 +154,33 @@ const PatientEdit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationError =
+      validateName(patientData.first_name, { label: t('patients.firstName') })
+      || validateName(patientData.last_name, { label: t('patients.lastName') })
+      || validateDateOfBirth(patientData.date_of_birth)
+      || (!patientData.gender ? t('validation.genderRequired') : null)
+      || validateEmail(patientData.email, { required: false })
+      || validatePhone(patientData.phone, { required: false })
+      || validateName(patientData.emergency_contact_name, { required: false, label: t('patients.emergencyContact') })
+      || validatePhone(patientData.emergency_contact_phone, { required: false });
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+
+    const payload = {
+      ...patientData,
+      first_name: patientData.first_name.trim(),
+      last_name: patientData.last_name.trim(),
+      email: patientData.email ? normalizeEmail(patientData.email) : '',
+      phone: patientData.phone ? normalizePhone(patientData.phone) : '',
+      emergency_contact_name: patientData.emergency_contact_name?.trim() || '',
+      emergency_contact_phone: patientData.emergency_contact_phone
+        ? normalizePhone(patientData.emergency_contact_phone)
+        : ''
+    };
+
     try {
       setIsSubmitting(true);
       setSubmitError(null);
@@ -153,7 +188,7 @@ const PatientEdit = () => {
       await apiFetch({
         path: `/patients/${id}`,
         method: 'PUT',
-        data: patientData,
+        data: payload,
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json'
@@ -163,7 +198,11 @@ const PatientEdit = () => {
       // Navigate back to patient detail page
       navigate(`/patients/${id}`);
     } catch (err: any) {
-      setSubmitError(err.response?.data?.error || 'Failed to update patient');
+      const backendMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(' ')
+          : err?.response?.data?.message || err?.response?.data?.error;
+      setSubmitError(backendMsg || 'Failed to update patient');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,6 +285,7 @@ const PatientEdit = () => {
                     required
                     value={patientData.date_of_birth}
                     onChange={handleInputChange}
+                    max={new Date().toISOString().split('T')[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>

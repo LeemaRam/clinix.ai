@@ -92,6 +92,7 @@ export const createApp = () => {
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // limit each IP to 5 auth requests per windowMs
+    skip: (req) => req.method === 'GET' && req.path === '/validate-token',
     message: {
       success: false,
       message: 'Too many authentication attempts, please try again later.'
@@ -110,14 +111,14 @@ export const createApp = () => {
     });
   });
 
-  app.get('/health', (_req, res) => {
+  const healthHandler = (_req, res) => {
     const dbStatus = mongoose.connection.readyState;
     const dbConnected = dbStatus === 1; // 1 = connected
 
 <<<<<<< HEAD
     res.status(dbConnected ? 200 : 503).json({
       status: dbConnected ? 'ok' : 'error',
-      service: 'clinix-ai-api',
+      service: 'backend-node',
       environment: env.NODE_ENV,
 =======
     res.json({
@@ -132,7 +133,12 @@ export const createApp = () => {
                 dbStatus === 3 ? 'disconnecting' : 'unknown'
       }
     });
-  });
+  };
+
+  // /health is used by the in-container docker healthcheck.
+  // /api/health is the public health route exposed through the reverse proxy.
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
 
   app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/patients', patientRoutes);

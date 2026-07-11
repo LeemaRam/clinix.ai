@@ -2,15 +2,13 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import en from './locales/en.json';
-import ur from './locales/ur.json';
+// English is the only locale currently shipped. Additional locales (e.g. Urdu)
+// can be added under ./locales/<lang>/translation.json and registered here.
+import en from '../locales/en/translation.json';
 
 const resources = {
   en: {
     translation: en,
-  },
-  ur: {
-    translation: ur,
   },
 };
 

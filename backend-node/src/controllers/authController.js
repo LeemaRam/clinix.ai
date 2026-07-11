@@ -4,6 +4,14 @@ import { User } from '../models/User.js';
 import { env } from '../config/env.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
+import {
+  validateName,
+  validateEmail,
+  validatePassword,
+  normalizeEmail,
+  collectErrors,
+  throwIfErrors
+} from '../utils/validation.js';
 
 <<<<<<< HEAD
 const normalizeRole = (role) => {
@@ -31,18 +39,24 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Super admin accounts cannot be created through public registration');
   }
 
-  if (!full_name || !email || !password) {
-    throw new ApiError(400, 'Please provide name, email and password');
-  }
+  const errors = collectErrors([
+    ['full_name', validateName(full_name, { label: 'Full name' })],
+    ['email', validateEmail(email)],
+    ['password', validatePassword(password)]
+  ]);
+  throwIfErrors(errors);
 
-  const userExists = await User.findOne({ email });
+  const cleanEmail = normalizeEmail(email);
+  const cleanName = String(full_name).trim();
+
+  const userExists = await User.findOne({ email: cleanEmail });
   if (userExists) throw new ApiError(409, 'User already exists with this email');
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
-    fullName: full_name,
-    email,
+    fullName: cleanName,
+    email: cleanEmail,
     passwordHash: hashedPassword,
     role: normalizedRole
   });
@@ -102,7 +116,16 @@ export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   const user = await User.findOne({ email }).select('+passwordHash +password');
+=======
+  const cleanEmail = normalizeEmail(email);
+  if (!cleanEmail || !password) {
+    throw new ApiError(400, 'Email and password are required');
+  }
+
+  const user = await User.findOne({ email: cleanEmail }).select('+passwordHash +password');
+>>>>>>> my-working-code
   if (!user) {
     throw new ApiError(401, 'Invalid email or password');
   }

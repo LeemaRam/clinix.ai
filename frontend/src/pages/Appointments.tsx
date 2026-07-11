@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Loader2, CalendarClock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getSocket } from '../services/socket';
 import { getAppointments, updateAppointment } from '../services/appointmentService';
+import EmptyState from '../components/EmptyState';
 
 interface Appointment {
   _id: string;
@@ -20,6 +21,7 @@ const Appointments = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchAppointments();
@@ -77,6 +79,15 @@ const Appointments = () => {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return t('appointments.statusPending');
+      case 'confirmed': return t('appointments.statusConfirmed');
+      case 'cancelled': return t('appointments.statusCancelled');
+      default: return status;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -93,12 +104,35 @@ const Appointments = () => {
     );
   }
 
+  const statusOptions = Array.from(
+    new Set(appointments.map((a) => a.status).filter(Boolean))
+  ) as string[];
+
+  const visibleAppointments = statusFilter === 'all'
+    ? appointments
+    : appointments.filter((a) => a.status === statusFilter);
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Appointments</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-gray-800">Appointments</h1>
+        {appointments.length > 0 && statusOptions.length > 1 && (
+          <select
+            aria-label={t('common.filterByStatus')}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="all">{t('common.all')}</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{getStatusLabel(status)}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       <div className="space-y-4">
-        {appointments.map((appointment) => (
+        {visibleAppointments.map((appointment) => (
           <div key={appointment._id} className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -106,7 +140,7 @@ const Appointments = () => {
                   <h3 className="text-lg font-semibold">{appointment.patientName}</h3>
                   <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${getStatusColor(appointment.status)}`}>
                     {getStatusIcon(appointment.status)}
-                    <span className="capitalize">{appointment.status}</span>
+                    <span>{getStatusLabel(appointment.status)}</span>
                   </div>
                 </div>
 
@@ -168,10 +202,22 @@ const Appointments = () => {
         ))}
 
         {appointments.length === 0 && (
-          <div className="text-center py-12">
-            <Clock size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No appointments</h3>
-            <p className="text-gray-500">Appointments will appear here when patients book them.</p>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <EmptyState
+              icon={<CalendarClock size={24} />}
+              title={t('appointments.noAppointmentsTitle')}
+              description={t('appointments.noAppointmentsDescription')}
+            />
+          </div>
+        )}
+
+        {appointments.length > 0 && visibleAppointments.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <EmptyState
+              icon={<CalendarClock size={24} />}
+              title={t('appointments.noAppointmentsTitle')}
+              description={t('common.noResultsForFilter')}
+            />
           </div>
         )}
       </div>

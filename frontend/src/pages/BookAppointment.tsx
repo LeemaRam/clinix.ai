@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Calendar, Clock, User, Phone, MessageSquare, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { bookAppointment } from '../services/appointmentService';
+import {
+  validateName,
+  validatePhone,
+  validateFutureDateTime,
+  validateOptionalText,
+  normalizePhone
+} from '../utils/validation';
 
 const BookAppointment = () => {
   const { t } = useTranslation();
@@ -26,8 +33,13 @@ const BookAppointment = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.patientName || !formData.patientPhone || !formData.preferredDate) {
-      setError('Please fill in all required fields');
+    const validationError =
+      validateName(formData.patientName, { label: 'Full name' })
+      || validatePhone(formData.patientPhone)
+      || validateFutureDateTime(formData.preferredDate)
+      || validateOptionalText(formData.reason, { label: 'Reason', max: 300 });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -35,7 +47,12 @@ const BookAppointment = () => {
       setLoading(true);
       setError(null);
 
-      await bookAppointment(formData);
+      await bookAppointment({
+        ...formData,
+        patientName: formData.patientName.trim(),
+        patientPhone: normalizePhone(formData.patientPhone),
+        reason: formData.reason.trim()
+      });
       setSuccess(true);
       setFormData({
         patientName: '',
@@ -44,7 +61,11 @@ const BookAppointment = () => {
         reason: ''
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to book appointment');
+      const backendMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(' ')
+          : err?.response?.data?.error || err?.response?.data?.message;
+      setError(backendMsg || 'Failed to book appointment');
     } finally {
       setLoading(false);
     }

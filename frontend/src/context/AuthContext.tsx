@@ -130,10 +130,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const isTokenValid = async (): Promise<User | null> => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return null;
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
 
+    try {
       const response = await axios.get(`${apiRoot}/auth/validate-token`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -143,7 +143,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = response.data?.data?.user || response.data?.user;
       return response.status === 200 ? user || null : null;
     } catch (error) {
-      return null;
+      // Only treat 401/403 as a real "invalid token" signal that should
+      // sign the user out. Rate limiting (429), network failures, and
+      // server errors (5xx) are transient and must not wipe the session.
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+          return null;
+        }
+      }
+      // Re-throw so the caller (checkAuth) can keep the existing session
+      // based on the locally stored user.
+      throw error;
     }
   };
 

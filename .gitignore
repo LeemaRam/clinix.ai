@@ -8,6 +8,8 @@ node_modules/
 
 # Environment
 .env
+.env.production
+.env.*.local
 backend-node/secrets/
 backend-node/secrets/*.json
 
@@ -15,6 +17,16 @@ backend-node/secrets/*.json
 uploads/
 backend-node/uploads/
 backend-node/.mongo-data/
+
+# Local QA / scratch artifacts
+qa-screenshots/
+temp_diff.txt
+
+# Generated frontend build output
+frontend/dist/
+
+# Test / scratch audio in ai-service (runtime uploads use backend-node/uploads/)
+ai-service/temp_*.wav
 
 # OS files
 .DS_Store

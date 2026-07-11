@@ -7,12 +7,23 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { extractFollowupDetails } from '../services/openaiService.js';
 import { sendFollowupInvitation, getDoctorName } from '../services/followupInvitationService.js';
 import { sendWhatsAppMessage } from '../services/twilioService.js';
+<<<<<<< HEAD
 =======
 import axios from 'axios';
 import { env } from '../config/env.js';
 import { sendWhatsAppMessage } from '../services/twilioService.js';
 import { scheduleFollowUpReminders } from '../services/reminderScheduleService.js';
 >>>>>>> e9d40771003615655a40fd8a081945f378b3b280
+=======
+import {
+  validateFutureDateTime,
+  validatePhone,
+  validateText,
+  normalizePhone,
+  collectErrors,
+  throwIfErrors
+} from '../utils/validation.js';
+>>>>>>> my-working-code
 
 export const listFollowUps = asyncHandler(async (req, res) => {
   const doctorId = req.user.id;
@@ -24,8 +35,19 @@ export const listFollowUps = asyncHandler(async (req, res) => {
 });
 
 export const scheduleFollowUp = asyncHandler(async (req, res) => {
-  const { consultationId, followUpDate, followUpReason, patientPhone } = req.body;
+  const { consultationId, followUpDate, followUpReason, patientPhone } = req.body || {};
   const doctorId = req.user.id;
+
+  if (!consultationId) {
+    throwIfErrors(collectErrors([['consultationId', 'Consultation id is required']]));
+  }
+
+  const errors = collectErrors([
+    followUpDate !== undefined ? ['followUpDate', validateFutureDateTime(followUpDate)] : [null, null],
+    followUpReason !== undefined ? ['followUpReason', validateText(followUpReason, { required: false, label: 'Reason', max: 300 })] : [null, null],
+    patientPhone !== undefined ? ['patientPhone', validatePhone(patientPhone, { required: false })] : [null, null]
+  ].filter(([field]) => field));
+  throwIfErrors(errors);
 
   // Get consultation and patient
   const consultation = await Consultation.findOne({ _id: consultationId, doctorId });
@@ -58,7 +80,7 @@ export const scheduleFollowUp = asyncHandler(async (req, res) => {
     doctorId,
     followUpDate: followUpDate || new Date(Date.now() + days * 24 * 60 * 60 * 1000),
     followUpReason: reason,
-    patientPhone: patientPhone || patient.phone
+    patientPhone: patientPhone ? normalizePhone(patientPhone) : (patient.phone ? normalizePhone(patient.phone) : patient.phone)
   });
 
   await followUp.save();
