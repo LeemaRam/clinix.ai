@@ -471,7 +471,7 @@ const Dashboard = () => {
             tone="success"
           />
           <StatCard
-            title={"Total Reports"}
+            title={t('dashboard.totalReports')}
             value={stats?.total_reports || 0}
             icon={<FaFileAlt className="h-5 w-5" />}
             tone="accent"

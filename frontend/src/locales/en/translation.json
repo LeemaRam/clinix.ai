@@ -1,32 +1,3 @@
-<<<<<<< HEAD
-{
-  "patients": {
-    "notesAndObservations": "Notes & Observations",
-    "addNote": "Add Note",
-    "enterNote": "Enter your note here...",
-    "noNotes": "No notes available",
-    "noteAdded": "Note added successfully",
-    "errorAddingNote": "Error adding note",
-    "addedOn": "Added on",
-    "by": "by"
-  },
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "saving": "Saving..."
-  }
-  ,
-  "dashboard": {
-    "dashboardOverview": "Dashboard Overview",
-    "totalPatients": "Total Patients",
-    "totalConsultations": "Total Consultations",
-    "totalReports": "Total Reports",
-    "recentPatients": "Recent Patients",
-    "patientName": "Patient",
-    "consultationDate": "Consultation Date"
-  }
-} 
-=======
 ﻿{
     "validation":  {
                        "passwordRequired":  "Password is required.",
@@ -653,4 +624,3 @@
                                   }
                }
 }
->>>>>>> my-working-code

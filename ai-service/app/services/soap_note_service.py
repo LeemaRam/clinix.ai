@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Dict, Optional
-<<<<<<< HEAD
 import re
 
 from .ai_service import generate_text
@@ -39,23 +38,6 @@ def _warn_transcript_age_mismatch(patient_age: str, transcript: str) -> None:
                 f"[ai-service] Patient age mismatch: profile age={patient_age}, transcript age={transcript_age}. "
                 "Using profile age for SOAP note and medical documentation."
             )
-=======
-
-from .gemini_service import generate_text
-
-
-def _fallback_soap(transcription: str, consultation_reason: Optional[str] = None) -> str:
-    summary = (transcription or '').strip()
-    if len(summary) > 700:
-        summary = summary[:700] + '...'
-    return (
-        f"Subjective: {summary or 'Patient-reported symptoms were captured during consultation.'}\n\n"
-        "Objective: No structured objective findings were provided in the transcript.\n\n"
-        "Assessment: Preliminary clinical impression requires physician review and confirmation.\n\n"
-        f"Plan: Continue symptomatic management for {consultation_reason or 'the presenting complaint'}, "
-        "monitor red flags, and arrange timely follow-up."
-    )
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 
 def generate_soap_note(
@@ -66,7 +48,6 @@ def generate_soap_note(
 ) -> Dict:
     """Generate a clinical SOAP note for the given patient and transcription."""
     patient_name = patient_data.get('name') or patient_data.get('first_name') or 'Unknown patient'
-<<<<<<< HEAD
     patient_age = _format_patient_age(patient_data)
     patient_gender = patient_data.get('gender') or 'Unknown gender'
 
@@ -76,13 +57,6 @@ def generate_soap_note(
 Patient: {patient_name}
 Age: {patient_age}
 Gender: {patient_gender}
-=======
-    patient_age = patient_data.get('age') or patient_data.get('date_of_birth') or 'Unknown age'
-    patient_gender = patient_data.get('gender', 'Unknown gender')
-
-    context = f"""
-Patient: {patient_name}, {patient_age} years old, {patient_gender}
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 Chief Complaint: {consultation_reason or 'Not provided'}
 """.strip()
 
@@ -92,7 +66,6 @@ Chief Complaint: {consultation_reason or 'Not provided'}
     prompt = f"""
 You are a senior physician creating a high-quality SOAP Note for clinical records.
 
-<<<<<<< HEAD
 Use the patient profile below as the source of truth:
 - Name: {patient_name}
 - Age: {patient_age}
@@ -100,8 +73,6 @@ Use the patient profile below as the source of truth:
 
 If the transcription contains any age or gender details, ignore them and do not override the patient profile values.
 
-=======
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 {context}
 
 Transcription:
@@ -122,7 +93,6 @@ Additional Requirements:
 """.strip()
 
     try:
-<<<<<<< HEAD
         soap_text = generate_text(prompt, fallback='')
         if not soap_text:
             raise ValueError('Empty SOAP note from OpenAI')
@@ -130,15 +100,6 @@ Additional Requirements:
         return {
             'success': True,
             'soapNote': soap_text.strip(),
-=======
-        soap_text = generate_text(prompt, fallback='').strip()
-        if not soap_text:
-            soap_text = _fallback_soap(transcription, consultation_reason)
-
-        return {
-            'success': True,
-            'soapNote': soap_text,
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
             'generatedAt': datetime.utcnow().isoformat() + 'Z',
             'patientId': str(patient_data.get('_id') or patient_data.get('id') or ''),
             'transcriptionLength': len(transcription or ''),

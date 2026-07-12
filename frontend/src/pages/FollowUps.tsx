@@ -149,7 +149,7 @@ const FollowUps = () => {
                   <div className="flex items-center space-x-2">
                     <User size={18} className="text-gray-500" />
                     <span className="font-medium">
-                      {followUp.patientId?.firstName || 'Unknown'} {followUp.patientId?.lastName || 'Patient'}
+                      {followUp.patientId.firstName} {followUp.patientId.lastName}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">

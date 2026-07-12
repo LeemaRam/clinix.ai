@@ -17,13 +17,8 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 
   // Follow-up stats
   const totalFollowUps = await FollowUp.countDocuments({ doctorId });
-<<<<<<< HEAD
   const pendingFollowUps = await FollowUp.countDocuments({ doctorId, status: 'pending' });
   const completedFollowUps = await FollowUp.countDocuments({ doctorId, status: { $in: ['confirmed', 'completed'] } });
-=======
-  const pendingFollowUps = await FollowUp.countDocuments({ doctorId, status: { $in: ['scheduled', 'pending'] } });
-  const completedFollowUps = await FollowUp.countDocuments({ doctorId, status: 'completed' });
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
   // Recent consultations
   const recentConsultations = await Consultation.find({ doctorId })
@@ -32,11 +27,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     .limit(5);
 
   // Upcoming follow-ups
-<<<<<<< HEAD
   const upcomingFollowUps = await FollowUp.find({ doctorId, status: { $in: ['pending', 'confirmed'] }, followUpDate: { $gte: new Date() } })
-=======
-  const upcomingFollowUps = await FollowUp.find({ doctorId, followUpDate: { $gte: new Date() } })
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
     .populate('patientId', 'firstName lastName')
     .sort({ followUpDate: 1 })
     .limit(5);

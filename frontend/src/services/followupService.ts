@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { apiFetch, getAuthHeaders, unwrapApiData } from './apiFetch';
-=======
-import { apiFetch, getAuthHeaders } from './apiFetch';
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 export interface FollowUp {
   _id: string;
@@ -30,11 +26,7 @@ export const listFollowUps = async (): Promise<FollowUp[]> => {
     method: 'GET',
     headers: getAuthHeaders()
   });
-<<<<<<< HEAD
   return unwrapApiData(res);
-=======
-  return res.data?.data || [];
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };
 
 export const scheduleFollowUp = async (data: {
@@ -49,11 +41,7 @@ export const scheduleFollowUp = async (data: {
     headers: getAuthHeaders(),
     data
   });
-<<<<<<< HEAD
   return unwrapApiData(res);
-=======
-  return res.data?.data;
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };
 
 export const sendReminder = async (followUpId: string): Promise<{ success: boolean; message: string }> => {
@@ -62,9 +50,5 @@ export const sendReminder = async (followUpId: string): Promise<{ success: boole
     method: 'POST',
     headers: getAuthHeaders()
   });
-<<<<<<< HEAD
   return res.data; // This endpoint doesn't use the standard data wrapper
-=======
-  return res.data;
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 };

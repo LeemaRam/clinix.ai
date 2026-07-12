@@ -161,7 +161,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { email: string; password: string; full_name: string }) => {
     try {
       setLoading(true);
-<<<<<<< HEAD
       const response = await axios.post(`${apiRoot}/auth/register`, userData);
       const payload = response.data || {};
       const access_token = payload.access_token || payload.token || payload.data?.access_token || payload.data?.token;
@@ -172,26 +171,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       persistUser(user, access_token);
-=======
-      // Map frontend `full_name` to backend `name`
-      const payload = {
-        name: userData.full_name,
-        email: userData.email,
-        password: userData.password
-      };
-
-      const response = await axios.post(`${apiRoot}/auth/register`, payload);
-
-      const token = response.data?.data?.token;
-      const user = response.data?.data;
-
-      if (!token || !user) throw new Error('Registration failed: invalid server response');
-
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      setUser(user);
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response) {
         const status = error.response.status;
@@ -204,7 +183,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               password: userData.password
             });
 
-<<<<<<< HEAD
             const loginPayload = loginResponse.data || {};
             const access_token = loginPayload.access_token || loginPayload.token || loginPayload.data?.access_token || loginPayload.data?.token;
             const user = loginPayload.user || loginPayload.data?.user || loginPayload.data;
@@ -214,13 +192,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             persistUser(user, access_token);
-=======
-            const token = loginResponse.data?.data?.token;
-            const user = loginResponse.data?.data;
-            localStorage.setItem('access_token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            setUser(user);
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
             return;
           } catch {
             throw new Error('Email already registered. Please log in.');
@@ -246,7 +217,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const access_token = payload.access_token || payload.token || payload.data?.access_token || payload.data?.token;
       const user = payload.user || payload.data?.user || payload.data;
 
-<<<<<<< HEAD
       if (!access_token || !user) {
         throw new Error('Login response was malformed');
       }
@@ -254,20 +224,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const normalizedUser = persistUser(user, access_token);
       const redirectTo = normalizedUser.role === 'super_admin' ? '/super-admin' : '/';
       return { redirectTo };
-=======
-      const token = response.data?.data?.token;
-      const user = response.data?.data;
-
-      if (!token || !user) throw new Error('Login failed: invalid server response');
-
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      setUser(user);
-      
-      // Return redirect information
-      return { redirectTo: '/' };
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.error || error.response.data?.message || 'Invalid credentials');

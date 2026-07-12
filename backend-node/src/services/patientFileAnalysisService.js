@@ -1,12 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-<<<<<<< HEAD
 import * as pdfParse from 'pdf-parse';
-=======
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 const PATIENT_FILE_DIR = path.resolve('uploads', 'patient_files');
 
@@ -16,11 +10,7 @@ const readPlainText = async (filePath) => {
 
 const extractPdfText = async (filePath) => {
   const dataBuffer = await fs.promises.readFile(filePath);
-<<<<<<< HEAD
   const data = await pdfParse.default(dataBuffer);
-=======
-  const data = await pdf(dataBuffer);
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
   return data.text || '';
 };
 

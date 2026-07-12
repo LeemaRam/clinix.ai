@@ -1,30 +1,20 @@
 # Clinix.ai
 
-Clinix.ai is a hybrid medical transcription platform that turns consultation audio into structured clinical output. It combines a React dashboard, a Node.js orchestration API, and a FastAPI AI service so clinicians can manage patients, consultations, reports, follow-ups, appointments, and subscriptions in one place.
+Clinix.ai is a hybrid medical transcription and reporting platform designed to turn consultation audio into structured clinical documentation. The current architecture separates the user interface, orchestration API, and AI processing into dedicated services so each layer can evolve independently.
 
-## What the platform does
+## Overview
 
-Clinix.ai is built to help medical teams move from audio capture to actionable records faster.
+Clinix.ai is organized as a three-service application:
 
-<<<<<<< HEAD
-- Transcribes consultation audio into speaker-aware dialogue segments.
-- Generates SOAP notes, patient briefs, drug safety checks, and follow-up summaries.
-- Stores patient, consultation, appointment, and report data in MongoDB.
-- Supports real-time updates through Socket.IO.
-- Provides role-based access for doctors, admins, and super admins.
-- Includes a modern frontend for reviewing consultations, reports, analytics, and subscriptions.
-=======
 - `frontend/` is the React application built with Vite and TypeScript. It provides the clinician-facing UI for patients, consultations, reports, subscriptions, and settings.
 - `backend-node/` is the main Node.js + Express API layer. It handles authentication, patient and consultation data, subscriptions, uploads, PDFs, dashboards, and Socket.IO events.
 - `ai-service/` is the FastAPI service that performs AI-heavy processing such as transcription and report generation.
 - `docs/` holds project reports, plans, and legacy reference material (not part of the runtime).
->>>>>>> my-working-code
 
-## Architecture
+## Why a Hybrid Architecture
 
-The repository is organized as a three-service application:
+The migration away from a monolithic Flask backend was done to improve separation of concerns and make the platform easier to maintain.
 
-<<<<<<< HEAD
 ## Local Runtime Testing
 
 To run the full platform locally, start the services in this order:
@@ -67,82 +57,71 @@ npm run dev
 - Backend now creates upload directories on startup if they are missing.
 
 Benefits of the current design:
-=======
-- `frontend/` - React 18 + Vite + TypeScript UI.
-- `backend-node/` - Express API for authentication, persistence, uploads, dashboards, and orchestration.
-- `ai-service/` - FastAPI service for transcription and AI-assisted clinical workflows.
-- `backend-legacy/` - Deprecated Flask backend kept only for reference.
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
-Request flow:
+- Frontend and backend can be developed and deployed independently.
+- The Node.js API focuses on orchestration, validation, persistence, and real-time communication.
+- The Python AI service can use the best Python ecosystem for audio and LLM workflows without pulling that complexity into the main API.
+- The system scales more cleanly because AI workloads are isolated from standard CRUD traffic.
+- The legacy Flask code can be retired gradually without blocking the active product path.
 
-`Frontend -> Node API -> FastAPI AI Service -> AI provider -> Node API -> Frontend`
-
-## Key features
-
-### Frontend
-
-- Clinician dashboard with patient and consultation management.
-- Registration and login flows.
-- Past consultations view with speaker-colored transcription segments.
-- Pages for reports, analytics, appointments, follow-ups, pricing, and settings.
-- Super admin pages for user, language, and subscription-plan management.
-
-### Backend API
-
-- JWT-based authentication.
-- Patient, consultation, report, appointment, and follow-up APIs.
-- File upload handling for consultation audio.
-- Socket.IO support for live updates.
-- PDF generation and subscription support.
-
-### AI service
-
-- Audio transcription endpoint.
-- SOAP note generation.
-- Drug safety and interaction analysis.
-- Patient brief generation.
-- Follow-up extraction and reminder helpers.
-
-## Tech stack
+## Tech Stack
 
 ### Frontend
 
 - React 18
 - TypeScript
 - Vite
-- React Router
 - Tailwind CSS
+- React Router
 - Axios
-- Zustand
 - React Hook Form
 - React Toastify
-- i18next
-- Socket.IO client
+- i18next and react-i18next
+- Zustand
+- Socket.IO client support where needed
 
-### Backend
+### Backend API Layer
 
 - Node.js
 - Express
-- MongoDB + Mongoose
+- MongoDB with Mongoose
 - Socket.IO
-- JWT
-- Multer
-- PDFKit
-- Stripe
-- Twilio
-- `mongodb-memory-server` for local fallback storage
+- JWT authentication
+- Multer for uploads
+- PDF generation with PDFKit
 
-### AI service
+### Containerization and Azure Hosting
 
+This repository now includes Docker support for all three services:
+
+- `frontend/` — React app built and served by Nginx
+- `backend-node/` — Express API service
+- `ai-service/` — FastAPI AI processing service
+
+A root `docker-compose.yml` file is included for local multi-service development.
+
+For Azure deployment, the recommended path is:
+
+1. build Docker images for each service
+2. push them to Azure Container Registry
+3. deploy using Azure Container Instances or Azure App Service for Containers
+
+This setup is ideal for an FYP project on Azure free tier, because it keeps services isolated and easy to manage.
+
+- Stripe integration
+- CORS, Helmet, Morgan, and dotenv
+
+### AI Service
+
+- Python 3
 - FastAPI
-- Uvicorn
-- Pydantic
-- python-multipart
-- OpenAI / Gemini integration
-- Audio and clinical helper workflows
+- OpenAI API
+- Pydub for audio handling
+- FFmpeg-backed audio processing
+- Pydantic and python-multipart
+- Uvicorn for serving the API
 
-## Repository layout
+## Project Structure
 
 - `frontend/` = React/Vite frontend
 - `backend-node/` = active Express/Mongo backend
@@ -154,12 +133,10 @@ Request flow:
 
 ```text
 clinix.ai/
-<<<<<<< HEAD
-  backend-node/
-=======
   backend-node/            # Main Express API layer (active backend)
->>>>>>> my-working-code
     src/
+      app.js
+      server.js
       config/
       controllers/
       middleware/
@@ -169,34 +146,24 @@ clinix.ai/
       utils/
     .env.example
     package.json
-<<<<<<< HEAD
-  ai-service/
-=======
   ai-service/              # FastAPI AI processing service (active)
->>>>>>> my-working-code
     app/
       main.py
       schemas.py
       services/
     .env.example
     requirements.txt
-<<<<<<< HEAD
-  frontend/
-=======
   frontend/                # React + Vite frontend (active)
->>>>>>> my-working-code
     src/
       components/
       context/
       i18n/
       pages/
       services/
+      types/
       utils/
+    vite.config.ts
     package.json
-<<<<<<< HEAD
-  backend-legacy/
-  docker-compose.yml
-=======
   docs/                    # Reports, plans, and legacy reference material
     reports/
     planning/
@@ -204,55 +171,18 @@ clinix.ai/
   docker-compose.yml
   start-local.ps1
   README.md
->>>>>>> my-working-code
 ```
 
 ## Prerequisites
 
-Install the following before running the project locally:
+Install the following before running the project:
 
 - Node.js 18+ and npm
 - Python 3.10+ with pip
-- MongoDB Atlas or local MongoDB
-- FFmpeg for audio handling
-- OpenAI API key if you want live transcription
-- Gemini API key if you want live AI-generated clinical summaries
-
-## Environment setup
-
-Never commit real secrets to the repository. Use local `.env` files instead.
-
-### `backend-node/.env`
-
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/clinix_ai
-JWT_SECRET=replace-with-a-secure-secret
-JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:3000
-DEMO_MODE=false
-PYTHON_AI_SERVICE_URL=http://localhost:8001
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_SUCCESS_URL=http://localhost:3000/subscription/success
-STRIPE_CANCEL_URL=http://localhost:3000/subscription/cancel
-MAX_UPLOAD_SIZE_MB=1024
-```
-
-### `ai-service/.env`
-
-```env
-AI_SERVICE_PORT=8001
-GEMINI_API_KEY=replace-with-your-gemini-key
-DEMO_MODE=true
-MAX_FILE_MB=1024
-```
-
-### `frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:5000
-```
+- MongoDB
+- FFmpeg
+- OpenAI API key for transcription and report generation
+- Stripe credentials if you want billing features enabled
 
 ## Installation
 
@@ -263,119 +193,178 @@ git clone https://github.com/LeemaRam/clinix.ai.git
 cd clinix.ai
 ```
 
-### 2. Install the backend
+### 2. backend-node setup
 
 ```bash
 cd backend-node
 npm install
 ```
 
-### 3. Install the AI service dependencies
+Create `backend-node/.env` from `backend-node/.env.example` and configure these values:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/clinix_ai
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:3000
+PYTHON_AI_SERVICE_URL=http://localhost:8001
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_SUCCESS_URL=http://localhost:3000/subscription/success
+STRIPE_CANCEL_URL=http://localhost:3000/subscription/cancel
+MAX_UPLOAD_SIZE_MB=1024
+```
+
+### 3. ai-service setup
 
 ```bash
-cd ../ai-service
-python -m venv .venv
-.\.venv\Scripts\activate
+cd ai-service
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Install the frontend
+Create `ai-service/.env` from `ai-service/.env.example` and configure these values:
+
+```env
+AI_SERVICE_PORT=8001
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_TRANSCRIBE_MODEL=whisper-1
+OPENAI_CHAT_MODEL=gpt-4o-mini
+MAX_FILE_MB=1024
+```
+
+### 4. frontend setup
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 ```
 
-## Running locally
+Create `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+## Running the Application
 
 Run each service in its own terminal.
 
-### Terminal 1: backend API
+### Terminal 1: backend-node
 
 ```bash
 cd backend-node
 npm run dev
 ```
 
-Default port: `http://localhost:5000`
+The Node API runs on `http://localhost:5000`.
 
-### Terminal 2: AI service
+### Terminal 2: ai-service
 
 ```bash
 cd ai-service
-.\.venv\Scripts\activate
+source .venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-Default port: `http://localhost:8001`
+The FastAPI service runs on `http://localhost:8001` by default. If you want to use port `8000` instead, update `AI_SERVICE_PORT` and the Node service URL accordingly.
 
 ### Terminal 3: frontend
 
 ```bash
 cd frontend
-npm run dev -- --host 0.0.0.0
+npm run dev
 ```
 
-Default port: `http://localhost:3000`
+The Vite dev server runs on `http://localhost:3000`.
 
-## Local data persistence
+## End-to-End API Flow
 
-The backend first tries to connect to the configured MongoDB URI. If that fails during local development, it falls back to a local MongoDB-compatible store in `backend-node/.mongo-data` so newly created users and other records can persist across restarts.
+The typical request path is:
 
-## Main routes
+Frontend → Node API → FastAPI AI Service → OpenAI → Node API → Frontend
 
-### Frontend routes
+A typical consultation flow looks like this:
 
-- `/` - dashboard
-- `/login` and `/register` - authentication
-- `/patients` - patient list
-- `/patients/:id` - patient details
-- `/patients/:id/edit` - patient edit
-- `/new-consultation` - new consultation flow
-- `/past-consultations` - transcription history
-- `/reports` - reports
-- `/analytics` - analytics dashboard
-- `/appointments` - appointments
-- `/follow-ups` - follow-up management
-- `/pricing` - subscription pricing
-- `/super-admin/*` - super admin views
+1. The clinician logs in through the React frontend.
+2. The frontend sends requests to the Node API for patients, consultations, reports, and subscriptions.
+3. When audio is uploaded, Node stores the file and forwards it to the FastAPI AI service.
+4. The FastAPI service calls OpenAI for transcription or report generation.
+5. The AI response is returned to Node for persistence and response shaping.
+6. Node returns the final result to the frontend for display, preview, or PDF generation.
 
-### Backend API highlights
+## Environment Variables
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/patients`
-- `POST /api/consultations`
-- `GET /api/reports`
-- `GET /api/dashboard/stats`
-- `GET /api/appointments`
-- `GET /api/followups`
+### frontend/.env
 
-### AI service endpoints
+- `VITE_API_URL` - Base URL for the Node API. In local development this is typically `http://localhost:5000`.
+
+### backend-node/.env
+
+- `PORT` - Express server port. Default `5000`.
+- `MONGODB_URI` - MongoDB connection string.
+- `JWT_SECRET` - JWT signing secret.
+- `JWT_EXPIRES_IN` - JWT lifetime.
+- `CORS_ORIGIN` - Allowed frontend origin(s).
+- `PYTHON_AI_SERVICE_URL` - FastAPI service URL used by Node when sending audio for transcription.
+- `STRIPE_SECRET_KEY` - Stripe secret key.
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret.
+- `STRIPE_SUCCESS_URL` - Redirect URL after successful checkout.
+- `STRIPE_CANCEL_URL` - Redirect URL after canceled checkout.
+- `MAX_UPLOAD_SIZE_MB` - Maximum upload size in megabytes.
+
+### ai-service/.env
+
+- `AI_SERVICE_PORT` - FastAPI port. Default `8001`.
+- `OPENAI_API_KEY` - OpenAI API key.
+- `OPENAI_TRANSCRIBE_MODEL` - Model used for transcription.
+- `OPENAI_CHAT_MODEL` - Model used for report generation.
+- `MAX_FILE_MB` - Maximum audio file size in megabytes.
+
+## Features
+
+- Role-based authentication for clinicians and administrators
+- Patient management and consultation lifecycle tracking
+- Browser recording and audio upload workflows
+- AI transcription and structured report generation
+- Editable report previews and PDF export
+- Subscription plans and Stripe checkout support
+- Dashboard metrics and operational views
+- Internationalized UI support
+- Socket.IO-based real-time updates
+
+## API Surface
+
+The Node API exposes the application routes consumed by the frontend, including:
+
+- Authentication and user profile routes
+- Patient CRUD routes
+- Consultation and transcription routes
+- Report generation and export routes
+- Subscription and plan routes
+- Dashboard and super-admin routes
+- Socket.IO events for live consultation updates
+
+The AI service exposes:
 
 - `GET /health`
 - `POST /transcribe`
 - `POST /generate-report`
-- `POST /drug-safety`
-- `POST /drug-check`
-- `POST /patient-brief`
-- `POST /soap-note`
-- `POST /extract-followup`
-- `POST /send-reminder`
+## Stripe Payment Integration
 
-<<<<<<< HEAD
 Clinix.ai includes a complete Stripe integration for subscription management. The full Stripe setup and configuration are consolidated in a single guide.
-=======
-## Notes for contributors
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
-- Keep secrets in local `.env` files only.
-- Do not commit generated database data, uploads, or build artifacts.
-- The legacy Flask backend is preserved for reference, but the active application uses the Node.js + FastAPI stack.
+### Quick Start
 
-## Deployment
+1. **Create a Stripe Account**: https://stripe.com
+2. **Get API Keys**: Stripe Dashboard → Developers → API Keys (copy Secret Key)
+3. **Create Products**: Add subscription products with prices in Stripe Dashboard
+4. **Configure Backend**: Add `STRIPE_SECRET_KEY` and webhook secret to `backend-node/.env`
+5. **Seed Database**: Run `npm run seed:stripe` in `backend-node/` to populate MongoDB with plans
+6. **Test**: Visit `/pricing` and test with card `4242 4242 4242 4242`
 
-<<<<<<< HEAD
 ### Detailed Setup
 
 For comprehensive setup instructions, see:
@@ -606,15 +595,9 @@ The old Flask backend (`backend-legacy/`) is deprecated and not part of the acti
 - The current browser-facing development setup uses Vite on port `3000` and proxies API requests to the Node server on `5000`.
 - The Node service delegates AI work to the FastAPI service instead of calling OpenAI directly.
 - The repository has been migrated away from the monolithic Flask backend, so any old Flask-only setup steps should be treated as historical only.
-=======
-A root `docker-compose.yml` is included for local multi-service development. The services can also be containerized independently for cloud deployment.
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 
 ## License
 
-<<<<<<< HEAD
-No license file is currently included in this repository.
-=======
 This project is licensed under the MIT License.
 
 
@@ -739,4 +722,3 @@ The local ``docker-compose.yml`` and ``start-local.ps1`` are unchanged and still
 - ``MONGODB_URI``, ``JWT_SECRET``, ``OPENAI_API_KEY``, ``TWILIO_AUTH_TOKEN``, ``STRIPE_SECRET_KEY`` and ``REMINDER_RUN_SECRET`` must be set via env only.
 - Backend ``CORS_ORIGIN`` is an explicit allow-list � do not use ``*`` in production.
 - Caddy automatically obtains and renews Let's Encrypt certificates when ``SITE_ADDRESS`` is a real DNS name and ports 80/443 are reachable.
->>>>>>> my-working-code

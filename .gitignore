@@ -16,7 +16,6 @@ backend-node/secrets/*.json
 # Upload artifacts
 uploads/
 backend-node/uploads/
-backend-node/.mongo-data/
 
 # Local QA / scratch artifacts
 qa-screenshots/

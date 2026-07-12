@@ -3,10 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
-<<<<<<< HEAD
 import rateLimit from 'express-rate-limit';
-=======
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
 import { env } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
@@ -115,16 +112,10 @@ export const createApp = () => {
     const dbStatus = mongoose.connection.readyState;
     const dbConnected = dbStatus === 1; // 1 = connected
 
-<<<<<<< HEAD
     res.status(dbConnected ? 200 : 503).json({
       status: dbConnected ? 'ok' : 'error',
       service: 'backend-node',
       environment: env.NODE_ENV,
-=======
-    res.json({
-      status: dbConnected ? 'ok' : 'error',
-      service: 'clinix-ai-api',
->>>>>>> e9d40771003615655a40fd8a081945f378b3b280
       database: {
         connected: dbConnected,
         status: dbStatus === 0 ? 'disconnected' :
