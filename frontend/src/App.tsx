@@ -1,6 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
@@ -174,6 +172,16 @@ function App() {
             />
             <Route path="/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
+            <Route
+              path="/subscription"
+              element={
+                <ProtectedRoute>
+                  <UserLayout>
+                    <SubscriptionManagement />
+                  </UserLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/super-admin"
               element={
