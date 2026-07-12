@@ -349,13 +349,13 @@ else {
 Start-ServiceJob `
     -Name 'ClinixAI-Backend' `
     -WorkingDirectory $backendPath `
-    -Command 'npm run dev'
+    -Command 'cmd /c "npm run dev"'
 
 # Start Frontend
 Start-ServiceJob `
     -Name 'ClinixAI-Frontend' `
     -WorkingDirectory $frontendPath `
-    -Command 'npm run dev'
+    -Command 'cmd /c "npm run dev"'
 
 Write-Host ""
 Write-Host "========================================="

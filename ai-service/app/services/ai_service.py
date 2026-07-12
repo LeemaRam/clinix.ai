@@ -5,7 +5,6 @@ import tempfile
 import time
 
 from openai import OpenAI
-from pydub import AudioSegment
 
 
 def get_audio_info(file_path: str) -> dict:
@@ -13,6 +12,7 @@ def get_audio_info(file_path: str) -> dict:
     mime_type, _ = mimetypes.guess_type(file_path)
     duration_seconds = None
     try:
+        from pydub import AudioSegment
         audio = AudioSegment.from_file(file_path)
         duration_seconds = len(audio) / 1000.0
     except Exception as exc:

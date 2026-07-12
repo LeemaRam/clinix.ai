@@ -1,6 +1,7 @@
 import os
 import platform
 import shutil
+from pathlib import Path
 import sys
 import tempfile
 
@@ -41,6 +42,27 @@ def get_ffmpeg_paths():
     return shutil.which("ffmpeg"), shutil.which("ffprobe")
 
 
+def configure_local_ffmpeg_path() -> str | None:
+    env_bin = str(os.getenv("FFMPEG_BIN", "")).strip()
+    candidates: list[Path] = []
+
+    if env_bin:
+        candidates.append(Path(env_bin))
+
+    tools_root = Path(__file__).resolve().parents[1] / "tools" / "ffmpeg"
+    if tools_root.exists():
+        for bin_dir in tools_root.glob("**/bin"):
+            candidates.append(bin_dir)
+
+    for candidate in candidates:
+        ffmpeg_exe = candidate / "ffmpeg.exe"
+        if ffmpeg_exe.exists():
+            os.environ["PATH"] = f"{candidate}{os.pathsep}{os.environ.get('PATH', '')}"
+            return str(candidate)
+
+    return None
+
+
 def get_openai_sdk_version():
     return getattr(openai, "__version__", "unknown")
 
@@ -55,9 +77,11 @@ def get_pydantic_version():
 
 @app.on_event("startup")
 def startup_validation() -> None:
+    configured_ffmpeg_bin = configure_local_ffmpeg_path()
     ffmpeg_path, ffprobe_path = get_ffmpeg_paths()
     openai_key_present = bool(os.getenv("OPENAI_API_KEY", "").strip())
     demo_mode = str(os.getenv("DEMO_MODE", "false")).strip().lower() in {"1", "true", "yes", "on"}
+    strict_ffmpeg = str(os.getenv("STRICT_FFMPEG", "true")).strip().lower() in {"1", "true", "yes", "on"}
 
     print("[ai-service] startup validation", {
         "python_version": sys.version.replace("\n", " "),
@@ -67,6 +91,7 @@ def startup_validation() -> None:
         "openai_version": get_openai_sdk_version(),
         "ffmpeg_path": ffmpeg_path,
         "ffprobe_path": ffprobe_path,
+        "configured_ffmpeg_bin": configured_ffmpeg_bin,
         "ffmpeg_available": bool(ffmpeg_path or ffprobe_path),
         "openai_api_key_present": openai_key_present,
         "demo_mode": demo_mode,
@@ -76,11 +101,14 @@ def startup_validation() -> None:
         raise RuntimeError("OPENAI_API_KEY is required for production transcription")
 
     if not (ffmpeg_path or ffprobe_path):
-        raise RuntimeError("FFmpeg/ffprobe not found on PATH. Install FFmpeg and add it to PATH.")
+        if strict_ffmpeg:
+            raise RuntimeError("FFmpeg/ffprobe not found on PATH. Install FFmpeg and add it to PATH.")
+        print("[ai-service] WARNING: FFmpeg/ffprobe not found on PATH. Audio conversion features may fail.")
 
 
 @app.get("/health")
 def health() -> dict:
+    configured_ffmpeg_bin = configure_local_ffmpeg_path()
     ffmpeg_path, ffprobe_path = get_ffmpeg_paths()
     return {
         "status": "ok",
@@ -90,6 +118,7 @@ def health() -> dict:
         "openai_sdk_version": get_openai_sdk_version(),
         "pydantic_version": get_pydantic_version(),
         "ffmpeg_available": bool(ffmpeg_path or ffprobe_path),
+        "configured_ffmpeg_bin": configured_ffmpeg_bin,
         "ffmpeg_path": ffmpeg_path,
         "ffprobe_path": ffprobe_path,
         "openai_api_key_present": bool(os.getenv("OPENAI_API_KEY", "").strip()),
