@@ -72,18 +72,21 @@ function Start-ServiceJob {
     Write-Host "========================================="
     Write-Host ""
 
-    Start-Job -Name $Name -ScriptBlock {
-        param($WorkingDirectory, $Command)
+    $logDir = Join-Path $WorkingDirectory 'logs'
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir | Out-Null
+    }
 
-        Set-Location $WorkingDirectory
+    $safeName = $Name -replace '[^A-Za-z0-9._-]', '_'
+    $stdoutLog = Join-Path $logDir "$safeName.stdout.log"
+    $stderrLog = Join-Path $logDir "$safeName.stderr.log"
 
-        Write-Host ""
-        Write-Host "[$WorkingDirectory]"
-        Write-Host "Executing: $Command"
-        Write-Host ""
-
-        Invoke-Expression $Command
-    } -ArgumentList $WorkingDirectory, $Command | Out-Null
+    Start-Process -FilePath 'cmd.exe' `
+        -WorkingDirectory $WorkingDirectory `
+        -ArgumentList @('/c', $Command) `
+        -RedirectStandardOutput $stdoutLog `
+        -RedirectStandardError $stderrLog `
+        -WindowStyle Hidden | Out-Null
 }
 
 function Test-HealthEndpoint {
