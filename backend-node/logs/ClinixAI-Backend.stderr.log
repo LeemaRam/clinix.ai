@@ -30,3 +30,11 @@ Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
   syscall: 'querySrv',
   hostname: '_mongodb._tcp.clinixai.uzh4z0y.mongodb.net'
 }
+Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
+❌ Failed to start server: Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
+    at QueryReqWrap.onresolve [as oncomplete] (node:internal/dns/promises:295:17) {
+  errno: undefined,
+  code: 'ECONNREFUSED',
+  syscall: 'querySrv',
+  hostname: '_mongodb._tcp.clinixai.uzh4z0y.mongodb.net'
+}
