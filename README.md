@@ -9,7 +9,7 @@ Clinix.ai is organized as a three-service application:
 - `frontend/` is the React application built with Vite and TypeScript. It provides the clinician-facing UI for patients, consultations, reports, subscriptions, and settings.
 - `backend-node/` is the main Node.js + Express API layer. It handles authentication, patient and consultation data, subscriptions, uploads, PDFs, dashboards, and Socket.IO events.
 - `ai-service/` is the FastAPI service that performs AI-heavy processing such as transcription and report generation.
-- `docs/` holds project reports, plans, and legacy reference material (not part of the runtime).
+- `caddy/` provides the reverse-proxy configuration used for the containerized production deployment.
 
 ## Why a Hybrid Architecture
 
@@ -62,7 +62,6 @@ Benefits of the current design:
 - The Node.js API focuses on orchestration, validation, persistence, and real-time communication.
 - The Python AI service can use the best Python ecosystem for audio and LLM workflows without pulling that complexity into the main API.
 - The system scales more cleanly because AI workloads are isolated from standard CRUD traffic.
-- The legacy Flask code can be retired gradually without blocking the active product path.
 
 ## Tech Stack
 
@@ -74,11 +73,11 @@ Benefits of the current design:
 - Tailwind CSS
 - React Router
 - Axios
-- React Hook Form
 - React Toastify
 - i18next and react-i18next
-- Zustand
-- Socket.IO client support where needed
+- Recharts (analytics charts)
+- lucide-react and react-icons (iconography)
+- Socket.IO client
 
 ### Backend API Layer
 
@@ -92,21 +91,20 @@ Benefits of the current design:
 
 ### Containerization and Azure Hosting
 
-This repository now includes Docker support for all three services:
+This repository includes Docker support for all three services:
 
 - `frontend/` — React app built and served by Nginx
 - `backend-node/` — Express API service
 - `ai-service/` — FastAPI AI processing service
 
-A root `docker-compose.yml` file is included for local multi-service development.
+Two Compose files are provided:
 
-For Azure deployment, the recommended path is:
+- `docker-compose.yml` — local multi-service development
+- `docker-compose.prod.yml` — production stack fronted by a Caddy reverse proxy
 
-1. build Docker images for each service
-2. push them to Azure Container Registry
-3. deploy using Azure Container Instances or Azure App Service for Containers
-
-This setup is ideal for an FYP project on Azure free tier, because it keeps services isolated and easy to manage.
+The supported production deployment is a single Azure Ubuntu VM running Docker Compose
+behind Caddy, with **MongoDB Atlas** as the managed database. Full step-by-step
+instructions are in the "Production Deployment (Azure)" section below.
 
 - Stripe integration
 - CORS, Helmet, Morgan, and dotenv
@@ -124,16 +122,13 @@ This setup is ideal for an FYP project on Azure free tier, because it keeps serv
 ## Project Structure
 
 - `frontend/` = React/Vite frontend
-- `backend-node/` = active Express/Mongo backend
-- `ai-service/` = active FastAPI AI service
-- `docs/` = reports / plans / legacy reference
-- `docs/legacy/backend-legacy/` = deprecated, not active
-
-> **Do not start `backend-legacy`. Use `backend-node` as the active backend.**
+- `backend-node/` = Express/Mongo API (active backend)
+- `ai-service/` = FastAPI AI service
+- `caddy/` = reverse-proxy configuration for production
 
 ```text
 clinix.ai/
-  backend-node/            # Main Express API layer (active backend)
+  backend-node/            # Main Express API layer
     src/
       app.js
       server.js
@@ -144,31 +139,33 @@ clinix.ai/
       routes/
       services/
       utils/
+    scripts/               # seed-demo helper
+    seed-stripe-plans.js
     .env.example
     package.json
-  ai-service/              # FastAPI AI processing service (active)
+  ai-service/              # FastAPI AI processing service
     app/
       main.py
       schemas.py
       services/
     .env.example
     requirements.txt
-  frontend/                # React + Vite frontend (active)
+  frontend/                # React + Vite frontend
     src/
       components/
       context/
       i18n/
+      locales/
       pages/
       services/
       types/
       utils/
     vite.config.ts
     package.json
-  docs/                    # Reports, plans, and legacy reference material
-    reports/
-    planning/
-    legacy/                # Deprecated material; backend-legacy not part of runtime
-  docker-compose.yml
+  caddy/                   # Caddy reverse-proxy config
+  docker-compose.yml       # local dev stack
+  docker-compose.prod.yml  # production stack (Caddy + services)
+  .env.production.example
   start-local.ps1
   README.md
 ```
@@ -178,9 +175,9 @@ clinix.ai/
 Install the following before running the project:
 
 - Node.js 18+ and npm
-- Python 3.10+ with pip
-- MongoDB
-- FFmpeg
+- Python 3.11–3.13 with pip (the AI service enforces this range)
+- MongoDB (local) or MongoDB Atlas
+- FFmpeg (required by the AI service for audio processing)
 - OpenAI API key for transcription and report generation
 - Stripe credentials if you want billing features enabled
 
@@ -213,7 +210,7 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_SUCCESS_URL=http://localhost:3000/subscription/success
 STRIPE_CANCEL_URL=http://localhost:3000/subscription/cancel
-MAX_UPLOAD_SIZE_MB=1024
+MAX_UPLOAD_SIZE_MB=50
 ```
 
 ### 3. ai-service setup
@@ -229,10 +226,11 @@ Create `ai-service/.env` from `ai-service/.env.example` and configure these valu
 
 ```env
 AI_SERVICE_PORT=8001
+AI_SERVICE_HOST=0.0.0.0
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_TRANSCRIBE_MODEL=whisper-1
-OPENAI_CHAT_MODEL=gpt-4o-mini
-MAX_FILE_MB=1024
+OPENAI_MODEL=gpt-4o-mini
+MAX_FILE_MB=50
+NODE_ENV=development
 ```
 
 ### 4. frontend setup
@@ -318,10 +316,13 @@ A typical consultation flow looks like this:
 ### ai-service/.env
 
 - `AI_SERVICE_PORT` - FastAPI port. Default `8001`.
+- `AI_SERVICE_HOST` - Bind host. Default `0.0.0.0`.
 - `OPENAI_API_KEY` - OpenAI API key.
-- `OPENAI_TRANSCRIBE_MODEL` - Model used for transcription.
-- `OPENAI_CHAT_MODEL` - Model used for report generation.
+- `OPENAI_MODEL` - Chat model used for report/SOAP generation (default `gpt-4o-mini`).
+- `RXNORM_API_ID` - Optional RxNorm API identifier for medication lookups.
 - `MAX_FILE_MB` - Maximum audio file size in megabytes.
+- `NODE_ENV` - `development` or `production`.
+- `DEMO_MODE` - When `true`, enables demo behavior.
 
 ## Features
 
@@ -349,9 +350,15 @@ The Node API exposes the application routes consumed by the frontend, including:
 
 The AI service exposes:
 
-- `GET /health`
-- `POST /transcribe`
-- `POST /generate-report`
+- `GET /health` and `GET /` — health/status
+- `POST /transcribe` — audio transcription
+- `POST /generate-report` — structured report generation
+- `POST /soap-note` — SOAP note generation
+- `POST /patient-brief` — patient brief generation
+- `POST /drug-safety` and `POST /drug-check` — medication safety checks
+- `POST /extract-followup` — follow-up extraction from a SOAP note
+- `POST /send-reminder` — WhatsApp reminder dispatch
+
 ## Stripe Payment Integration
 
 Clinix.ai includes a complete Stripe integration for subscription management. The full Stripe setup and configuration are consolidated in a single guide.
@@ -367,8 +374,7 @@ Clinix.ai includes a complete Stripe integration for subscription management. Th
 
 ### Detailed Setup
 
-For comprehensive setup instructions, see:
-- **[STRIPE_SETUP.md](STRIPE_SETUP.md)** - Complete Stripe integration guide
+The complete Stripe configuration and production steps are covered in the sections below.
 
 ### Features
 
@@ -383,18 +389,19 @@ For comprehensive setup instructions, see:
 ### API Endpoints
 
 **Public Endpoints (No Auth Required)**
-- `GET /api/subscriptions/plans` - List all active plans
-- `GET /api/subscriptions/plans/:id` - Get specific plan
-- `POST /api/subscriptions/compare` - Compare multiple plans
+- `GET /api/subscription/plans` - List all active plans
+- `GET /api/subscription/plans/:id` - Get specific plan
+- `POST /api/subscription/plans/compare` - Compare multiple plans
 
 **Protected Endpoints (JWT Required)**
-- `POST /api/subscriptions/checkout` - Create Stripe checkout session
-- `GET /api/subscriptions/user` - Get user's current subscription
-- `POST /api/subscriptions/cancel` - Cancel subscription at period end
-- `POST /api/subscriptions/reactivate` - Reactivate cancelled subscription
+- `POST /api/subscription/create-checkout-session` - Create Stripe checkout session
+- `GET /api/user/subscription` - Get user's current subscription
+- `GET /api/verify-subscription` - Verify subscription after checkout
+- `POST /api/cancel-subscription` - Cancel subscription at period end
+- `POST /api/reactivate-subscription` - Reactivate cancelled subscription
 
 **Webhooks**
-- `POST /api/subscriptions/webhook` - Stripe webhook (uses signature verification)
+- `POST /api/stripe/webhook` - Stripe webhook (uses signature verification)
 
 ### Subscription Tiers
 
@@ -580,21 +587,12 @@ Before deploying to production:
 5. Set up webhook for your Azure domain
 6. Use Live pricing in seeder script
 
-See **[STRIPE_SETUP.md](STRIPE_SETUP.md)** for detailed Azure deployment steps.
-## Deprecated Legacy Backend
-
-The old Flask backend (`backend-legacy/`) is deprecated and not part of the active runtime. Any legacy reference material lives under `docs/legacy/`.
-
-- It is not the active runtime path.
-- New development should target `frontend/`, `backend-node/`, and `ai-service/`.
-- Do not rely on legacy Flask instructions when setting up or running the project.
-- **Do not start `backend-legacy`. Use `backend-node` as the active backend.**
-
+See the "Production Deployment (Azure)" section below for detailed deployment steps.
 ## Notes
 
-- The current browser-facing development setup uses Vite on port `3000` and proxies API requests to the Node server on `5000`.
-- The Node service delegates AI work to the FastAPI service instead of calling OpenAI directly.
-- The repository has been migrated away from the monolithic Flask backend, so any old Flask-only setup steps should be treated as historical only.
+- The development setup uses Vite on port `3000` and proxies API requests to the Node server on `5000`.
+- The Node service delegates heavy AI work (transcription and report generation) to the FastAPI service, with a few lightweight OpenAI calls made directly for auxiliary tasks.
+- Uploaded files are written to `backend-node/uploads/`; on ephemeral hosts, mount a volume or use external object storage for durability.
 
 ## License
 
@@ -682,9 +680,9 @@ curl -I http://localhost/              # -> 200 OK (React app index.html)
 
 From a browser (replace with your VM public IP or DNS label):
 
-- ``http://VM_PUBLIC_IP/``                � frontend SPA
-- ``http://VM_PUBLIC_IP/api/health``      � backend health JSON
-- ``http://VM_PUBLIC_IP/ai/health``       � AI service health JSON
+- ``http://VM_PUBLIC_IP/``                � frontend SPA
+- ``http://VM_PUBLIC_IP/api/health``      � backend health JSON
+- ``http://VM_PUBLIC_IP/ai/health``       � AI service health JSON
 
 ### 7. Twilio WhatsApp webhook
 
@@ -694,7 +692,7 @@ In the Twilio console (WhatsApp sandbox or sender) set the inbound webhook URL t
 http://VM_PUBLIC_IP_OR_DOMAIN/api/webhooks/twilio/whatsapp
 ```
 
-The exact same URL must be set as ``TWILIO_WEBHOOK_URL`` in ``.env.production`` � the backend uses it to validate the ``X-Twilio-Signature`` header and will reject mismatches. ``TWILIO_ACCOUNT_SID`` / ``TWILIO_AUTH_TOKEN`` live only in ``.env.production`` and are never baked into images.
+The exact same URL must be set as ``TWILIO_WEBHOOK_URL`` in ``.env.production`` � the backend uses it to validate the ``X-Twilio-Signature`` header and will reject mismatches. ``TWILIO_ACCOUNT_SID`` / ``TWILIO_AUTH_TOKEN`` live only in ``.env.production`` and are never baked into images.
 
 ### 8. Updating after a code change
 
@@ -720,5 +718,5 @@ The local ``docker-compose.yml`` and ``start-local.ps1`` are unchanged and still
 
 - ``.env.production`` is gitignored. Only ``.env.production.example`` (placeholders) is committed.
 - ``MONGODB_URI``, ``JWT_SECRET``, ``OPENAI_API_KEY``, ``TWILIO_AUTH_TOKEN``, ``STRIPE_SECRET_KEY`` and ``REMINDER_RUN_SECRET`` must be set via env only.
-- Backend ``CORS_ORIGIN`` is an explicit allow-list � do not use ``*`` in production.
+- Backend ``CORS_ORIGIN`` is an explicit allow-list � do not use ``*`` in production.
 - Caddy automatically obtains and renews Let's Encrypt certificates when ``SITE_ADDRESS`` is a real DNS name and ports 80/443 are reachable.
