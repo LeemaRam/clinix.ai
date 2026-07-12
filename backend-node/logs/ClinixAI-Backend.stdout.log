@@ -319,3 +319,13 @@ MongoDB Connected (memory): 127.0.0.1
 🌍 Environment: development
 🔗 Socket.IO enabled with CORS: true
 📱 Frontend URL: http://localhost:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+🚀 Starting development server...
+[Twilio Config] Configuration loaded {
+  fromValidation: '✓',
+  from: 'whatsapp:+15178005251',
+  accountSid: 'AC3e...0572',
+  sandbox: 'custom'
+}
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
