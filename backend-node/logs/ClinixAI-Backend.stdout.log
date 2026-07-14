@@ -17,13 +17,16 @@
 [31m[nodemon] app crashed - waiting for file changes before starting...[39m
 [32m[nodemon] restarting due to changes...[39m
 [32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
+🚀 Starting development server...
+[Twilio Config] Configuration loaded {
+  fromValidation: '✓',
+  from: 'whatsapp:+15178005251',
+  accountSid: 'AC3e...0572',
+  sandbox: 'custom'
+}
 [31m[nodemon] app crashed - waiting for file changes before starting...[39m
 [32m[nodemon] restarting due to changes...[39m
 [32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
 🚀 Starting development server...
 [Twilio Config] Configuration loaded {
   fromValidation: '✓',
@@ -31,311 +34,313 @@
   accountSid: 'AC3e...0572',
   sandbox: 'custom'
 }
-Downloading MongoDB "7.0.14": 0% (0mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.1% (0.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.2% (1.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.4% (2.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.5% (3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.6% (3.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.8% (4.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.9% (5.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.1% (6.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.2% (7.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.4% (8.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.5% (9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.7% (10mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.9% (11mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.1% (12.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.3% (13.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.6% (15.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.9% (17.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 3.2% (18.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 3.5% (20.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 3.8% (22.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4.1% (24.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4.5% (26.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4.7% (27.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4.9% (29mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 5.1% (30.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 5.5% (32.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 5.9% (35mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 6.3% (37.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 6.6% (39.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 6.7% (39.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 6.9% (40.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.1% (42mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.3% (43.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.5% (44.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.8% (46mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 8.1% (47.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 8.4% (49.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 8.7% (51.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 9% (53.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 9.3% (54.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 9.6% (56.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 9.9% (58.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 10.3% (61mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 10.7% (63.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 11.1% (65.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 11.6% (68.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 12% (71.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 12.4% (73.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 12.8% (75.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 13.2% (78.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 13.7% (81.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 14.2% (83.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 14.7% (87.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 14.9% (88.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 15.2% (90.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 15.4% (91.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 15.8% (93.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 16.5% (97.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 17% (100.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 17.5% (103.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 18.1% (107mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 18.6% (110.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 19.2% (113.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 19.8% (117.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 20.4% (120.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 20.9% (123.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 21.6% (127.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 22.1% (130.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 22.6% (133.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 23.1% (136.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 23.7% (140.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 24% (142mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 24.4% (144.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 24.7% (146.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 25.2% (149mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 25.6% (151.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 26.1% (154.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 26.6% (157.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 27% (159.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 27.4% (162mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 27.6% (163.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 28.1% (166.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 28.5% (168.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 29% (171.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 29.4% (174.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 29.8% (176.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 30.3% (179.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 30.7% (181.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 31% (183.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 31.3% (185.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 31.6% (187.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 31.9% (188.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 32.2% (190.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 32.8% (194.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 33.6% (198.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 34.3% (202.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 34.9% (206.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 35.3% (209.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 35.9% (212.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 36.4% (215.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 36.9% (218.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 37.5% (221.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 38% (225mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 38.6% (228.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 39.1% (231.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 39.8% (235.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 40.4% (239.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 41.1% (243.4mb / 591.6mb)[0G
-[32m[nodemon] restarting due to changes...[39m
+MongoDB URI type: srv
+MongoDB DNS override configured: true
+MongoDB DNS servers override applied: 8.8.8.8, 1.1.1.1
+MongoDB Connected: ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net
+🔐 Super admin account already exists and is up to date: leemaram.dev@gmail.com
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
 [32m[nodemon] restarting due to changes...[39m
 [32m[nodemon] starting `node src/server.js`[39m
-🚀 Starting development server...
-[Twilio Config] Configuration loaded {
+[32m[nodemon] [32m[nodemon] restarting due to c[32m[nodemon] [32m[nodemon] starting `node src/s🚀 Starting d🚀 Starting develop[Twilio Config][Twilio Config] Configuration loaded {
   fromValidation: '✓',
   from: 'whatsapp:+15178005251',
   accountSid: 'AC3e...0572',
-  sandbox: 'custom'
-}
-Downloading MongoDB "7.0.14": 0% (0mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 0.5% (2.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1% (6.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 1.7% (10mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.1% (12.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 2.7% (16mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 3.3% (19.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4% (23.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 4.7% (27.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 5.3% (31.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 5.8% (34.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 6.4% (38.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.1% (42mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 7.7% (45.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 8.3% (49.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 8.9% (52.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 9.5% (56.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 10.2% (60.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 10.6% (62.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 11% (64.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 11.5% (67.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 12.2% (72.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 13% (77.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 13.7% (80.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 14.3% (84.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 14.9% (88.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 15.6% (92.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 16.2% (95.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 16.8% (99.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 17.3% (102.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 17.9% (106.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 18.4% (108.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 19.1% (113.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 19.9% (117.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 20.6% (121.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 21.3% (125.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 21.9% (129.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 22.6% (133.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 23.4% (138.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 24.1% (142.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 24.3% (143.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 25.1% (148.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 25.8% (152.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 26.4% (156.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 27% (159.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 27.7% (164.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 28.3% (167.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 28.8% (170.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 29.5% (174.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 30.2% (178.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 30.6% (180.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 31.2% (184.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 32% (189.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 32.6% (192.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 33.3% (196.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 34.1% (201.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 34.5% (204mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 35.1% (207.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 35.3% (209mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 35.7% (211.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 36.5% (215.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 37.1% (219.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 37.9% (224.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 38.6% (228.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 39.2% (232.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 39.6% (234.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 40.3% (238.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 41% (242.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 41.8% (247.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 42.4% (250.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 43.1% (255.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 43.9% (259.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 44.6% (263.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 45.4% (268.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 46% (271.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 46.5% (274.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 47.1% (278.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 47.9% (283.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 48.5% (287.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 49.2% (291mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 49.9% (295.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 50.5% (299mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 51.1% (302.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 51.8% (306.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 52.5% (310.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 53% (313.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 53.6% (316.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 54% (319.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 54.7% (323.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 55.3% (327.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 56.1% (332.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 56.8% (336mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 57.5% (340.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 58.3% (344.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 58.9% (348.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 59.5% (352mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 59.8% (353.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 60.3% (356.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 61% (360.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 61.7% (364.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 62.4% (369.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 63.1% (373.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 63.8% (377.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 64.2% (379.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 64.8% (383.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 65.6% (387.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 66.2% (391.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 66.8% (395.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 67.6% (399.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 68.3% (404.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 69.1% (408.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 69.5% (411.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 70.1% (415mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 70.8% (419.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 71.6% (423.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 72.3% (427.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 73.1% (432.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 73.7% (436.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 74.4% (440.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 74.9% (442.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 75.2% (444.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 75.4% (446.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 76.1% (450.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 76.8% (454.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 77.5% (458.3mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 78.1% (462.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 78.7% (465.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 79.4% (469.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 80.1% (474.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 80.8% (477.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 81.1% (480mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 81.7% (483.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 82.5% (488.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 83.2% (492.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 83.8% (495.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 84.4% (499.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 84.9% (502.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 85.5% (506.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 86.2% (509.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 86.8% (513.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 87.2% (515.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 87.5% (517.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 88.1% (521mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 88.8% (525.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 89.4% (528.9mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 90.1% (532.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 90.8% (537mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 91.2% (539.5mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 91.7% (542.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 92.2% (545.4mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 92.7% (548.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 93.3% (552mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 94% (556.2mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 94.8% (560.7mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 95.4% (564.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 96.2% (569.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 96.8% (572.8mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 97.5% (576.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 98% (579.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 98.6% (583.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 99.2% (587.1mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 100% (591.6mb / 591.6mb)[0G
-Downloading MongoDB "7.0.14": 100% (0mb / 0mb)[0G
-MongoDB Connected (memory): 127.0.0.1
-🔐 Created super admin account: leemaram.dev@gmail.com
-🚀 Server running on port 5000
-🌍 Environment: development
+  sandbMongoDB DNS serMongoDB DNS servers override applied: 8.MongoDB Connected: ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net
+🔐 Super admin account already exists and is up to date: leemaram.dev@gmail.com
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
 🔗 Socket.IO enabled with CORS: true
 📱 Frontend URL: http://localhost:3000
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-🚀 Starting development server...
-[Twilio Config] Configuration loaded {
-  fromValidation: '✓',
-  from: 'whatsapp:+15178005251',
-  accountSid: 'AC3e...0572',
-  sandbox: 'custom'
+🔌 Socket connected: VWc8oG_KSDez0o3cAAAB
+🔌 Socket disconnected: VWc8oG_KSDez0o3cAAAB, reason: transport close
+🔌 Socket connected: n_qypUc7wk-Q_AnzAAAD
+🔌 Socket disconnected: n_qypUc7wk-Q_AnzAAAD, reason: transport close
+🔌 Socket connected: -iQrbDKYRAUsAL7LAAAF
+[consultationController] Uploaded audio saved for transcription {
+  consultationId: '6a55e508de4551508402ff45',
+  audioPath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014089810-57954812.mp3',
+  mimeType: 'audio/mpeg',
+  fileSize: 1345292,
+  actualSize: 1345292,
+  speechLanguage: 'en'
 }
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-🚀 Starting development server...
-[Twilio Config] Configuration loaded {
-  fromValidation: '✓',
-  from: 'whatsapp:+15178005251',
-  accountSid: 'AC3e...0572',
-  sandbox: 'custom'
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e508de4551508402ff45
+[aiTaskService] Processing AI task 6a55e50bde4551508402ff4e for consultation 6a55e508de4551508402ff45
+[aiTaskService] Transcription step started {
+  taskId: '6a55e50bde4551508402ff4e',
+  consultationId: '6a55e508de4551508402ff45',
+  audioFilePath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014089810-57954812.mp3',
+  speechLanguage: 'en'
 }
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[pythonService] Sending audio to FastAPI AI service: http://localhost:8001/transcribe {
+  consultationId: '6a55e508de4551508402ff45',
+  speechLanguage: 'en',
+  audioFilePath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014089810-57954812.mp3',
+  audioFileSize: 1345292,
+  mimeType: 'audio/mpeg'
+}
+[pythonService] Built multipart form-data request headers {
+  'content-type': 'multipart/form-data; boundary=--------------------------5372809b4c77d2850a561482'
+}
+📱 Socket -iQrbDKYRAUsAL7LAAAF left consultation: 6a55e508de4551508402ff45
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e508de4551508402ff45
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e508de4551508402ff45
+[pythonService] Received transcription response from FastAPI AI service {
+  consultationId: '6a55e508de4551508402ff45',
+  responseData: {
+    language: 'en',
+    raw_text: "Doctor. Good morning. Please come in and have a seat. How are you feeling today? Patient. Good morning, doctor. I've not been feeling very well for the last few days. Doctor. I'm sorry to hear that. Can you tell me your full name and age first? Patient. My name is Ahmed Raza and I'm 42 years old. Doctor. Alright, Ahmed. What seems to be the main problem today? Patient. For about 5 or 6 days I've been having burning pain in my chest and upper stomach. Sometimes it feels like acidity and sometimes it feels like pressure in my chest. Doctor. Okay. Does the pain stay in one place or move anywhere else? Patient. Mostly in the middle of my chest and upper stomach area. Sometimes it goes toward my throat. Doctor. Does anything make it worse? Patient. Yes. It gets worse after eating spicy food, tea, coffee, and especially when I lie down at night. Doctor. Any shortness of breath? Patient. Not really. Just discomfort and burning. Doctor. Any nausea or vomiting? Patient. Mild nausea sometimes, but no vomiting. Doctor. Any fever, cough, or sore throat? Patient. No fever or cough. Doctor. Do you have any previous medical conditions? Patient. Yes, doctor. I have high blood pressure and mild diabetes. Doctor. How long have you had those? Patient. Blood pressure for around 7 years and diabetes for about 3 years. Doctor. Any surgeries in the past? Patient. No surgeries. Doctor. Any allergies to medicines? Patient. I had a rash once with penicillin when I was younger. Doctor. What medicines are you currently taking? Patient. I take aspirin daily, warfarin for blood thinning, and sometimes ibuprofen for headaches and body pain. Doctor. Okay. Patient. For blood pressure I take amlodipine 5 mg once daily. Doctor. Anything for diabetes? Patient. Yes, metformin 500 mg twice a day. Doctor. Any stomach medicines? Patient. Not regularly. I occasionally take antacid syrup. Doctor. You mentioned aspirin, warfarin, and ibuprofen together? Patient. Yes, doctor. Doctor. How often do you use ibuprofen? Patient. Maybe 3 or 4 times a week. Doctor. Have you noticed any bleeding issues? Patient. Actually yes. My gums bleed while brushing sometimes and I noticed dark stools 2 days ago. Doctor. That's important. Those medicines together can increase bleeding risk. Patient. Oh okay. I didn't know that. Doctor. Tell me about your eating habits. Patient. I eat a lot of spicy food and drink 3 or 4 cups of tea daily. Doctor. Do you smoke? Patient. Yes. About half a pack a day. Doctor. Alcohol? Patient. Occasionally on weekends. Doctor. How is your sleep? Patient. Not very good recently. Doctor. I'm going to check your vitals now. Patient. Okay. Doctor. Your blood pressure is 148 over 92. Doctor. Pulse is 88 beats per minute. Doctor. Temperature is normal. Doctor. Oxygen saturation is 98%. Doctor. Your abdomen feels soft but there is mild tenderness in the upper stomach area. Doctor. No chest wheezing or abnormal breathing sounds. Doctor. Based on your symptoms, this looks like acid reflux or gastritis. Patient. Okay. Doctor. The combination of aspirin, warfarin, and ibuprofen may also be irritating your stomach and increasing bleeding risk. Patient. That sounds serious. Doctor. It can become serious if ignored, so we should adjust some medications. Doctor. I'm prescribing pantoprazole 40mg once daily before breakfast for 2 weeks. Patient. All right. Doctor. Avoid ibuprofen for now. Patient. Okay. Doctor. For pain, use paracetamol instead. Patient. Understood. Doctor. Continue your blood pressure and diabetes medications. Patient. Okay. Doctor. Reduce spicy food, tea, coffee, and smoking. Patient. I'll try. Doctor. Do not lie down immediately after eating. Patient. Okay. Doctor. If you notice vomiting blood, severe chest pain, black stools, or dizziness, go to the emergency room immediately. Patient. I understand. Doctor. I want you to come back in 7 days for follow-up. Patient. Okay. Doctor. Doctor. We may also do blood tests and possibly an endoscopy if symptoms continue. Patient. All right. Doctor. Any other questions? Patient. No, doctor. Thank you. Doctor. Take care and follow the instructions carefully. Patient. Thank you, doctor.",
+    segments: [],
+    confidence_score: 0,
+    duration: 336.216,
+    analysis: {
+      subjective: 'Patient Ahmed Raza, 42 years old, reports burning pain in chest and upper stomach for 5-6 days, described as acidity and pressure, sometimes radiating to throat. Pain worsens after eating spicy food, tea, coffee, and lying down at night. Mild nausea sometimes, no vomiting, no fever or cough. Past medical history includes hypertension for 7 years and mild diabetes for 3 years. Medications include aspirin daily, warfarin, ibuprofen 3-4 times a week, amlodipine 5 mg once daily, metformin 500 mg twice daily, and occasional antacid syrup. Reports bleeding gums and dark stools recently. Lifestyle includes eating a lot of spicy food, drinking 3-4 cups of tea daily, smoking half a pack a day, occasional alcohol on weekends, and poor sleep recently.',
+      objective: 'Blood pressure 148/92 mmHg, pulse 88 bpm, temperature normal, oxygen saturation 98%. Abdomen soft with mild tenderness in upper stomach area. No chest wheezing or abnormal breathing sounds.',
+      assessment: 'Likely acid reflux or gastritis. Increased bleeding risk due to combination of aspirin, warfarin, and ibuprofen. Symptoms and signs suggest gastric irritation and possible gastrointestinal bleeding.',
+      plan: 'Prescribe pantoprazole 40 mg once daily before breakfast for 2 weeks. Avoid ibuprofen. Use paracetamol for pain instead. Continue blood pressure and diabetes medications. Advise reduction of spicy food, tea, coffee, and smoking. Avoid lying down immediately after eating. Educate patient to seek emergency care if vomiting blood, severe chest pain, black stools, or dizziness occur. Schedule follow-up in 7 days. Consider blood tests and possible endoscopy if symptoms persist.',
+      medications_mentioned: [Array],
+      lifestyle_recommendations: 'Reduce smoking and alcohol intake. Avoid lying down immediately after eating.',
+      dietary_recommendations: 'Reduce intake of spicy food, tea, and coffee.',
+      self_care_measures: 'Use paracetamol for pain instead of ibuprofen. Monitor for signs of bleeding and seek emergency care if severe symptoms occur.',
+      neurological_examination: null,
+      vital_signs: "{'blood_pressure': '148/92', 'pulse': 88, 'temperature': 'normal', 'oxygen_saturation': 98}",
+      follow_up: 'Return in 7 days for follow-up. Blood tests and possible endoscopy if symptoms continue.',
+      follow_up_days: 7,
+      confidence: 'high'
+    }
+  }
+}
+[aiTaskService] Transcription result received {
+  consultationId: '6a55e508de4551508402ff45',
+  taskId: '6a55e50bde4551508402ff4e',
+  transcriptLength: 4171,
+  duration: 336.216,
+  segments: 0,
+  language: 'en',
+  modelUsed: 'python-ai-service'
+}
+[aiTaskService] Saving transcription to MongoDB {
+  consultationId: '6a55e508de4551508402ff45',
+  transcriptionId: '6a55e50bde4551508402ff4b',
+  rawTextLength: 4171,
+  duration: 336.216
+}
+[aiTaskService] Transcription saved to MongoDB {
+  consultationId: '6a55e508de4551508402ff45',
+  transcriptionId: '6a55e50bde4551508402ff4b',
+  createdAt: 2026-07-14T07:28:11.492Z,
+  updatedAt: 2026-07-14T07:29:19.907Z
+}
+[aiWorkflowService] Drug safety worker started {
+  consultationId: '6a55e508de4551508402ff45',
+  patientId: new ObjectId('6a55e34bde4551508402ff3d'),
+  medications: [],
+  existingMedications: []
+}
+[aiTaskService] Saving consultation update to MongoDB {
+  consultationId: '6a55e508de4551508402ff45',
+  status: 'transcribed',
+  languageDetected: 'en',
+  summaryLength: 1000
+}
+[aiTaskService] Consultation saved to MongoDB {
+  consultationId: '6a55e508de4551508402ff45',
+  updatedAt: 2026-07-14T07:29:41.337Z
+}
+[analyticsService] Recorded workflow analytics for consultation 6a55e508de4551508402ff45
+📱 Socket -iQrbDKYRAUsAL7LAAAF left consultation: 6a55e508de4551508402ff45
+[consultationController] Returning transcription response {
+  consultationId: '6a55e508de4551508402ff45',
+  transcriptionId: '6a55e50bde4551508402ff4b',
+  rawTextLength: 4171,
+  duration: 336.216
+}
+[consultationController] Uploaded audio saved for transcription {
+  consultationId: '6a55e615de4551508402fff7',
+  audioPath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014359091-794310552.mp3',
+  mimeType: 'audio/mpeg',
+  fileSize: 1345493,
+  actualSize: 1345493,
+  speechLanguage: 'en'
+}
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e615de4551508402fff7
+[aiTaskService] Processing AI task 6a55e617de45515084030000 for consultation 6a55e615de4551508402fff7
+[aiTaskService] Transcription step started {
+  taskId: '6a55e617de45515084030000',
+  consultationId: '6a55e615de4551508402fff7',
+  audioFilePath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014359091-794310552.mp3',
+  speechLanguage: 'en'
+}
+[pythonService] Sending audio to FastAPI AI service: http://localhost:8001/transcribe {
+  consultationId: '6a55e615de4551508402fff7',
+  speechLanguage: 'en',
+  audioFilePath: 'D:\\FYP\\clinix.ai\\backend-node\\uploads\\audio\\1784014359091-794310552.mp3',
+  audioFileSize: 1345493,
+  mimeType: 'audio/mpeg'
+}
+[pythonService] Built multipart form-data request headers {
+  'content-type': 'multipart/form-data; boundary=--------------------------1639cb559dd59fedfd04da51'
+}
+📱 Socket -iQrbDKYRAUsAL7LAAAF left consultation: 6a55e615de4551508402fff7
+[pythonService] Received transcription response from FastAPI AI service {
+  consultationId: '6a55e615de4551508402fff7',
+  responseData: {
+    language: 'en',
+    raw_text: "brings you in here today? I'm just having this really sharp pain in my chest and I'm scared. I think I'm having a heart attack. Oh wow, you know that must be really scary. Yeah. When did this pain start? So about three days ago. Three days ago, okay. And where exactly in your chest do you feel it? It's kind of right here, right over my heart I think. That's where it's the worst. Okay and is it, what kind of pain is it? Is it more like a dull pressure pain or is it a sharp pain? How would you describe it? I'd say it's a sharp pain. A sharp pain? Okay. Okay and so it started three days ago. Has it been coming and going or has it been constant? It just lasts for a few seconds and then it goes away. Okay and does the pain come on when you're doing any activities or when does the pain usually come on? It's usually worse when I'm coughing or I'm lying down. Yeah. Okay and does it improve with any positional changes at all or anything that you do that does it help? When I lean forward it actually does get better if I think about it, yeah. Okay and has this ever happened to you before? No, no it hasn't. Okay and on a scale of 1 to 10, 1 being the least amount of pain you felt and 10 being the worst, how much would you rate it? I'd say a 6 out of 10. Okay and does the pain move anywhere in your chest or does it stay in the same spot? Yeah I think it kind of goes to my neck sometimes. Okay and do you have any other symptoms like do you have any shortness of breath, dizziness, anything like that? No, I don't. Okay any palpitations? Nope. Okay and other than that have you been having any other symptoms at all besides the pain? No, nothing else but that I just have these sharp episodes of pain that last a couple of seconds. Okay have you tried like any medications that has helped the pain? Yeah I took some I took some Tylenol and that did help. Okay. I took it once yesterday. All right any recent injuries to the area like do you have any falls or anything like that? No, no I haven't. Okay any headaches, nausea, vomiting, fevers or chills, any of those symptoms? Nope. Okay any cough, runny nose, any viral symptoms? No, well not right now but I did have I did have a flu last week. I had a fever, I had a runny nose. I did have a bit of a cough and I was feeling super tired but not anymore. I'm okay now. Okay and have you at all had any dizziness or have you fainted at all? Nope. Okay have you been noticing any kind of weakness or numbness? Nope. Okay in terms of your past medical history do you have any medical conditions like diabetes, high blood pressure, any other diagnoses? No, I'm a pretty healthy 25 year old. Okay and do you take any medications? I sometimes take Tylenol. I sometimes take Tylenol. Okay and any allergies at all? Nope. Okay and any previous surgeries? No, no surgeries. Do you have any family history of any heart conditions or any cancers or anything like that? Yeah, my father he had a heart attack two weeks ago and he passed away and I'm worried I'm having a heart attack too. It was just two weeks ago? Yeah. I'm so sorry to hear that. It must be a really difficult time for you right now. Okay so you're worried you might be having a heart attack as well? Yeah. Okay so we can definitely do some tests and see what's going on. I just have a few more questions and then I'll just get to some of the management and what we'll be doing for you in the future. So currently right now do you work at all? No, I'm a student. Well, it's a part-time job. I do work as a postman. Okay and where are you a student? What do you do? I'm studying engineering at Western. All right and currently where do you live? Do you live in student housing, apartment, or home? I live with my parents, well my mom now, in a house. All right and do you drink at all alcohol? I drink occasionally, maybe one or two drinks on the weekends. Okay and any recreational drug use like marijuana or cocaine? No. And do you smoke? No. All right so those are all the questions we had for you today and yeah it must be really difficult and scary for you right now but we'll make sure to get to the bottom of this, see what's going on. So what we can do is get you an ECG to see how your heart is functioning and then get any blood work if we need it for the future. But yeah right now I would say try not to worry too much about it right now and see what what some of those tests come back. Thank you. So yeah you're welcome.",
+    segments: [],
+    confidence_score: 0,
+    duration: 448.294,
+    analysis: {
+      subjective: 'Patient presents with sharp chest pain starting three days ago, localized over the heart, lasting a few seconds and then resolving. Pain is worse with coughing and lying down, improves when leaning forward. Pain sometimes radiates to the neck. No associated shortness of breath, dizziness, palpitations, weakness, numbness, headaches, nausea, vomiting, fevers, chills, or current viral symptoms. Patient had flu last week with fever, runny nose, cough, and fatigue but is now recovered. No history of similar pain before. Patient is worried about having a heart attack due to recent death of father from heart attack two weeks ago. No past medical history, no medications except occasional Tylenol, no allergies, no surgeries. Social history includes part-time job as postman, engineering student, lives with mother, occasional alcohol use on weekends, no smoking or recreational drug use.',
+      objective: 'No physical exam findings documented. Plan to perform ECG and possible blood work.',
+      assessment: 'Sharp chest pain with positional component and recent viral illness; differential includes pericarditis or musculoskeletal pain. Family history of recent fatal heart attack raises concern for cardiac etiology.',
+      plan: 'Order ECG to assess heart function. Consider blood work if indicated. Advise patient to avoid excessive worry until test results are available.',
+      medications_mentioned: [Array],
+      lifestyle_recommendations: null,
+      dietary_recommendations: null,
+      self_care_measures: 'Patient took Tylenol once yesterday which helped the pain.',
+      neurological_examination: null,
+      vital_signs: null,
+      follow_up: 'Follow up after ECG and blood work results to determine further management.',
+      follow_up_days: 7,
+      confidence: 'high'
+    }
+  }
+}
+[aiTaskService] Transcription result received {
+  consultationId: '6a55e615de4551508402fff7',
+  taskId: '6a55e617de45515084030000',
+  transcriptLength: 4448,
+  duration: 448.294,
+  segments: 0,
+  language: 'en',
+  modelUsed: 'python-ai-service'
+}
+[aiTaskService] Saving transcription to MongoDB {
+  consultationId: '6a55e615de4551508402fff7',
+  transcriptionId: '6a55e617de4551508402fffd',
+  rawTextLength: 4448,
+  duration: 448.294
+}
+[aiTaskService] Transcription saved to MongoDB {
+  consultationId: '6a55e615de4551508402fff7',
+  transcriptionId: '6a55e617de4551508402fffd',
+  createdAt: 2026-07-14T07:32:39.415Z,
+  updatedAt: 2026-07-14T07:33:02.269Z
+}
+[aiWorkflowService] Drug safety worker started {
+  consultationId: '6a55e615de4551508402fff7',
+  patientId: new ObjectId('6a55e604de4551508402ffef'),
+  medications: [ 'Tylenol' ],
+  existingMedications: []
+}
+[aiWorkflowService] Drug safety result {
+  consultationId: '6a55e615de4551508402fff7',
+  patientId: new ObjectId('6a55e604de4551508402ffef'),
+  result: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    rxNorm: {
+      warnings: [],
+      safe: true,
+      note: 'RxNorm interaction check skipped'
+    },
+    riskLevel: 'Moderate',
+    safe: true,
+    status: 'completed'
+  }
+}
+[aiTaskService] Saving consultation update to MongoDB {
+  consultationId: '6a55e615de4551508402fff7',
+  status: 'transcribed',
+  languageDetected: 'en',
+  summaryLength: 1000
+}
+[aiTaskService] Consultation saved to MongoDB {
+  consultationId: '6a55e615de4551508402fff7',
+  updatedAt: 2026-07-14T07:33:19.094Z
+}
+[aiTaskService] Syncing extracted clinical conditions to patient profile {
+  patientId: '6a55e604de4551508402ffef',
+  extractedConditions: [ 'Recent flu' ]
+}
+[analyticsService] Recorded workflow analytics for consultation 6a55e615de4551508402fff7
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e615de4551508402fff7
+[consultationController] Report preview payload {
+  consultationId: '6a55e615de4551508402fff7',
+  drugSafety: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    safe: true,
+    riskLevel: 'Moderate',
+    rxNorm: {
+      warnings: [],
+      safe: true,
+      note: 'RxNorm interaction check skipped'
+    }
+  },
+  previewId: '6a55e615de4551508402fff7'
+}
+[consultationController] Report preview payload {
+  consultationId: '6a55e615de4551508402fff7',
+  drugSafety: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    safe: true,
+    riskLevel: 'Moderate',
+    rxNorm: {
+      warnings: [],
+      safe: true,
+      note: 'RxNorm interaction check skipped'
+    }
+  },
+  previewId: '6a55e615de4551508402fff7'
+}
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e615de4551508402fff7
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e615de4551508402fff7
+📱 Socket -iQrbDKYRAUsAL7LAAAF left consultation: 6a55e615de4551508402fff7
+[consultationController] Returning transcription response {
+  consultationId: '6a55e615de4551508402fff7',
+  transcriptionId: '6a55e617de4551508402fffd',
+  rawTextLength: 4448,
+  duration: 448.294
+}
+📱 Socket -iQrbDKYRAUsAL7LAAAF joined consultation: 6a55e615de4551508402fff7
+[consultationController] Report preview payload {
+  consultationId: '6a55e615de4551508402fff7',
+  drugSafety: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    safe: true,
+    riskLevel: 'Moderate',
+    rxNorm: {
+      warnings: [],
+      safe: true,
+      note: 'RxNorm interaction check skipped'
+    }
+  },
+  previewId: '6a55e615de4551508402fff7'
+}
+[consultationController] Report preview payload {
+  consultationId: '6a55e615de4551508402fff7',
+  drugSafety: {
+    warnings: [],
+    interactions: [],
+    recommendations: [],
+    safe: true,
+    riskLevel: 'Moderate',
+    rxNorm: {
+      warnings: [],
+      safe: true,
+      note: 'RxNorm interaction check skipped'
+    }
+  },
+  previewId: '6a55e615de4551508402fff7'
+}
+🔌 Socket disconnected: -iQrbDKYRAUsAL7LAAAF, reason: transport close
+🔌 Socket connected: DDhMMX7vLuG6muHdAAAH
+🔌 Socket disconnected: DDhMMX7vLuG6muHdAAAH, reason: transport close

@@ -1,28 +1,4 @@
 Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
-node:internal/modules/package_json_reader:301
-  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
-        ^
-
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'mongodb-memory-server' imported from D:\FYP\clinix.ai\backend-node\src\config\db.js
-    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
-    at packageResolve (node:internal/modules/esm/resolve:768:81)
-    at moduleResolve (node:internal/modules/esm/resolve:859:18)
-    at defaultResolve (node:internal/modules/esm/resolve:992:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
-    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
-    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
-    at #resolve (node:internal/modules/esm/loader:683:17)
-    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
-    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
-  code: 'ERR_MODULE_NOT_FOUND'
-}
-
-Node.js v24.18.0
-Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
-Falling back to an in-memory MongoDB instance for local development.
-Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
-Falling back to an in-memory MongoDB instance for local development.
-Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
 ❌ Failed to start server: Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
     at QueryReqWrap.onresolve [as oncomplete] (node:internal/dns/promises:295:17) {
   errno: undefined,
@@ -37,4 +13,28 @@ Error: querySrv ECONNREFUSED _mongodb._tcp.clinixai.uzh4z0y.mongodb.net
   code: 'ECONNREFUSED',
   syscall: 'querySrv',
   hostname: '_mongodb._tcp.clinixai.uzh4z0y.mongodb.net'
+}
+[consultationController] Skipping appointment creation: patient phone is missing { consultationId: '6a55e615de4551508402fff7' }
+node:net:2009:16)
+    at listenInCluster (node:net:2066:12)
+    at Server.listen (node:net:2171:7)
+    at startServer (file:///D:/FYP/clinix.ai/backend-node/src/server.js:133:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 5000
+}
+❌ Uncaught Exception: Error: listen EADDRINUSE: address already in use :::5000
+    at Server.setupListenHandle [as _listen2] (node:net:2009:16)
+    at listenInCluster (node:net:2066:12)
+    at Server.listen (node:net:2171:7)
+    at startServer (file:///D:/FYP/clinix.ai/backend-node/src/server.js:133:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 5000
 }
