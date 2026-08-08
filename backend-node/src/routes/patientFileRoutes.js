@@ -3,6 +3,7 @@ import { authRequired } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { env } from '../config/env.js';
 import {
   uploadPatientFile,
   listPatientFiles,
@@ -11,7 +12,7 @@ import {
   analyzeUploadedPatientFiles
 } from '../controllers/patientFileController.js';
 
-const uploadDirectory = path.join('uploads', 'patient_files');
+const uploadDirectory = path.resolve(env.UPLOAD_PATIENT_FILES_DIR);
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory, { recursive: true });
 }

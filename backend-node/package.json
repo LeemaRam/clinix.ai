@@ -12,6 +12,8 @@
     "seed:demo": "node scripts/seed-demo.js"
   },
   "dependencies": {
+    "@azure/identity": "^4.7.0",
+    "@azure/storage-blob": "^12.26.0",
     "@google-cloud/speech": "^7.3.0",
     "axios": "^1.8.2",
     "bcryptjs": "^2.4.3",

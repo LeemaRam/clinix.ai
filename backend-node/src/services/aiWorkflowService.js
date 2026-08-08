@@ -1,7 +1,9 @@
 import { transcribeAudio, checkDrugInteractions } from './pythonService.js';
+import path from 'path';
 import { extractMedicalAnalysis, generateSOAPNote, generatePatientBrief, checkDrugSafety } from './openaiService.js';
 import { analyzePatientFiles } from './patientFileAnalysisService.js';
 import { recordConsultationAnalytics } from './analyticsService.js';
+import { materializeStoredFileToLocalTemp } from './storage/index.js';
 
 export const WORKFLOW_STAGES = {
   queued: 'queued',
@@ -32,13 +34,45 @@ export const buildPatientFileSummaries = async (patientFiles = []) => {
   return analyzePatientFiles(patientFiles);
 };
 
+const resolveAudioTempExtension = ({ audioFilePath, mimeType }) => {
+  const extFromPath = path.extname(String(audioFilePath || '')).trim();
+  if (extFromPath) return extFromPath;
+
+  const normalizedMime = String(mimeType || '').toLowerCase();
+  const mimeToExt = {
+    'audio/mpeg': '.mp3',
+    'audio/mp3': '.mp3',
+    'audio/mp4': '.mp4',
+    'audio/wav': '.wav',
+    'audio/x-wav': '.wav',
+    'audio/webm': '.webm',
+    'audio/ogg': '.ogg'
+  };
+
+  return mimeToExt[normalizedMime] || '.bin';
+};
+
 export const runTranscriptionWorker = async ({ consultation, speechLanguage, transcription }) => {
-  const result = await transcribeAudio({
-    audioFilePath: consultation.audioFilePath,
-    speechLanguage,
-    consultationId: consultation._id.toString(),
-    mimeType: consultation.audioFormat
+  const tempAudio = await materializeStoredFileToLocalTemp({
+    storagePath: consultation.audioFilePath,
+    preferredExtension: resolveAudioTempExtension({
+      audioFilePath: consultation.audioFilePath,
+      mimeType: consultation.audioFormat
+    }),
+    prefix: `consultation-audio-${consultation._id.toString()}`
   });
+
+  let result;
+  try {
+    result = await transcribeAudio({
+      audioFilePath: tempAudio.localPath,
+      speechLanguage,
+      consultationId: consultation._id.toString(),
+      mimeType: consultation.audioFormat
+    });
+  } finally {
+    await tempAudio.cleanup();
+  }
 
   return {
     transcript: String(

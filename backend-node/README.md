@@ -21,9 +21,11 @@ Copy `.env.example` to `.env` and set values:
 - `MONGODB_URI` - MongoDB URI
 - `JWT_SECRET` - JWT signing secret
 - `JWT_EXPIRES_IN` - token lifetime (default `7d`)
-- `CORS_ORIGIN` - allowed origins (comma-separated)
+- `CORS_ORIGIN` - allowed origins (comma-separated), e.g. frontend App Service URL(s)
+- `FRONTEND_URL` - frontend URL used for Socket.IO and CORS fallback
 - `DEMO_MODE` - when true, skips external speech-to-text and uses predefined demo transcript with simulated progress
-- `PYTHON_AI_SERVICE_URL` - FastAPI service URL
+- `AI_SERVICE_URL` - FastAPI service URL (preferred)
+- `PYTHON_AI_SERVICE_URL` - FastAPI service URL (backward-compatible alias)
 - `GOOGLE_APPLICATION_CREDENTIALS` - path to Google service account JSON for Speech-to-Text (environment variable)
 - `GOOGLE_CLOUD_API_KEY` - optional API key fallback for Google Speech client
 - `OPENAI_API_KEY` - OpenAI API key used for text generation and analysis

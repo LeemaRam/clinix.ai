@@ -5,22 +5,6 @@ import { listFollowUps, sendReminder as sendReminderAPI, FollowUp as FollowUpTyp
 import { toast } from 'react-toastify';
 import EmptyState from '../components/EmptyState';
 
-const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
-const shouldUseProxy = (() => {
-  if (!API_URL) return true;
-  try {
-    const { hostname } = new URL(API_URL);
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch {
-    return true;
-  }
-})();
-const API_ROOT = shouldUseProxy ? '/api' : `${API_URL}/api`;
-
-const getAuthHeaders = () => ({
-  'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-});
-
 interface FollowUp extends FollowUpType {}
 
 const FollowUps = () => {

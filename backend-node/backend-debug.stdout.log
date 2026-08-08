@@ -1,0 +1,8 @@
+🚀 Starting development server...
+[Twilio Config] Configuration loaded {
+  fromValidation: '✓',
+  from: 'whatsapp:+15178005251',
+  accountSid: 'AC3e...0572',
+  sandbox: 'custom'
+}
+MongoDB DNS servers override applied: 8.8.8.8, 1.1.1.1

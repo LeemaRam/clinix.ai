@@ -31,13 +31,20 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
   // CORS - Require explicit configuration in production
-  CORS_ORIGIN: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
+  CORS_ORIGIN:
+    process.env.CORS_ORIGIN ||
+    process.env.FRONTEND_URL ||
+    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
 
   // Frontend URL for Socket.IO
   FRONTEND_URL: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
 
   // AI Services
-  PYTHON_AI_SERVICE_URL: process.env.PYTHON_AI_SERVICE_URL || 'http://localhost:8001',
+  AI_SERVICE_URL: process.env.AI_SERVICE_URL || process.env.PYTHON_AI_SERVICE_URL || 'http://localhost:8001',
+  PYTHON_AI_SERVICE_URL: process.env.AI_SERVICE_URL || process.env.PYTHON_AI_SERVICE_URL || 'http://localhost:8001',
+  INTERNAL_API_KEY:
+    process.env.INTERNAL_API_KEY ||
+    ((process.env.NODE_ENV || 'development') === 'production' ? '' : 'dev-key-123'),
 
   // OpenAI
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
@@ -56,9 +63,19 @@ export const env = {
   STRIPE_CANCEL_URL: process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/subscription/cancel',
 
   // Upload Configuration
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 'local',
   UPLOAD_AUDIO_DIR: process.env.UPLOAD_AUDIO_DIR || 'uploads/audio',
   UPLOAD_REPORTS_DIR: process.env.UPLOAD_REPORTS_DIR || 'uploads/reports',
+  UPLOAD_PATIENT_FILES_DIR: process.env.UPLOAD_PATIENT_FILES_DIR || 'uploads/patient_files',
   MAX_UPLOAD_SIZE_MB: Number(process.env.MAX_UPLOAD_SIZE_MB || 50),
+
+  // Azure Blob Storage
+  AZURE_STORAGE_CONNECTION_STRING: process.env.AZURE_STORAGE_CONNECTION_STRING || '',
+  AZURE_STORAGE_ACCOUNT_NAME: process.env.AZURE_STORAGE_ACCOUNT_NAME || '',
+  AZURE_STORAGE_ACCOUNT_URL: process.env.AZURE_STORAGE_ACCOUNT_URL || '',
+  AZURE_STORAGE_CONTAINER_AUDIO: process.env.AZURE_STORAGE_CONTAINER_AUDIO || 'audio',
+  AZURE_STORAGE_CONTAINER_REPORTS: process.env.AZURE_STORAGE_CONTAINER_REPORTS || 'reports',
+  AZURE_STORAGE_CONTAINER_PATIENT_FILES: process.env.AZURE_STORAGE_CONTAINER_PATIENT_FILES || 'patient-files',
 
   // External APIs
   OPENFDA_API_KEY: process.env.OPENFDA_API_KEY || '',

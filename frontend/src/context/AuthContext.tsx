@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { API_ROOT } from '../services/apiFetch';
 
 const normalizeUserRole = (role: string | undefined): string => {
   const rawRole = String(role || '').toLowerCase().trim();
@@ -43,7 +44,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
 
   // Setup axios interceptor for token validation
   useEffect(() => {

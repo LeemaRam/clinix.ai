@@ -9,8 +9,8 @@ Error: Could not connect to any servers in your MongoDB Atlas cluster. One commo
     type: 'ReplicaSetNoPrimary',
     servers: Map(3) {
       'ac-luklxvz-shard-00-01.uzh4z0y.mongodb.net:27017' => [ServerDescription],
-      'ac-luklxvz-shard-00-02.uzh4z0y.mongodb.net:27017' => [ServerDescription],
-      'ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net:27017' => [ServerDescription]
+      'ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net:27017' => [ServerDescription],
+      'ac-luklxvz-shard-00-02.uzh4z0y.mongodb.net:27017' => [ServerDescription]
     },
     stale: false,
     compatible: true,
@@ -27,8 +27,8 @@ Error: Could not connect to any servers in your MongoDB Atlas cluster. One commo
     type: 'ReplicaSetNoPrimary',
     servers: Map(3) {
       'ac-luklxvz-shard-00-01.uzh4z0y.mongodb.net:27017' => [ServerDescription],
-      'ac-luklxvz-shard-00-02.uzh4z0y.mongodb.net:27017' => [ServerDescription],
-      'ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net:27017' => [ServerDescription]
+      'ac-luklxvz-shard-00-00.uzh4z0y.mongodb.net:27017' => [ServerDescription],
+      'ac-luklxvz-shard-00-02.uzh4z0y.mongodb.net:27017' => [ServerDescription]
     },
     stale: false,
     compatible: true,

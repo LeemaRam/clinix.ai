@@ -13,9 +13,10 @@ import {
   validatePassword,
   validatePasswordConfirm
 } from '../utils/validation';
+import { API_ROOT } from '../services/apiFetch';
 
 const Settings = () => {
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('profile');
 

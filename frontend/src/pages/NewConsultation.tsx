@@ -6,6 +6,7 @@ import ConsentForm from '../components/consultation/ConsentForm';
 import RecordingTypeSelector from '../components/consultation/RecordingTypeSelector';
 import { listPatients, createPatient } from '../services/patientService';
 import { getSocket, joinConsultationRoom, leaveConsultationRoom } from '../services/socket';
+import { API_ROOT } from '../services/apiFetch';
 import axios from 'axios';
 import {
   validateName,
@@ -79,18 +80,7 @@ interface AudioUploadResponse {
   transcription_job_id?: string;
 }
 
-const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
-const shouldUseProxy = (() => {
-  if (!API_URL) return true;
-  try {
-    const { hostname } = new URL(API_URL);
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch {
-    return true;
-  }
-})();
-
-const apiRoot = shouldUseProxy ? '/api' : `${API_URL}/api`;
+const apiRoot = API_ROOT;
 const PENDING_CONSULTATION_STORAGE_KEY = 'clinix_pending_consultation';
 
 // Add API service functions

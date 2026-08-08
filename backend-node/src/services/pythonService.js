@@ -8,7 +8,10 @@ import { transcribeAudioWithWhisper } from './openaiWhisperService.js';
 
 const client = axios.create({
   baseURL: env.PYTHON_AI_SERVICE_URL,
-  timeout: 600000
+  timeout: 600000,
+  headers: {
+    'X-Internal-API-Key': env.INTERNAL_API_KEY
+  }
 });
 
 const buildTranscribeForm = ({ audioFilePath, speechLanguage, consultationId, mimeType }) => {
@@ -82,7 +85,10 @@ export const transcribeAudio = async ({ audioFilePath, speechLanguage = 'en', co
     });
 
     const formData = buildTranscribeForm({ audioFilePath: resolvedPath, speechLanguage, consultationId, mimeType });
-    const headers = formData.getHeaders();
+    const headers = {
+      ...formData.getHeaders(),
+      'X-Internal-API-Key': env.INTERNAL_API_KEY
+    };
     console.log('[pythonService] Built multipart form-data request headers', { ...headers });
 
     const serviceResponse = await client.post('/transcribe', formData, {

@@ -1,21 +1,21 @@
-import fs from 'fs';
 import path from 'path';
 import * as pdfParse from 'pdf-parse';
+import { readStoredFileToBuffer } from './storage/index.js';
 
 const PATIENT_FILE_DIR = path.resolve('uploads', 'patient_files');
 
-const readPlainText = async (filePath) => {
-  return fs.promises.readFile(filePath, 'utf-8');
+const readPlainText = async (buffer) => {
+  return buffer.toString('utf-8');
 };
 
-const extractPdfText = async (filePath) => {
-  const dataBuffer = await fs.promises.readFile(filePath);
-  const data = await pdfParse.default(dataBuffer);
+const extractPdfText = async (buffer) => {
+  const data = await pdfParse.default(buffer);
   return data.text || '';
 };
 
 export const extractPatientFileSummary = async (fileEntry) => {
-  const filePath = path.join(PATIENT_FILE_DIR, fileEntry.storedName || '');
+  const legacyLocalPath = path.join(PATIENT_FILE_DIR, fileEntry.storedName || '');
+  const storagePath = fileEntry.storedName;
   const summary = {
     originalName: fileEntry.originalName,
     storedName: fileEntry.storedName,
@@ -28,21 +28,22 @@ export const extractPatientFileSummary = async (fileEntry) => {
     error: null
   };
 
-  if (!fs.existsSync(filePath)) {
-    summary.error = 'File missing on disk';
+  const dataBuffer = await readStoredFileToBuffer({ storagePath, localFallbackPath: legacyLocalPath });
+  if (!dataBuffer) {
+    summary.error = 'File missing in storage';
     return summary;
   }
 
   try {
     if (fileEntry.mimeType === 'application/pdf') {
-      const text = await extractPdfText(filePath);
+      const text = await extractPdfText(dataBuffer);
       summary.text = text.trim();
       summary.summary = text.trim().slice(0, 1500);
       return summary;
     }
 
     if (fileEntry.mimeType.startsWith('text/')) {
-      const text = await readPlainText(filePath);
+      const text = await readPlainText(dataBuffer);
       summary.text = text.trim();
       summary.summary = text.trim().slice(0, 1500);
       return summary;

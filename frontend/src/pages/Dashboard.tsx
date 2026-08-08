@@ -10,6 +10,7 @@ import { formatDuration } from '../utils/formatters';
 import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments } from '../utils/transcription';
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import StatCard from '../components/ui/StatCard';
+import { API_ROOT } from '../services/apiFetch';
 
 interface DashboardStats {
   total_patients: number;
@@ -74,7 +75,7 @@ interface PdfOptions {
 }
 
 const Dashboard = () => {
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

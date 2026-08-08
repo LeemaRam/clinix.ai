@@ -4,9 +4,22 @@ let socketInstance: Socket | null = null;
 const joinedConsultationRooms = new Set<string>();
 const reconnectAttempts = { count: 0, maxAttempts: 5 };
 
+const SOCKET_URL = String(import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || '').trim();
+const shouldUseRelativeSocketUrl = (() => {
+  if (!SOCKET_URL) return true;
+  try {
+    const { hostname } = new URL(SOCKET_URL);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return true;
+  }
+})();
+
+const SOCKET_ENDPOINT = shouldUseRelativeSocketUrl ? '/' : SOCKET_URL;
+
 export const getSocket = (): Socket => {
   if (!socketInstance) {
-    socketInstance = io('/', {
+    socketInstance = io(SOCKET_ENDPOINT, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       timeout: 5000,

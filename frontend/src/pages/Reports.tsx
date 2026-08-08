@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { API_ROOT } from '../services/apiFetch';
 import { getSocket } from '../services/socket';
 import RealtimeStatusBadge from '../components/common/RealtimeStatusBadge';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -52,7 +53,7 @@ interface ReportGenerationEvent {
 }
 
 const Reports = () => {
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');

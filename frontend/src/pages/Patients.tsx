@@ -3,6 +3,7 @@ import { Search, Plus, UserPlus, Filter, X, Save, Menu, ChevronLeft, ChevronRigh
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listPatients, createPatient } from '../services/patientService';
+import { API_ROOT } from '../services/apiFetch';
 import {
   validateName,
   validateEmail,
@@ -46,7 +47,7 @@ interface NewPatientData {
 }
 
 const Patients = () => {
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState<Patient[]>([]);

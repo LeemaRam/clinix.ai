@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ==================================================
+# Clinix.ai Azure App Services Deployment Prep Script
+# Phase 3 (Provisioning + Configuration only)
+# ==================================================
+# This script DOES NOT deploy code automatically.
+# It provisions Azure resources and configures runtime settings.
+
+# ---------- Editable variables ----------
+SUBSCRIPTION_ID="<your-subscription-id>"
+RG_NAME="clinix-rg"
+LOCATION="eastus"
+APP_SERVICE_PLAN="clinix-plan-linux"
+APP_SERVICE_SKU="B1"
+
+# App names must be globally unique in Azure.
+BACKEND_APP_NAME="clinix-backend-prod"
+AI_APP_NAME="clinix-ai-prod"
+FRONTEND_APP_NAME="clinix-frontend-prod"
+
+STORAGE_ACCOUNT_NAME="clinixstorageprod01"
+STORAGE_CONTAINER_NAME="clinix-blobs"
+
+BACKEND_RUNTIME="NODE|20-lts"
+FRONTEND_RUNTIME="NODE|20-lts"
+AI_RUNTIME="PYTHON|3.11"
+
+# Secrets/placeholders: replace before running.
+INTERNAL_API_KEY_VALUE="replace-with-strong-internal-key"
+OPENAI_API_KEY_VALUE="replace-with-openai-key"
+
+# Optional: backend webhook/API placeholders (set in app settings if needed)
+STRIPE_WEBHOOK_SECRET_VALUE="replace-if-needed"
+
+# ---------- Azure login context ----------
+az account set --subscription "$SUBSCRIPTION_ID"
+
+# ---------- 1) Resource Group ----------
+az group create \
+  --name "$RG_NAME" \
+  --location "$LOCATION"
+
+# ---------- 2) Linux App Service Plan ----------
+az appservice plan create \
+  --name "$APP_SERVICE_PLAN" \
+  --resource-group "$RG_NAME" \
+  --location "$LOCATION" \
+  --is-linux \
+  --sku "$APP_SERVICE_SKU"
+
+# ---------- 3) Storage Account + Blob Container ----------
+az storage account create \
+  --name "$STORAGE_ACCOUNT_NAME" \
+  --resource-group "$RG_NAME" \
+  --location "$LOCATION" \
+  --sku Standard_LRS \
+  --kind StorageV2 \
+  --allow-blob-public-access false \
+  --min-tls-version TLS1_2
+
+STORAGE_KEY=$(az storage account keys list \
+  --resource-group "$RG_NAME" \
+  --account-name "$STORAGE_ACCOUNT_NAME" \
+  --query "[0].value" \
+  --output tsv)
+
+AZURE_STORAGE_CONNECTION_STRING=$(az storage account show-connection-string \
+  --resource-group "$RG_NAME" \
+  --name "$STORAGE_ACCOUNT_NAME" \
+  --query connectionString \
+  --output tsv)
+
+az storage container create \
+  --name "$STORAGE_CONTAINER_NAME" \
+  --account-name "$STORAGE_ACCOUNT_NAME" \
+  --account-key "$STORAGE_KEY"
+
+# ---------- 4) App Service: Backend (Node.js) ----------
+az webapp create \
+  --resource-group "$RG_NAME" \
+  --plan "$APP_SERVICE_PLAN" \
+  --name "$BACKEND_APP_NAME" \
+  --runtime "$BACKEND_RUNTIME"
+
+# ---------- 5) App Service: AI Service (Python) ----------
+az webapp create \
+  --resource-group "$RG_NAME" \
+  --plan "$APP_SERVICE_PLAN" \
+  --name "$AI_APP_NAME" \
+  --runtime "$AI_RUNTIME"
+
+# ---------- 6) App Service: Frontend (Node.js SPA host) ----------
+az webapp create \
+  --resource-group "$RG_NAME" \
+  --plan "$APP_SERVICE_PLAN" \
+  --name "$FRONTEND_APP_NAME" \
+  --runtime "$FRONTEND_RUNTIME"
+
+# ---------- Shared URLs ----------
+FRONTEND_URL="https://${FRONTEND_APP_NAME}.azurewebsites.net"
+BACKEND_URL="https://${BACKEND_APP_NAME}.azurewebsites.net"
+AI_SERVICE_URL="https://${AI_APP_NAME}.azurewebsites.net"
+
+# ---------- Backend App Settings ----------
+az webapp config appsettings set \
+  --resource-group "$RG_NAME" \
+  --name "$BACKEND_APP_NAME" \
+  --settings \
+    NODE_ENV="production" \
+    FRONTEND_URL="$FRONTEND_URL" \
+    CORS_ORIGIN="$FRONTEND_URL" \
+    AI_SERVICE_URL="$AI_SERVICE_URL" \
+    INTERNAL_API_KEY="$INTERNAL_API_KEY_VALUE" \
+    STORAGE_PROVIDER="azure" \
+    AZURE_STORAGE_CONNECTION_STRING="$AZURE_STORAGE_CONNECTION_STRING" \
+    AZURE_STORAGE_CONTAINER_AUDIO="$STORAGE_CONTAINER_NAME" \
+    AZURE_STORAGE_CONTAINER_REPORTS="$STORAGE_CONTAINER_NAME" \
+    AZURE_STORAGE_CONTAINER_PATIENT_FILES="$STORAGE_CONTAINER_NAME" \
+    STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET_VALUE"
+
+# Enable WebSockets explicitly for Socket.IO.
+az webapp config set \
+  --resource-group "$RG_NAME" \
+  --name "$BACKEND_APP_NAME" \
+  --web-sockets-enabled true
+
+# Backend startup command.
+az webapp config set \
+  --resource-group "$RG_NAME" \
+  --name "$BACKEND_APP_NAME" \
+  --startup-file "npm start"
+
+# ---------- AI App Settings ----------
+az webapp config appsettings set \
+  --resource-group "$RG_NAME" \
+  --name "$AI_APP_NAME" \
+  --settings \
+    NODE_ENV="production" \
+    BACKEND_URL="$BACKEND_URL" \
+    INTERNAL_API_KEY="$INTERNAL_API_KEY_VALUE" \
+    OPENAI_API_KEY="$OPENAI_API_KEY_VALUE" \
+    FFMPEG_PATH="ffmpeg"
+
+# AI startup command.
+az webapp config set \
+  --resource-group "$RG_NAME" \
+  --name "$AI_APP_NAME" \
+  --startup-file 'gunicorn --worker-class uvicorn.workers.UvicornWorker --workers 2 --timeout 180 --bind 0.0.0.0:$PORT app.main:app'
+
+# ---------- Frontend App Settings ----------
+az webapp config appsettings set \
+  --resource-group "$RG_NAME" \
+  --name "$FRONTEND_APP_NAME" \
+  --settings \
+    NODE_ENV="production"
+
+# Frontend startup command (serves prebuilt dist via server.mjs).
+az webapp config set \
+  --resource-group "$RG_NAME" \
+  --name "$FRONTEND_APP_NAME" \
+  --startup-file "npm start"
+
+# ==================================================
+# Frontend Build-Time Deployment Workflow (IMPORTANT)
+# ==================================================
+# VITE_API_URL and VITE_SOCKET_URL are build-time variables.
+# You must build frontend artifacts with production URLs before deploy.
+#
+# 1) Build locally (or in CI) with production endpoints baked in:
+#    cd frontend
+#    npm ci
+#    VITE_API_URL="$BACKEND_URL" VITE_SOCKET_URL="$BACKEND_URL" npm run build
+#
+# 2) Package deployable frontend app (dist + server.mjs + package files):
+#    cd ..
+#    rm -rf frontend-release frontend-release.zip
+#    mkdir -p frontend-release
+#    cp -R frontend/dist frontend-release/dist
+#    cp frontend/server.mjs frontend-release/server.mjs
+#    cp frontend/package.json frontend-release/package.json
+#    if [ -f frontend/package-lock.json ]; then cp frontend/package-lock.json frontend-release/package-lock.json; fi
+#    (cd frontend-release && zip -r ../frontend-release.zip .)
+#
+# 3) Deploy packaged build to frontend App Service:
+#    az webapp deploy --resource-group "$RG_NAME" --name "$FRONTEND_APP_NAME" --src-path "frontend-release.zip" --type zip
+#
+# 4) Deploy backend and AI code separately (zip deploy or your CI/CD of choice).
+#
+# Notes:
+# - Do not store real secret values in this script in source control.
+# - Prefer using Azure Key Vault + reference settings for production secrets.

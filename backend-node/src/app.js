@@ -23,6 +23,7 @@ import patientFileRoutes from './routes/patientFileRoutes.js';
 import testRoutes from './routes/testRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
+import { handleStripeWebhook } from './controllers/subscriptionController.js';
 
 export const createApp = () => {
   const app = express();
@@ -60,10 +61,13 @@ export const createApp = () => {
     cors({
       origin: isProduction ? allowedOrigins : true, // Allow all in development
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     })
   );
+
+  // Stripe signature verification requires raw request body for this route.
+  app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
   // Body parsing with size limits
   const maxPayloadSize = `${env.MAX_UPLOAD_SIZE_MB}mb`;

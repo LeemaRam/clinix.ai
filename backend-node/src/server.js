@@ -18,8 +18,14 @@ const PORT = env.PORT || 5000;
 let server;
 let io;
 
+const parseAllowedOrigins = (value) =>
+  String(value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
 const ensureUploadDirectories = () => {
-  const directories = [env.UPLOAD_AUDIO_DIR, env.UPLOAD_REPORTS_DIR];
+  const directories = [env.UPLOAD_AUDIO_DIR, env.UPLOAD_REPORTS_DIR, env.UPLOAD_PATIENT_FILES_DIR];
 
   directories.forEach((dir) => {
     const resolved = path.resolve(dir);
@@ -88,13 +94,16 @@ const startServer = async () => {
     const app = createApp();
     server = http.createServer(app);
 
-    // Socket.IO configuration
-    const corsOrigin = env.NODE_ENV === 'production' ? env.FRONTEND_URL : true;
+    // Socket.IO configuration: strict origin alignment with FRONTEND_URL only.
+    const frontendOrigins = parseAllowedOrigins(env.FRONTEND_URL);
+    const socketCorsOrigin = env.NODE_ENV === 'production'
+      ? frontendOrigins
+      : (frontendOrigins[0] || 'http://localhost:3000');
 
     io = new SocketIOServer(server, {
       cors: {
-        origin: corsOrigin,
-        methods: ["GET", "POST"],
+        origin: socketCorsOrigin,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         credentials: true
       },
       transports: ['websocket', 'polling'],
@@ -133,7 +142,7 @@ const startServer = async () => {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${env.NODE_ENV}`);
-      console.log(`🔗 Socket.IO enabled with CORS: ${corsOrigin}`);
+      console.log(`🔗 Socket.IO enabled with CORS: ${JSON.stringify(socketCorsOrigin)}`);
       if (env.FRONTEND_URL) {
         console.log(`📱 Frontend URL: ${env.FRONTEND_URL}`);
       }

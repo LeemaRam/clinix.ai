@@ -1,9 +1,13 @@
-import fs from 'fs';
 import { Report } from '../models/Report.js';
 import { Consultation } from '../models/Consultation.js';
 import { Patient } from '../models/Patient.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { serializeReport, serializePatient } from '../utils/serializers.js';
+import {
+  createStoredFileReadStream,
+  deleteStoredFile,
+  readStoredFileToBuffer
+} from '../services/storage/index.js';
 
 export const listReports = asyncHandler(async (req, res) => {
   const page = Number(req.query.page || 1);
@@ -38,19 +42,29 @@ export const listReports = asyncHandler(async (req, res) => {
 export const downloadReport = asyncHandler(async (req, res) => {
   const report = await Report.findOne({ _id: req.params.id, doctorId: req.user.id });
   if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
-  if (!report.filePath || !fs.existsSync(report.filePath)) {
+  if (!report.filePath) {
+    return res.status(404).json({ success: false, error: 'Report file missing' });
+  }
+
+  let reportBuffer;
+  try {
+    reportBuffer = await readStoredFileToBuffer({ storagePath: report.filePath });
+  } catch (error) {
     return res.status(404).json({ success: false, error: 'Report file missing' });
   }
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="report-${report._id}.pdf"`);
-  fs.createReadStream(report.filePath).pipe(res);
+  const { stream } = await createStoredFileReadStream({ storagePath: report.filePath, buffer: reportBuffer });
+  stream.pipe(res);
 });
 
 export const deleteReport = asyncHandler(async (req, res) => {
   const report = await Report.findOneAndDelete({ _id: req.params.id, doctorId: req.user.id });
   if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
-  if (report.filePath && fs.existsSync(report.filePath)) fs.unlinkSync(report.filePath);
+  if (report.filePath) {
+    await deleteStoredFile({ storagePath: report.filePath });
+  }
   res.json({ success: true, data: { deleted: true }, deleted: true });
 });
 

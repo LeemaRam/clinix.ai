@@ -8,6 +8,7 @@ import { normalizeTranscription, getTranscriptionText, getTranscriptionSegments 
 import { getRecordingTypeLabel } from '../utils/recordingTypes';
 import ReportPreviewModal from '../components/ReportPreviewModal';
 import { getSocket, joinConsultationRoom } from '../services/socket';
+import { API_ROOT } from '../services/apiFetch';
 import RealtimeStatusBadge from '../components/common/RealtimeStatusBadge';
 
 interface ConsultationBasic {
@@ -144,7 +145,7 @@ interface ReportGenerationEvent {
 }
 
 const PastConsultations: React.FC = () => {
-  const apiRoot = '/api';
+  const apiRoot = API_ROOT;
   const { t } = useTranslation();
   const [consultations, setConsultations] = useState<TransformedConsultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<TransformedConsultation[]>([]);

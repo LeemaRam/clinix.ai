@@ -15,6 +15,11 @@ import { getSocketServer } from '../socket.js';
 import { createAiTask, processConsultationAiTask } from '../services/aiTaskService.js';
 import { sendAppointmentInvitation, getDoctorName } from '../services/followupInvitationService.js';
 import { validateEnum, collectErrors, throwIfErrors } from '../utils/validation.js';
+import {
+  buildBlobName,
+  deleteStoredFile,
+  uploadPersistentFile
+} from '../services/storage/index.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -383,6 +388,19 @@ const createAndStreamReportPdf = async ({ consultation, transcription, doctorId,
     outputPath
   });
 
+  const reportBlobName = buildBlobName({
+    categoryPrefix: 'reports',
+    entityId: consultation._id.toString(),
+    filename
+  });
+  const persistentReportPath = await uploadPersistentFile({
+    localPath: outputPath,
+    localFallbackPath: outputPath,
+    container: env.AZURE_STORAGE_CONTAINER_REPORTS,
+    blobName: reportBlobName,
+    contentType: 'application/pdf'
+  });
+
   const report = await Report.create({
     consultationId: consultation._id,
     patientId: consultation.patientId?._id,
@@ -390,7 +408,7 @@ const createAndStreamReportPdf = async ({ consultation, transcription, doctorId,
     content: JSON.stringify(structuredContent),
     format: 'PDF',
     status: 'generated',
-    filePath: outputPath,
+    filePath: persistentReportPath,
     generatedBy: generatedBy || 'System'
   });
 
@@ -407,7 +425,13 @@ const createAndStreamReportPdf = async ({ consultation, transcription, doctorId,
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  fs.createReadStream(report.filePath).pipe(res);
+  const stream = fs.createReadStream(outputPath);
+  stream.on('close', async () => {
+    if (persistentReportPath !== outputPath) {
+      await deleteStoredFile({ storagePath: outputPath });
+    }
+  });
+  stream.pipe(res);
 };
 
 export const approveSoapNote = asyncHandler(async (req, res) => {
@@ -479,21 +503,39 @@ export const uploadAudio = asyncHandler(async (req, res) => {
   if (!consultation) return res.status(404).json({ success: false, error: 'Consultation not found' });
   if (!req.file) return res.status(400).json({ success: false, error: 'Audio file is required' });
 
-  consultation.audioFilePath = req.file.path;
+  const localAudioPath = req.file.path;
+  const blobName = buildBlobName({
+    categoryPrefix: 'audio',
+    entityId: consultation._id.toString(),
+    filename: req.file.filename || path.basename(localAudioPath)
+  });
+  const persistentAudioPath = await uploadPersistentFile({
+    localPath: localAudioPath,
+    localFallbackPath: localAudioPath,
+    container: env.AZURE_STORAGE_CONTAINER_AUDIO,
+    blobName,
+    contentType: req.file.mimetype
+  });
+
+  consultation.audioFilePath = persistentAudioPath;
   consultation.audioFileSize = req.file.size;
   consultation.audioFormat = req.file.mimetype;
   consultation.status = 'in_progress';
   consultation.startedAt = consultation.startedAt || new Date();
-  await consultation.save();
-  const fileStats = fs.statSync(req.file.path);
+  const fileStats = fs.statSync(localAudioPath);
   const actualSize = fileStats.size;
   if (actualSize !== req.file.size) {
     console.warn('[consultationController] backend persisted audio size mismatch', {
       consultationId: consultation._id.toString(),
       expectedSize: req.file.size,
       actualSize,
-      audioPath: req.file.path
+      audioPath: localAudioPath
     });
+  }
+  await consultation.save();
+
+  if (persistentAudioPath !== localAudioPath && fs.existsSync(localAudioPath)) {
+    fs.unlinkSync(localAudioPath);
   }
 
   const speechLanguage = String(req.body.speech_language || 'en').toLowerCase().startsWith('ur') ? 'ur' : 'en';

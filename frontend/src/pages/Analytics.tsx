@@ -4,18 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Users, FileText, Activity, TrendingUp, Loader2, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import EmptyState from '../components/EmptyState';
-
-const API_URL = String(import.meta.env.VITE_API_URL || '').trim();
-const shouldUseProxy = (() => {
-  if (!API_URL) return true;
-  try {
-    const { hostname } = new URL(API_URL);
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch {
-    return true;
-  }
-})();
-const API_ROOT = shouldUseProxy ? '/api' : `${API_URL}/api`;
+import { API_ROOT } from '../services/apiFetch';
 
 const getAuthHeaders = () => ({
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`
