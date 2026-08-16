@@ -1,722 +1,103 @@
 # Clinix.ai
 
-Clinix.ai is a hybrid medical transcription and reporting platform designed to turn consultation audio into structured clinical documentation. The current architecture separates the user interface, orchestration API, and AI processing into dedicated services so each layer can evolve independently.
+Clinix.ai is a medical transcription and clinical reporting platform. It accepts consultation audio, produces structured clinical documentation with AI assistance, and supports patient, consultation, report, follow-up, subscription, and administration workflows.
 
-## Overview
+## Architecture
 
-Clinix.ai is organized as a three-service application:
+The application is composed of three independently deployable services:
 
-- `frontend/` is the React application built with Vite and TypeScript. It provides the clinician-facing UI for patients, consultations, reports, subscriptions, and settings.
-- `backend-node/` is the main Node.js + Express API layer. It handles authentication, patient and consultation data, subscriptions, uploads, PDFs, dashboards, and Socket.IO events.
-- `ai-service/` is the FastAPI service that performs AI-heavy processing such as transcription and report generation.
-- `caddy/` provides the reverse-proxy configuration used for the containerized production deployment.
+- `frontend/`: React, TypeScript, and Vite clinician-facing application.
+- `backend-node/`: Node.js, Express, MongoDB, Socket.IO, uploads, PDF, authentication, billing, and integrations API.
+- `ai-service/`: FastAPI service for transcription, report generation, SOAP notes, patient briefs, medication safety, and reminders.
 
-## Why a Hybrid Architecture
+Production uses three Linux Azure App Services with Azure Blob Storage for uploaded files and MongoDB Atlas for application data. The browser calls the Node API, which coordinates the AI service using a shared internal API key.
 
-The migration away from a monolithic Flask backend was done to improve separation of concerns and make the platform easier to maintain.
+## Requirements
 
-## Local Runtime Testing
+- Node.js and npm
+- Python 3.11 to 3.13
+- MongoDB or MongoDB Atlas
+- FFmpeg and FFprobe for the AI service
+- OpenAI credentials for AI processing
 
-To run the full platform locally, start the services in this order:
+Optional integrations require their own credentials: Azure Blob Storage, Stripe, Twilio WhatsApp, Google Cloud Speech, RxNorm, and OpenFDA.
 
-1. **AI service** (`ai-service`) on port `8001`
-2. **Backend API** (`backend-node`) on port `5000`
-3. **Frontend** (`frontend`) on port `3000`
+## Local Development
 
-### Local startup commands
+Create local environment files from the templates. These files are intentionally ignored by Git:
 
 ```powershell
-cd ai-service
+Copy-Item backend-node/.env.example backend-node/.env
+Copy-Item ai-service/.env.example ai-service/.env
+Copy-Item frontend/.env.example frontend/.env
+```
+
+Set at minimum `MONGODB_URI`, `JWT_SECRET`, and a matching `INTERNAL_API_KEY` in the backend and AI service. Provide `OPENAI_API_KEY` for AI features.
+
+Install and run each service in a separate terminal:
+
+```powershell
+Set-Location ai-service
 python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ```powershell
-cd backend-node
+Set-Location backend-node
 npm install
 npm run dev
 ```
 
 ```powershell
-cd frontend
+Set-Location frontend
 npm install
 npm run dev
 ```
 
-### Local environment variables
+The local endpoints are frontend `http://localhost:3000`, backend `http://localhost:5000`, and AI service `http://localhost:8001`.
 
-- `backend-node/.env.example` is now configured for development by default.
-- `frontend/.env.example` uses `VITE_API_URL=http://localhost:5000`.
-- `ai-service/.env.example` is configured to run locally on port `8001`.
+`start-local.ps1` starts the complete local stack on Windows after checking ports and local prerequisites.
 
-### Local connectivity checks
+## Environment Templates
 
-- Frontend API calls use `VITE_API_URL` when configured, otherwise Vite proxying to `/api`.
-- Socket.IO connects to `/socket.io` through the frontend dev proxy in development mode.
-- Backend uses `PYTHON_AI_SERVICE_URL=http://localhost:8001` by default.
-- Backend now creates upload directories on startup if they are missing.
+- `frontend/.env.example`: `VITE_API_URL` and `VITE_SOCKET_URL` are build-time public API endpoints.
+- `backend-node/.env.example`: server, MongoDB, authentication, CORS, AI, storage, billing, messaging, and optional external API settings.
+- `ai-service/.env.example`: FastAPI, OpenAI, FFmpeg, backend CORS, and internal authentication settings.
 
-Benefits of the current design:
+Templates contain placeholders only. Never commit `.env` files, credentials, service-account JSON files, or production app settings. Configure production secrets in Azure App Service Application Settings or Azure Key Vault references.
 
-- Frontend and backend can be developed and deployed independently.
-- The Node.js API focuses on orchestration, validation, persistence, and real-time communication.
-- The Python AI service can use the best Python ecosystem for audio and LLM workflows without pulling that complexity into the main API.
-- The system scales more cleanly because AI workloads are isolated from standard CRUD traffic.
+## Production: Azure App Service
 
-## Tech Stack
+`azure-deploy.azcli` provisions and configures the three Linux App Services, enables backend WebSockets, configures storage settings, and documents the ZIP deployment workflow. It reads required secret values from the invoking shell and does not contain production credentials.
 
-### Frontend
-
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- Axios
-- React Toastify
-- i18next and react-i18next
-- Recharts (analytics charts)
-- lucide-react and react-icons (iconography)
-- Socket.IO client
-
-### Backend API Layer
-
-- Node.js
-- Express
-- MongoDB with Mongoose
-- Socket.IO
-- JWT authentication
-- Multer for uploads
-- PDF generation with PDFKit
-
-### Containerization and Azure Hosting
-
-This repository includes Docker support for all three services:
-
-- `frontend/` — React app built and served by Nginx
-- `backend-node/` — Express API service
-- `ai-service/` — FastAPI AI processing service
-
-Two Compose files are provided:
-
-- `docker-compose.yml` — local multi-service development
-- `docker-compose.prod.yml` — production stack fronted by a Caddy reverse proxy
-
-The supported production deployment is a single Azure Ubuntu VM running Docker Compose
-behind Caddy, with **MongoDB Atlas** as the managed database. Full step-by-step
-instructions are in the "Production Deployment (Azure)" section below.
-
-- Stripe integration
-- CORS, Helmet, Morgan, and dotenv
-
-### AI Service
-
-- Python 3
-- FastAPI
-- OpenAI API
-- Pydub for audio handling
-- FFmpeg-backed audio processing
-- Pydantic and python-multipart
-- Uvicorn for serving the API
-
-## Project Structure
-
-- `frontend/` = React/Vite frontend
-- `backend-node/` = Express/Mongo API (active backend)
-- `ai-service/` = FastAPI AI service
-- `caddy/` = reverse-proxy configuration for production
+Before using it, export the required `*_VALUE` variables in a secure shell session. Build the frontend with its public backend endpoint before packaging because Vite embeds `VITE_API_URL` and `VITE_SOCKET_URL` at build time.
 
 ```text
-clinix.ai/
-  backend-node/            # Main Express API layer
-    src/
-      app.js
-      server.js
-      config/
-      controllers/
-      middleware/
-      models/
-      routes/
-      services/
-      utils/
-    scripts/               # seed-demo helper
-    seed-stripe-plans.js
-    .env.example
-    package.json
-  ai-service/              # FastAPI AI processing service
-    app/
-      main.py
-      schemas.py
-      services/
-    .env.example
-    requirements.txt
-  frontend/                # React + Vite frontend
-    src/
-      components/
-      context/
-      i18n/
-      locales/
-      pages/
-      services/
-      types/
-      utils/
-    vite.config.ts
-    package.json
-  caddy/                   # Caddy reverse-proxy config
-  docker-compose.yml       # local dev stack
-  docker-compose.prod.yml  # production stack (Caddy + services)
-  .env.production.example
-  start-local.ps1
-  README.md
+Custom domain -> Azure App Service frontend -> Azure App Service backend -> Azure App Service AI
+                                            -> MongoDB Atlas
+                                            -> Azure Blob Storage
 ```
 
-## Prerequisites
+The production custom domain is managed directly through Azure App Services. Docker, Caddy, Cloudflare Tunnel, and VM deployment are not part of the supported production architecture.
 
-Install the following before running the project:
-
-- Node.js 18+ and npm
-- Python 3.11–3.13 with pip (the AI service enforces this range)
-- MongoDB (local) or MongoDB Atlas
-- FFmpeg (required by the AI service for audio processing)
-- OpenAI API key for transcription and report generation
-- Stripe credentials if you want billing features enabled
-
-## Installation
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/LeemaRam/clinix.ai.git
-cd clinix.ai
-```
-
-### 2. backend-node setup
-
-```bash
-cd backend-node
-npm install
-```
-
-Create `backend-node/.env` from `backend-node/.env.example` and configure these values:
-
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/clinix_ai
-JWT_SECRET=change-me
-JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:3000
-PYTHON_AI_SERVICE_URL=http://localhost:8001
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_SUCCESS_URL=http://localhost:3000/subscription/success
-STRIPE_CANCEL_URL=http://localhost:3000/subscription/cancel
-MAX_UPLOAD_SIZE_MB=50
-```
-
-### 3. ai-service setup
-
-```bash
-cd ai-service
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Create `ai-service/.env` from `ai-service/.env.example` and configure these values:
-
-```env
-AI_SERVICE_PORT=8001
-AI_SERVICE_HOST=0.0.0.0
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4o-mini
-MAX_FILE_MB=50
-NODE_ENV=development
-```
-
-### 4. frontend setup
-
-```bash
-cd frontend
-npm install
-```
-
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-## Running the Application
-
-Run each service in its own terminal.
-
-### Terminal 1: backend-node
-
-```bash
-cd backend-node
-npm run dev
-```
-
-The Node API runs on `http://localhost:5000`.
-
-### Terminal 2: ai-service
-
-```bash
-cd ai-service
-source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-```
-
-The FastAPI service runs on `http://localhost:8001` by default. If you want to use port `8000` instead, update `AI_SERVICE_PORT` and the Node service URL accordingly.
-
-### Terminal 3: frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-The Vite dev server runs on `http://localhost:3000`.
-
-## End-to-End API Flow
-
-The typical request path is:
-
-Frontend → Node API → FastAPI AI Service → OpenAI → Node API → Frontend
-
-A typical consultation flow looks like this:
-
-1. The clinician logs in through the React frontend.
-2. The frontend sends requests to the Node API for patients, consultations, reports, and subscriptions.
-3. When audio is uploaded, Node stores the file and forwards it to the FastAPI AI service.
-4. The FastAPI service calls OpenAI for transcription or report generation.
-5. The AI response is returned to Node for persistence and response shaping.
-6. Node returns the final result to the frontend for display, preview, or PDF generation.
-
-## Environment Variables
-
-### frontend/.env
-
-- `VITE_API_URL` - Base URL for the Node API. In local development this is typically `http://localhost:5000`.
-
-### backend-node/.env
-
-- `PORT` - Express server port. Default `5000`.
-- `MONGODB_URI` - MongoDB connection string.
-- `JWT_SECRET` - JWT signing secret.
-- `JWT_EXPIRES_IN` - JWT lifetime.
-- `CORS_ORIGIN` - Allowed frontend origin(s).
-- `PYTHON_AI_SERVICE_URL` - FastAPI service URL used by Node when sending audio for transcription.
-- `STRIPE_SECRET_KEY` - Stripe secret key.
-- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret.
-- `STRIPE_SUCCESS_URL` - Redirect URL after successful checkout.
-- `STRIPE_CANCEL_URL` - Redirect URL after canceled checkout.
-- `MAX_UPLOAD_SIZE_MB` - Maximum upload size in megabytes.
-
-### ai-service/.env
-
-- `AI_SERVICE_PORT` - FastAPI port. Default `8001`.
-- `AI_SERVICE_HOST` - Bind host. Default `0.0.0.0`.
-- `OPENAI_API_KEY` - OpenAI API key.
-- `OPENAI_MODEL` - Chat model used for report/SOAP generation (default `gpt-4o-mini`).
-- `RXNORM_API_ID` - Optional RxNorm API identifier for medication lookups.
-- `MAX_FILE_MB` - Maximum audio file size in megabytes.
-- `NODE_ENV` - `development` or `production`.
-- `DEMO_MODE` - When `true`, enables demo behavior.
-
-## Features
-
-- Role-based authentication for clinicians and administrators
-- Patient management and consultation lifecycle tracking
-- Browser recording and audio upload workflows
-- AI transcription and structured report generation
-- Editable report previews and PDF export
-- Subscription plans and Stripe checkout support
-- Dashboard metrics and operational views
-- Internationalized UI support
-- Socket.IO-based real-time updates
-
-## API Surface
-
-The Node API exposes the application routes consumed by the frontend, including:
-
-- Authentication and user profile routes
-- Patient CRUD routes
-- Consultation and transcription routes
-- Report generation and export routes
-- Subscription and plan routes
-- Dashboard and super-admin routes
-- Socket.IO events for live consultation updates
-
-The AI service exposes:
-
-- `GET /health` and `GET /` — health/status
-- `POST /transcribe` — audio transcription
-- `POST /generate-report` — structured report generation
-- `POST /soap-note` — SOAP note generation
-- `POST /patient-brief` — patient brief generation
-- `POST /drug-safety` and `POST /drug-check` — medication safety checks
-- `POST /extract-followup` — follow-up extraction from a SOAP note
-- `POST /send-reminder` — WhatsApp reminder dispatch
-
-## Stripe Payment Integration
-
-Clinix.ai includes a complete Stripe integration for subscription management. The full Stripe setup and configuration are consolidated in a single guide.
-
-### Quick Start
-
-1. **Create a Stripe Account**: https://stripe.com
-2. **Get API Keys**: Stripe Dashboard → Developers → API Keys (copy Secret Key)
-3. **Create Products**: Add subscription products with prices in Stripe Dashboard
-4. **Configure Backend**: Add `STRIPE_SECRET_KEY` and webhook secret to `backend-node/.env`
-5. **Seed Database**: Run `npm run seed:stripe` in `backend-node/` to populate MongoDB with plans
-6. **Test**: Visit `/pricing` and test with card `4242 4242 4242 4242`
-
-### Detailed Setup
-
-The complete Stripe configuration and production steps are covered in the sections below.
-
-### Features
-
-- Subscription plan management (monthly & yearly)
-- Stripe Checkout integration
-- Webhook handling for payment events
-- User subscription tracking in MongoDB
-- Trial period support
-- Plan cancellation and reactivation
-- Feature limits per subscription tier
-
-### API Endpoints
-
-**Public Endpoints (No Auth Required)**
-- `GET /api/subscription/plans` - List all active plans
-- `GET /api/subscription/plans/:id` - Get specific plan
-- `POST /api/subscription/plans/compare` - Compare multiple plans
-
-**Protected Endpoints (JWT Required)**
-- `POST /api/subscription/create-checkout-session` - Create Stripe checkout session
-- `GET /api/user/subscription` - Get user's current subscription
-- `GET /api/verify-subscription` - Verify subscription after checkout
-- `POST /api/cancel-subscription` - Cancel subscription at period end
-- `POST /api/reactivate-subscription` - Reactivate cancelled subscription
-
-**Webhooks**
-- `POST /api/stripe/webhook` - Stripe webhook (uses signature verification)
-
-### Subscription Tiers
-
-**Starter Plan**
-- $29/month or $290/year
-- 120 transcriptions per month
-- 10 GB storage
-- Basic analytics
-
-**Pro Plan**
-- $79/month or $790/year
-- 600 transcriptions per month
-- 80 GB storage
-- Priority support
-- Team collaboration
-
-### MongoDB Collections
-
-**SubscriptionPlan**
-Stores available subscription plans linked to Stripe prices:
-```javascript
-{
-  name: "Pro",
-  price: 79,
-  currency: "usd",
-  interval: "month",
-  transcriptionsPerMonth: 600,
-  diskSpaceGB: 80,
-  features: [...],
-  stripePriceId: "price_XXXXX",  // Linked to Stripe
-  active: true
-}
-```
-
-**UserSubscription**
-Tracks user subscription status:
-```javascript
-{
-  userId: ObjectId,
-  planId: ObjectId,
-  stripeSubscriptionId: "sub_XXXXX",
-  stripeCustomerId: "cus_XXXXX",
-  status: "active",  // or "past_due", "cancelled"
-  currentPeriodStart: Date,
-  currentPeriodEnd: Date,
-  cancelAtPeriodEnd: false
-}
-```
-
-### Testing
-
-Use Stripe test cards during development:
-```
-Card Number: 4242 4242 4242 4242
-Expiry:      12/25 (any future date)
-CVC:         123 (any 3 digits)
-```
-
-For other test scenarios, see [Stripe Testing Documentation](https://stripe.com/docs/testing).
-
-### Production Deployment
-
-#### Prerequisites
-
-1. **Domain and SSL Certificate**: Obtain a domain name and SSL certificate for HTTPS
-2. **Cloud Infrastructure**: Choose a cloud provider (AWS, GCP, Azure, DigitalOcean, etc.)
-3. **Database**: Set up MongoDB Atlas or equivalent managed MongoDB service
-4. **File Storage**: Configure cloud storage for file uploads (AWS S3, Google Cloud Storage, etc.)
-5. **Reverse Proxy**: Set up nginx or similar for load balancing and SSL termination
-
-#### Environment Configuration
-
-1. **Copy environment templates**:
-   ```bash
-   cp backend-node/.env.example backend-node/.env
-   cp frontend/.env.example frontend/.env
-   cp ai-service/.env.example ai-service/.env
-   ```
-
-2. **Configure production environment variables**:
-
-   **Backend (.env)**:
-   ```env
-   NODE_ENV=production
-   PORT=5000
-   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/clinix_prod
-   JWT_SECRET=your-super-secure-jwt-secret-here
-   CORS_ORIGIN=https://yourdomain.com
-   FRONTEND_URL=https://yourdomain.com
-   MAX_UPLOAD_SIZE_MB=50
-   # Add all other required API keys
-   ```
-
-   **Frontend (.env)**:
-   ```env
-   VITE_API_URL=https://api.yourdomain.com
-   ```
-
-   **AI Service (.env)**:
-   ```env
-   NODE_ENV=production
-   OPENAI_API_KEY=your-production-openai-key
-   # Add other AI service keys
-   ```
-
-#### Docker Deployment
-
-1. **Build and push images**:
-   ```bash
-   # Build images
-   docker-compose build
-
-   # Tag and push to registry
-   docker tag clinix-frontend your-registry/clinix-frontend:latest
-   docker tag clinix-backend your-registry/clinix-backend:latest
-   docker tag clinix-ai-service your-registry/clinix-ai-service:latest
-   docker push your-registry/clinix-frontend:latest
-   docker push your-registry/clinix-backend:latest
-   docker push your-registry/clinix-ai-service:latest
-   ```
-
-2. **Production docker-compose.yml**:
-   ```yaml
-   version: '3.9'
-   services:
-     ai-service:
-       image: your-registry/clinix-ai-service:latest
-       environment:
-         - NODE_ENV=production
-       restart: unless-stopped
-
-     backend:
-       image: your-registry/clinix-backend:latest
-       environment:
-         - NODE_ENV=production
-       depends_on:
-         - ai-service
-       restart: unless-stopped
-
-     frontend:
-       image: your-registry/clinix-frontend:latest
-       environment:
-         - API_URL=https://api.yourdomain.com
-       restart: unless-stopped
-   ```
-
-#### Security Checklist
-
-- [ ] All `.env` files contain production values only
-- [ ] No sensitive data in `.env.example` files
-- [ ] JWT secrets are strong and unique
-- [ ] CORS is restricted to your domain only
-- [ ] HTTPS is enabled with valid SSL certificate
-- [ ] File upload limits are reasonable (50MB max)
-- [ ] Rate limiting is configured
-- [ ] Security headers are enabled (Helmet.js)
-- [ ] Database connections use authentication
-- [ ] API keys are production keys, not test keys
-
-#### Monitoring and Maintenance
-
-1. **Health Checks**: All services have `/health` endpoints
-2. **Logging**: Configure centralized logging (CloudWatch, Stackdriver, etc.)
-3. **Backups**: Set up automated database backups
-4. **SSL Renewal**: Configure automatic SSL certificate renewal
-5. **Updates**: Plan for dependency updates and security patches
-
-#### Performance Optimization
-
-- [ ] Enable gzip compression in nginx
-- [ ] Configure proper cache headers for static assets
-- [ ] Set up CDN for static file delivery
-- [ ] Configure database connection pooling
-- [ ] Implement Redis for session storage if needed
-- [ ] Monitor and optimize database queries
-
-Before deploying to production:
-
-1. Switch to **Live Mode** in Stripe Dashboard
-2. Copy Live API keys (start with `sk_live_`)
-3. Create Stripe products again in Live mode
-4. Update Azure environment variables with Live keys
-5. Set up webhook for your Azure domain
-6. Use Live pricing in seeder script
-
-See the "Production Deployment (Azure)" section below for detailed deployment steps.
-## Notes
-
-- The development setup uses Vite on port `3000` and proxies API requests to the Node server on `5000`.
-- The Node service delegates heavy AI work (transcription and report generation) to the FastAPI service, with a few lightweight OpenAI calls made directly for auxiliary tasks.
-- Uploaded files are written to `backend-node/uploads/`; on ephemeral hosts, mount a volume or use external object storage for durability.
-
-## License
-
-This project is licensed under the MIT License.
-
-
-## Production Deployment (Azure Ubuntu VM)
-
-This section describes the supported demo deployment: a single Azure Ubuntu VM running Docker Compose, with MongoDB Atlas as the database and Caddy as the public reverse proxy. No Kubernetes, no CI/CD pipeline, no custom domain required.
-
-### Architecture
-
-```
-Internet
-  |
-  v
-Caddy (reverse-proxy, ports 80/443)
-  |-- /            -> frontend  (nginx, container port 80)
-  |-- /api/*       -> backend-node (Express, container port 5000)
-  |-- /socket.io/* -> backend-node (Socket.IO)
-  |-- /ai/*        -> ai-service (FastAPI, container port 8001, prefix stripped)
-```
-
-Only the Caddy container publishes ports to the host. Backend, AI service, and frontend are reachable only on the internal Docker network.
-
-### 1. Provision the Azure VM
-
-- Image: **Ubuntu Server 22.04 LTS** (or 24.04)
-- Size: B2s or larger (2 vCPU / 4 GB RAM minimum for whisper + Node + Caddy)
-- Networking / NSG inbound rules: open **22 (SSH)**, **80 (HTTP)**, **443 (HTTPS)**
-- Optional: assign an **Azure DNS name label** (Public IP -> Configuration) so you get `clinixai-demo.<region>.cloudapp.azure.com` for free TLS
-
-### 2. Install Docker on the VM
-
-```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg git
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### 3. Clone the repository and create env file
-
-```bash
-git clone https://github.com/LeemaRam/clinix.ai.git
-cd clinix.ai
-cp .env.production.example .env.production
-nano .env.production   # fill in MONGODB_URI, OPENAI_API_KEY, JWT_SECRET, FRONTEND_URL, CORS_ORIGIN, Twilio, etc.
-```
-
-Set ``SITE_ADDRESS`` in ``.env.production``:
-
-- ``SITE_ADDRESS=:80`` for IP-only demo (HTTP)
-- ``SITE_ADDRESS=clinixai-demo.<region>.cloudapp.azure.com`` to enable automatic HTTPS via Let's Encrypt
-
-Set ``FRONTEND_URL`` and ``CORS_ORIGIN`` to the same public URL (for example ``http://20.10.20.30`` or ``https://clinixai-demo.eastus.cloudapp.azure.com``). Both are required in production or the backend will refuse to start.
-
-### 4. Allow the VM IP in MongoDB Atlas
-
-Atlas -> **Network Access** -> *Add IP Address* -> add the VM's **public IP** (or temporarily ``0.0.0.0/0`` for the demo if your supervisor accepts it). Cluster must be in the same region for best latency.
-
-### 5. Build and start the stack
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production config        # validate
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-docker ps
-docker compose -f docker-compose.prod.yml logs -f
-```
-
-### 6. Verify
-
-From the VM:
-
-```bash
-curl -i http://localhost/api/health    # -> { "status": "ok", "service": "backend-node", ... }
-curl -i http://localhost/ai/health     # -> { "status": "ok", "service": "clinix-ai-fastapi", ... }
-curl -I http://localhost/              # -> 200 OK (React app index.html)
-```
-
-From a browser (replace with your VM public IP or DNS label):
-
-- ``http://VM_PUBLIC_IP/``                � frontend SPA
-- ``http://VM_PUBLIC_IP/api/health``      � backend health JSON
-- ``http://VM_PUBLIC_IP/ai/health``       � AI service health JSON
-
-### 7. Twilio WhatsApp webhook
-
-In the Twilio console (WhatsApp sandbox or sender) set the inbound webhook URL to:
-
-```
-http://VM_PUBLIC_IP_OR_DOMAIN/api/webhooks/twilio/whatsapp
-```
-
-The exact same URL must be set as ``TWILIO_WEBHOOK_URL`` in ``.env.production`` � the backend uses it to validate the ``X-Twilio-Signature`` header and will reject mismatches. ``TWILIO_ACCOUNT_SID`` / ``TWILIO_AUTH_TOKEN`` live only in ``.env.production`` and are never baked into images.
-
-### 8. Updating after a code change
-
-```bash
-git pull
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-```
-
-### 9. Local fallback / demo backup
-
-If something goes wrong with the cloud demo, you can fall back to the local stack at any time:
+## Validation
 
 ```powershell
-# Windows dev machine
-./start-local.ps1
-# or
-docker compose up --build
+Set-Location frontend
+npm run build
+
+Set-Location ../backend-node
+node --check src/server.js
+
+Set-Location ../ai-service
+python -c "import app.main"
 ```
 
-The local ``docker-compose.yml`` and ``start-local.ps1`` are unchanged and still target ``http://localhost:3000`` (frontend), ``http://localhost:5000`` (backend), ``http://localhost:8001`` (AI).
+## Security
 
-### Security notes
+- Rotate any credential that has ever been committed or shared outside its intended secret store.
+- Restrict MongoDB Atlas network access and Azure App Service application settings to authorized operators.
+- Use a long unique `JWT_SECRET` and `INTERNAL_API_KEY` in production.
+- Keep Azure Storage connection strings, Stripe, Twilio, Google, and OpenAI credentials out of source control.
 
-- ``.env.production`` is gitignored. Only ``.env.production.example`` (placeholders) is committed.
-- ``MONGODB_URI``, ``JWT_SECRET``, ``OPENAI_API_KEY``, ``TWILIO_AUTH_TOKEN``, ``STRIPE_SECRET_KEY`` and ``REMINDER_RUN_SECRET`` must be set via env only.
-- Backend ``CORS_ORIGIN`` is an explicit allow-list � do not use ``*`` in production.
-- Caddy automatically obtains and renews Let's Encrypt certificates when ``SITE_ADDRESS`` is a real DNS name and ports 80/443 are reachable.
+See [SECURITY.md](SECURITY.md) for the repository security policy.

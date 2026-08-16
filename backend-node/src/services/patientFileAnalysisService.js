@@ -1,5 +1,4 @@
 import path from 'path';
-import * as pdfParse from 'pdf-parse';
 import { readStoredFileToBuffer } from './storage/index.js';
 
 const PATIENT_FILE_DIR = path.resolve('uploads', 'patient_files');
@@ -9,6 +8,7 @@ const readPlainText = async (buffer) => {
 };
 
 const extractPdfText = async (buffer) => {
+  const pdfParse = await import('pdf-parse');
   const data = await pdfParse.default(buffer);
   return data.text || '';
 };

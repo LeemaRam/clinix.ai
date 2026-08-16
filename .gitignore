@@ -1,31 +1,62 @@
-# Python
-__pycache__/
-*.pyc
-.venv/
+# Environment variables and local credentials
+.env
+.env.*
+!.env.example
+backend-node/secrets/
 
 # Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Environment
-.env
-.env.production
-.env.*.local
-backend-node/secrets/
-backend-node/secrets/*.json
+# Build and deployment artifacts
+dist/
+build/
+.next/
+out/
+*.zip
+*.tar.xz
+ai-release/
+backend-*-release/
+backend-prebuilt-release/
+frontend-release/
+ai-service/bin/
 
-# Upload artifacts
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Logs and local runtime data
+*.log
+logs/
 uploads/
 backend-node/uploads/
-
-# Local QA / scratch artifacts
 qa-screenshots/
-temp_diff.txt
-
-# Generated frontend build output
-frontend/dist/
-
-# Test / scratch audio in ai-service (runtime uploads use backend-node/uploads/)
 ai-service/temp_*.wav
 
-# OS files
+# Coverage and local databases
+coverage/
+htmlcov/
+*.db
+*.sqlite
+*.sqlite3
+
+# OS and IDE files
 .DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+temp_diff.txt

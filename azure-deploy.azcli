@@ -5,34 +5,37 @@ set -euo pipefail
 # Clinix.ai Azure App Services Deployment Prep Script
 # Phase 3 (Provisioning + Configuration only)
 # ==================================================
-# This script DOES NOT deploy code automatically.
-# It provisions Azure resources and configures runtime settings.
+# This script provisions Azure resources, configures runtime settings, and
+# documents the manual ZIP deployment workflow below.
 
 # ---------- Editable variables ----------
-SUBSCRIPTION_ID="<your-subscription-id>"
-RG_NAME="clinix-rg"
-LOCATION="eastus"
-APP_SERVICE_PLAN="clinix-plan-linux"
+SUBSCRIPTION_ID="d197631d-3220-48bc-b46f-fa978830ac9e"
+RG_NAME="clinixai-rg"
+RG_LOCATION="eastus"
+LOCATION="southeastasia"
+APP_SERVICE_PLAN="clinixai-plan-linux"
 APP_SERVICE_SKU="B1"
 
 # App names must be globally unique in Azure.
-BACKEND_APP_NAME="clinix-backend-prod"
-AI_APP_NAME="clinix-ai-prod"
-FRONTEND_APP_NAME="clinix-frontend-prod"
+BACKEND_APP_NAME="clinixai-backend-prod"
+AI_APP_NAME="clinixai-ai-prod"
+FRONTEND_APP_NAME="clinixai-frontend-prod"
 
-STORAGE_ACCOUNT_NAME="clinixstorageprod01"
-STORAGE_CONTAINER_NAME="clinix-blobs"
+STORAGE_ACCOUNT_NAME="clinixaistorageprod01"
+STORAGE_CONTAINER_NAME="clinixaistorageblobs"
 
-BACKEND_RUNTIME="NODE|20-lts"
-FRONTEND_RUNTIME="NODE|20-lts"
+BACKEND_RUNTIME="NODE|24-lts"
+FRONTEND_RUNTIME="NODE|24-lts"
 AI_RUNTIME="PYTHON|3.11"
 
-# Secrets/placeholders: replace before running.
-INTERNAL_API_KEY_VALUE="replace-with-strong-internal-key"
-OPENAI_API_KEY_VALUE="replace-with-openai-key"
-
-# Optional: backend webhook/API placeholders (set in app settings if needed)
-STRIPE_WEBHOOK_SECRET_VALUE="replace-if-needed"
+# Required secrets must be exported in the shell before running this script.
+# Never store real values in this tracked file.
+: "${MONGODB_URI_VALUE:?Set MONGODB_URI_VALUE in the shell}"
+: "${JWT_SECRET_VALUE:?Set JWT_SECRET_VALUE in the shell}"
+: "${INTERNAL_API_KEY_VALUE:?Set INTERNAL_API_KEY_VALUE in the shell}"
+: "${OPENAI_API_KEY_VALUE:?Set OPENAI_API_KEY_VALUE in the shell}"
+STRIPE_SECRET_KEY_VALUE="${STRIPE_SECRET_KEY_VALUE:-}"
+STRIPE_WEBHOOK_SECRET_VALUE="${STRIPE_WEBHOOK_SECRET_VALUE:-}"
 
 # ---------- Azure login context ----------
 az account set --subscription "$SUBSCRIPTION_ID"
@@ -40,7 +43,7 @@ az account set --subscription "$SUBSCRIPTION_ID"
 # ---------- 1) Resource Group ----------
 az group create \
   --name "$RG_NAME" \
-  --location "$LOCATION"
+  --location "$RG_LOCATION"
 
 # ---------- 2) Linux App Service Plan ----------
 az appservice plan create \
@@ -109,6 +112,9 @@ az webapp config appsettings set \
   --name "$BACKEND_APP_NAME" \
   --settings \
     NODE_ENV="production" \
+    SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
+    MONGODB_URI="$MONGODB_URI_VALUE" \
+    JWT_SECRET="$JWT_SECRET_VALUE" \
     FRONTEND_URL="$FRONTEND_URL" \
     CORS_ORIGIN="$FRONTEND_URL" \
     AI_SERVICE_URL="$AI_SERVICE_URL" \
@@ -118,7 +124,10 @@ az webapp config appsettings set \
     AZURE_STORAGE_CONTAINER_AUDIO="$STORAGE_CONTAINER_NAME" \
     AZURE_STORAGE_CONTAINER_REPORTS="$STORAGE_CONTAINER_NAME" \
     AZURE_STORAGE_CONTAINER_PATIENT_FILES="$STORAGE_CONTAINER_NAME" \
-    STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET_VALUE"
+    STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY_VALUE" \
+    STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET_VALUE" \
+    STRIPE_SUCCESS_URL="${FRONTEND_URL}/subscription/success" \
+    STRIPE_CANCEL_URL="${FRONTEND_URL}/subscription/cancel"
 
 # Enable WebSockets explicitly for Socket.IO.
 az webapp config set \
@@ -138,10 +147,14 @@ az webapp config appsettings set \
   --name "$AI_APP_NAME" \
   --settings \
     NODE_ENV="production" \
+    SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
     BACKEND_URL="$BACKEND_URL" \
     INTERNAL_API_KEY="$INTERNAL_API_KEY_VALUE" \
     OPENAI_API_KEY="$OPENAI_API_KEY_VALUE" \
-    FFMPEG_PATH="ffmpeg"
+    FFMPEG_BIN="./bin" \
+    FFMPEG_PATH="./bin/ffmpeg" \
+    FFPROBE_PATH="./bin/ffprobe" \
+    STRICT_FFMPEG="true"
 
 # AI startup command.
 az webapp config set \
@@ -154,7 +167,8 @@ az webapp config appsettings set \
   --resource-group "$RG_NAME" \
   --name "$FRONTEND_APP_NAME" \
   --settings \
-    NODE_ENV="production"
+    NODE_ENV="production" \
+    SCM_DO_BUILD_DURING_DEPLOYMENT="false"
 
 # Frontend startup command (serves prebuilt dist via server.mjs).
 az webapp config set \
@@ -187,7 +201,10 @@ az webapp config set \
 #    az webapp deploy --resource-group "$RG_NAME" --name "$FRONTEND_APP_NAME" --src-path "frontend-release.zip" --type zip
 #
 # 4) Deploy backend and AI code separately (zip deploy or your CI/CD of choice).
+#    The AI release must contain Linux executable files at bin/ffmpeg and
+#    bin/ffprobe. Do not include ai-service/tools/ffmpeg/ffmpeg.exe.
 #
 # Notes:
-# - Do not store real secret values in this script in source control.
+# - Export required *_VALUE variables in your shell before running this script.
+# - Do not store real secret values in this script or shell history.
 # - Prefer using Azure Key Vault + reference settings for production secrets.
