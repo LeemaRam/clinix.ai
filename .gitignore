@@ -23,6 +23,7 @@ backend-*-release/
 backend-prebuilt-release/
 frontend-release/
 ai-service/bin/
+ai-service/tools/ffmpeg/
 
 # Python
 __pycache__/
