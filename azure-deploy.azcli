@@ -9,7 +9,7 @@ set -euo pipefail
 # documents the manual ZIP deployment workflow below.
 
 # ---------- Editable variables ----------
-SUBSCRIPTION_ID="d197631d-3220-48bc-b46f-fa978830ac9e"
+SUBSCRIPTION_ID=""
 RG_NAME="clinixai-rg"
 RG_LOCATION="eastus"
 LOCATION="southeastasia"
